@@ -14,11 +14,15 @@
   - [Architecture Diagram](#architecture-diagram)
 - [Example: Triage Blueprint](#example-triage-blueprint)
   - [OpenAI-Compatible Endpoint](#openai-compatible-endpoint)
+- [Blueprints](#blueprints)
+  - [What are Blueprints?](#what-are-blueprints)
+  - [Creating a Blueprint](#creating-a-blueprint)
 - [Getting Started](#getting-started)
   - [Installation](#installation)
   - [Running with UV and Python](#running-with-uv-and-python)
   - [Deployment with Docker Compose](#deployment-with-docker-compose)
 - [Further Documentation](#further-documentation)
+- [TODO](#todo)
 - [License](#license)
 
 ---
@@ -79,6 +83,54 @@ Your Triage Blueprint ensures that messages are routed to the right tools or age
 
 ---
 
+## Blueprints
+
+### What are Blueprints?
+
+**Blueprints** are Python modules that integrate OpenAI Swarm agents with MCP services through predefined metadata. They serve as configuration scripts that define how agents interact with various MCP servers and tools, ensuring consistent and automated setup and validation.
+
+Each Blueprint contains an `EXAMPLE_METADATA` dictionary that outlines:
+- **Title**: A human-readable name for the blueprint.
+- **Description**: A brief overview of what the blueprint does.
+- **Required MCP Servers**: A list of MCP servers that must be configured for the blueprint to function.
+- **Environment Variables**: Necessary environment variables for the blueprint.
+- **Default Arguments**: Command-line arguments or configurations needed by MCP servers.
+
+### Creating a Blueprint
+
+To create a new Blueprint:
+1. **Directory Structure**:  
+   Create a new directory within the `./blueprints/` folder named after your blueprint.
+   
+   Example:
+   ```
+   ./blueprints/my_custom_blueprint/
+   ```
+   
+2. **Blueprint Module**:  
+   Inside your blueprint directory, create a Python file named `blueprint_{your_blueprint_name}.py`.
+   
+   Example:
+   ```python
+   # ./blueprints/my_custom_blueprint/blueprint_my_custom_blueprint.py
+   
+   EXAMPLE_METADATA = {
+       "title": "My Custom Blueprint",
+       "description": "Integrates custom tools with the agent.",
+       "required_mcp_servers": ["custom_server"],
+       "env_vars": ["CUSTOM_ENV_VAR"],
+       "default_args": "--custom-arg1 value1 --custom-arg2 value2"
+   }
+   ```
+   
+3. **Implementing Functionality**:  
+   Define the necessary logic and tools within your blueprint module to interact with MCP servers as specified in the metadata.
+   
+4. **Validation**:  
+   Ensure that your `EXAMPLE_METADATA` is a valid dictionary and includes all required fields to prevent the blueprint from being skipped during discovery.
+
+---
+
 ## Getting Started
 
 ### Installation
@@ -88,13 +140,13 @@ Your Triage Blueprint ensures that messages are routed to the right tools or age
    git clone https://github.com/matthewhand/open-swarm-mcp.git
    cd open-swarm-mcp
    ```
-
+   
 2. **Install Dependencies**  
    ```bash
    # using uv, get it here => https://docs.astral.sh/uv/
    uv sync
    ```
-
+   
 3. **Setup Environment**  
    - Copy `.env.example` to `.env` and populate it with your API keys or tokens.
    - Edit `mcp_server_config.json` (in `src/open_swarm_mcp`) to reference your MCP servers and tools.
@@ -223,4 +275,4 @@ Open Swarm MCP is licensed under the MIT License. See the [LICENSE](LICENSE) fil
 
 ---
 
-*Thank you for choosing Open Swarm MCP. If you have any questions, issues, or suggestions, feel free to open an issue or contribute a pull request on our [GitHub repository](https://github.com/matthewhand/open-swarm-mcp).* 
+*Thank you for choosing Open Swarm MCP. If you have any questions, issues, or suggestions, feel free to open an issue or contribute a pull request on our [GitHub repository](https://github.com/matthewhand/open-swarm-mcp).*

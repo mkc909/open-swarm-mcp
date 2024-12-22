@@ -6,10 +6,13 @@ import json
 import logging
 import os
 import sys
-import importlib.util
-from typing import Any, Dict, List, Optional
+import random  # For delay in REST/MCP modes
+import shlex    # For splitting command-line arguments
 
 from dotenv import load_dotenv
+
+# Import typing annotations
+from typing import Any, Dict, List, Optional
 
 # Add the project root to sys.path
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -34,9 +37,11 @@ try:
         validate_api_keys,
         are_required_mcp_servers_running,
     )
+    from open_swarm_mcp.config.blueprint_discovery import discover_blueprints
+    from open_swarm_mcp.config.blueprint_selection import prompt_user_to_select_blueprint
     from open_swarm_mcp.modes.cli_mode import run_cli_mode
     from open_swarm_mcp.modes.rest_mode import run_rest_mode
-    # from open_swarm_mcp.modes.mcp_host_mode import run_mcp_host_mode
+    # from open_swarm_mcp.modes.mcp_host_mode import run_mcp_host_mode  # Uncomment when implemented
     from open_swarm_mcp.agent.agent_builder import build_agent_with_mcp_tools
     from open_swarm_mcp.utils.color_utils import color_text, initialize_colorama
     logging.debug("Successfully imported custom modules")
@@ -64,6 +69,13 @@ def parse_arguments() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(description="Run Open Swarm MCP in various modes.")
     parser.add_argument(
+        "--mode",
+        type=str,
+        choices=["cli", "rest", "mcp-service"],
+        default="cli",
+        help="Select the mode to run the MCP (cli, rest, mcp-service). Default is 'cli'."
+    )
+    parser.add_argument(
         "--config",
         type=str,
         default=os.path.join(project_root, "mcp_server_config.json"),
@@ -72,28 +84,18 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--llm-provider",
         type=str,
-        default=None,
         choices=list(LLM_PROVIDER_API_KEY_MAP.keys()),
-        help="Override the LLM provider (e.g., 'openai', 'ollama')."
+        help="Override the LLM provider specified in the config."
     )
     parser.add_argument(
         "--llm-model",
         type=str,
-        default=None,
-        help="Override the LLM model name."
+        help="Override the LLM model specified in the config."
     )
     parser.add_argument(
         "--temperature",
         type=float,
-        default=None,
-        help="Override the LLM temperature setting."
-    )
-    parser.add_argument(
-        "--mode",
-        type=str,
-        default="cli",
-        choices=["cli", "rest", "mcp-service"],
-        help="Specify the operational mode: 'cli', 'rest', or 'mcp-service'."
+        help="Override the LLM temperature specified in the config."
     )
     parser.add_argument(
         "--blueprint",
@@ -105,82 +107,14 @@ def parse_arguments() -> argparse.Namespace:
         action='store_true',
         help="Re-run the setup wizard regardless of existing configuration."
     )
-    args = parser.parse_args()
-    logger.debug(f"Parsed arguments: {args}")
-    return args
-
-def discover_blueprints(blueprints_path: str) -> Dict[str, Dict[str, Any]]:
-    """
-    Discover all blueprint modules in the given directory and extract their metadata.
-
-    Args:
-        blueprints_path (str): Path to the blueprints directory.
-
-    Returns:
-        Dict[str, Dict[str, Any]]: Mapping of 'blueprint_name' to their metadata.
-    """
-    blueprints_metadata = {}
-    logger.debug(f"Starting discovery of blueprints in '{blueprints_path}'")
-
-    if not os.path.isdir(blueprints_path):
-        logger.error(f"Blueprints directory not found: {blueprints_path}")
-        return blueprints_metadata
-
-    # Iterate over blueprint directories
-    for blueprint_dir in os.listdir(blueprints_path):
-        full_dir_path = os.path.join(blueprints_path, blueprint_dir)
-        if os.path.isdir(full_dir_path):
-            blueprint_module_filename = f"blueprint_{blueprint_dir}.py"
-            blueprint_module_path = os.path.join(full_dir_path, blueprint_module_filename)
-
-            if os.path.isfile(blueprint_module_path):
-                logger.debug(f"Found blueprint module: {blueprint_module_path}")
-                try:
-                    # Dynamically load the blueprint module
-                    spec = importlib.util.spec_from_file_location(
-                        f"blueprints.{blueprint_dir}.blueprint_{blueprint_dir}",
-                        blueprint_module_path
-                    )
-                    if spec and spec.loader:
-                        module = importlib.util.module_from_spec(spec)
-                        spec.loader.exec_module(module)
-                        metadata = getattr(module, "EXAMPLE_METADATA", None)
-                        if metadata:
-                            blueprints_metadata[blueprint_dir] = metadata
-                            logger.info(f"Discovered blueprint '{blueprint_dir}': {metadata}")
-                        else:
-                            logger.warning(f"No EXAMPLE_METADATA found in {blueprint_module_path}")
-                    else:
-                        logger.warning(f"Could not load module spec for {blueprint_module_path}")
-                except Exception as e:
-                    logger.error(f"Error loading blueprint '{blueprint_dir}': {e}")
-            else:
-                logger.warning(f"Blueprint module '{blueprint_module_filename}' not found in '{blueprint_dir}'")
-        else:
-            logger.debug(f"Skipping non-directory item in blueprints: '{blueprint_dir}'")
-
-    logger.debug(f"Blueprint discovery completed. Total blueprints found: {len(blueprints_metadata)}")
-    return blueprints_metadata
-
-def discover_blueprints_metadata() -> Dict[str, Dict[str, Any]]:
-    """
-    Discover all blueprints and collect their metadata.
-
-    Returns:
-        Dict[str, Dict[str, Any]]: Mapping of 'blueprint_name' to their metadata.
-    """
-    blueprints_path = os.path.join(project_root, "blueprints")
-    logger.debug(f"Blueprints path set to '{blueprints_path}'")
-    blueprints_metadata = discover_blueprints(blueprints_path)
-    logger.debug(f"Discovered blueprints metadata: {blueprints_metadata}")
-    return blueprints_metadata
+    return parser.parse_args()
 
 def merge_llm_config(config: Dict[str, Any], args: argparse.Namespace) -> Dict[str, Any]:
     """
-    Merge LLM overrides from command-line arguments into the configuration.
+    Merge LLM configuration from command-line arguments into the existing config.
 
     Args:
-        config (Dict[str, Any]): Original configuration.
+        config (Dict[str, Any]): Existing configuration dictionary.
         args (argparse.Namespace): Parsed command-line arguments.
 
     Returns:
@@ -258,7 +192,7 @@ async def configure_missing_mcp_servers(
                 user_env_value = input(prompt_env).strip()
                 if user_env_value:
                     server_config.setdefault("env", {})[env_var] = user_env_value
-                    logger.debug(f"Set environment variable '{env_var}' for MCP server '{server}': {user_env_value}")
+                    # Suggest adding to .env file
                     add_to_env = input(f"Would you like to add '{env_var}' to your .env file? (yes/no): ").strip().lower()
                     if add_to_env in ['yes', 'y']:
                         try:
@@ -269,7 +203,6 @@ async def configure_missing_mcp_servers(
                         except Exception as e:
                             logger.error(f"Failed to write to .env file: {e}")
                             print(color_text(f"Failed to write to .env file. Please add '{env_var}' manually.", "red"))
-
         mcp_servers[server] = server_config
         logger.debug(f"Updated configuration for MCP server '{server}': {server_config}")
 
@@ -373,55 +306,12 @@ async def run_blueprint_mode(
         logger.debug("Running in CLI mode")
         await run_cli_mode(agent, colorama_available=True)
 
-async def handle_blueprint_selection(
-    config: Dict[str, Any],
-    blueprints_metadata: Dict[str, Dict[str, Any]],
-    args: argparse.Namespace
-) -> Optional[str]:
+def handle_shutdown():
     """
-    Handle the blueprint selection process in CLI mode.
-
-    Args:
-        config (Dict[str, Any]): Current configuration dictionary.
-        blueprints_metadata (Dict[str, Dict[str, Any]]): Metadata of all discovered blueprints.
-        args (argparse.Namespace): Parsed command-line arguments.
-
-    Returns:
-        Optional[str]: Selected blueprint name or "basic.default" if default is chosen.
+    Perform cleanup operations before shutdown.
     """
-    logger.debug("Handling blueprint selection")
-    available_blueprints = list(blueprints_metadata.keys())
-    if not available_blueprints:
-        logger.warning("No blueprints available. Using default blueprint.")
-        print(color_text("No blueprints available. Using default blueprint.", "yellow"))
-        return "basic.default"
-
-    print("Available Blueprints:")
-    for idx, bp in enumerate(available_blueprints, start=1):
-        metadata = blueprints_metadata[bp]
-        title = metadata.get('title', 'No Title')
-        description = metadata.get('description', 'No Description')
-        print(f"{idx}. {bp}: {title} - {description}")
-        logger.debug(f"Listed blueprint {idx}: {bp} - {title}")
-
-    while True:
-        try:
-            bp_choice_input = input("\nEnter the number of the blueprint you want to use (0 to use default): ")
-            logger.debug(f"User input for blueprint selection: '{bp_choice_input}'")
-            bp_choice = int(bp_choice_input)
-            if bp_choice == 0:
-                logger.info("User chose to use default blueprint 'basic.default'")
-                return "basic.default"  # Use the default blueprint
-            elif 1 <= bp_choice <= len(available_blueprints):
-                blueprint = available_blueprints[bp_choice - 1]
-                logger.info(f"User selected blueprint: '{blueprint}'")
-                return blueprint
-            else:
-                print(f"Please enter a number between 0 and {len(available_blueprints)}.")
-                logger.warning(f"User entered invalid blueprint number: {bp_choice}")
-        except ValueError:
-            print("Invalid input. Please enter a valid number.")
-            logger.warning("User entered non-integer value for blueprint selection")
+    logger.info("Shutting down Open Swarm MCP...")
+    # Add any cleanup operations here
 
 async def main():
     """
@@ -431,7 +321,7 @@ async def main():
     logger.debug("Starting main application")
     args = parse_arguments()
     logger.debug(f"Command-line arguments: {args}")
-    blueprints_metadata = discover_blueprints_metadata()
+    blueprints_metadata = discover_blueprints(os.path.join(project_root, "blueprints"))
     logger.debug(f"Discovered blueprints metadata: {blueprints_metadata}")
 
     # Handle configuration setup
@@ -507,16 +397,16 @@ async def main():
     elif args.mode == "cli":
         logger.debug("Operating in 'cli' mode")
         if not blueprint:
-            print(color_text("\nNo blueprint specified. Launching the setup wizard to select a blueprint.\n", "cyan"))
-            config = run_setup_wizard(args.config, blueprints_metadata)
-            blueprint = await handle_blueprint_selection(config, blueprints_metadata, args)
-            logger.debug(f"Selected blueprint after setup wizard: '{blueprint}'")
+            print(color_text("\nNo blueprint specified. Prompting to select a blueprint.\n", "cyan"))
+            blueprint = prompt_user_to_select_blueprint(blueprints_metadata)
+            logger.debug(f"Selected blueprint after selection prompt: '{blueprint}'")
 
         if blueprint:
             # Verify blueprint requirements
             blueprint_metadata = blueprints_metadata.get(blueprint, {})
             required_servers = blueprint_metadata.get("required_mcp_servers", [])
             logger.debug(f"Blueprint '{blueprint}' requires MCP servers: {required_servers}")
+
             all_running, missing_servers = are_required_mcp_servers_running(required_servers, config)
             logger.debug(f"Are all required MCP servers running? {all_running}")
 
@@ -540,25 +430,19 @@ async def main():
                     blueprint = None
 
         # Run CLI mode with or without blueprint
-        try:
-            logger.debug("Building agent for CLI mode")
-            agent = await build_agent_with_mcp_tools(config)
-            logger.info("Agent built successfully for CLI mode")
-            await run_cli_mode(agent, colorama_available=True)
-        except Exception as e:
-            logger.error(f"Fatal error: {e}")
-            print(color_text(f"Fatal error: {e}", "red"))
+        if blueprint:
+            try:
+                logger.debug("Building agent for CLI mode")
+                agent = await build_agent_with_mcp_tools(config)
+                logger.info("Agent built successfully for CLI mode")
+                await run_cli_mode(agent, colorama_available=True)
+            except Exception as e:
+                logger.error(f"Fatal error: {e}")
+                print(color_text(f"Fatal error: {e}", "red"))
 
     else:
         logger.error(f"Unsupported mode: {args.mode}")
         print(color_text(f"Unsupported mode: {args.mode}", "red"))
-
-def handle_shutdown():
-    """
-    Perform cleanup operations before shutdown.
-    """
-    logger.info("Shutting down Open Swarm MCP...")
-    # Add any cleanup operations here
 
 if __name__ == "__main__":
     try:

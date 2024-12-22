@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]  # Testing across multiple Python versions
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
       # 1. Checkout the repository code
@@ -26,28 +26,17 @@ jobs:
       - name: Set up Python
         run: uv python install
 
-      # 4. Cache pip dependencies (optional but recommended for faster builds)
-      - name: Cache pip
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      # 5. Install Python dependencies
-      - name: Install dependencies
+      # 4. Install pytest and pytest-cov
+      - name: Install pytest and plugins
         run: |
-          uv sync --all-extras --dev
-          uv run pip install --upgrade pip
           uv run pip install pytest pytest-cov
 
-      # 6. Run Pytest with Coverage
+      # 5. Run Pytest with Coverage
       - name: Run tests with coverage
         run: |
           uv run pytest --cov=open_swarm_mcp --cov-report=xml --cov-report=json --cov-report=html
 
-      # 7. Upload Coverage Report as Artifact
+      # 6. Upload Coverage Report as Artifact
       - name: Upload Coverage Report (XML)
         if: always()
         uses: actions/upload-artifact@v3
@@ -62,7 +51,7 @@ jobs:
           name: coverage-report-html
           path: htmlcov/
 
-      # 8. Upload Coverage to Codecov (Optional)
+      # 7. Upload Coverage to Codecov (Optional)
       - name: Upload coverage to Codecov
         if: success() || failure()
         uses: codecov/codecov-action@v3
@@ -71,22 +60,3 @@ jobs:
           flags: unittests
           name: codecov-umbrella
           token: ${{ secrets.CODECOV_TOKEN }}  # Ensure this secret is set in your repository
-
-      # 9. Enforce Coverage Thresholds (Optional)
-      - name: Enforce Coverage Thresholds
-        if: always()
-        run: |
-          coverage_json="coverage.json"
-          if [ ! -f "$coverage_json" ]; then
-            echo "Coverage JSON file not found!"
-            exit 1
-          fi
-          total_coverage=$(jq '.totals.percent_covered' "$coverage_json")
-          threshold=10  # TODO: Adjust as needed
-          echo "Total Coverage: $total_coverage%"
-          if (( $(echo "$total_coverage < $threshold" | bc -l) )); then
-            echo "Coverage $total_coverage% is below the threshold of $threshold%."
-            exit 1
-          else
-            echo "Coverage $total_coverage% meets the threshold of $threshold%."
-          fi

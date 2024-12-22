@@ -13,15 +13,19 @@ logger = setup_logger(__name__)
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-def run_setup_wizard(config_path: str, blueprints_metadata: Dict[str, Dict[str, Any]], selected_blueprint: Optional[str] = None) -> Dict[str, Any]:
+def run_setup_wizard(
+    config_path: str,
+    blueprints_metadata: Dict[str, Dict[str, Any]],
+    selected_blueprint: Optional[str] = None
+) -> Dict[str, Any]:
     """
-    Interactive setup wizard to configure LLM settings, MCP servers, and optionally run a blueprint.
-    
+    Interactive setup wizard to configure LLM settings, MCP servers, and optionally select a blueprint.
+
     Args:
         config_path (str): Path to the configuration file.
         blueprints_metadata (Dict[str, Dict[str, Any]]): Available blueprints metadata.
         selected_blueprint (Optional[str]): Specific blueprint to configure. If None, user selects interactively.
-    
+
     Returns:
         Dict[str, Any]: Updated configuration dictionary.
     """
@@ -182,10 +186,11 @@ def run_setup_wizard(config_path: str, blueprints_metadata: Dict[str, Dict[str, 
                             safe_config['mcpServers'][srv]['env'][env_var] = ""
                 json.dump(safe_config, f, indent=4)
             print(color_text("\nConfiguration has been saved successfully! Remember to set your API keys in the .env file.\n", "green"))
+            logger.info(f"Configuration saved to '{config_path}'")
         except Exception as e:
-            logger.error("Failed to save configuration: %s", str(e))
+            logger.error(f"Failed to save configuration: {e}")
             print(color_text("Failed to save configuration. Please check permissions.", "red"))
     else:
         print("\nConfiguration not saved. It will need to be reconfigured next time.\n")
-
+    
     return config

@@ -1,3 +1,5 @@
+# blueprints/sqlite_and_search/blueprint_sqlite_and_search.py
+
 """
 SQLite and Search Integration Example
 
@@ -8,6 +10,13 @@ For more information, visit: https://github.com/matthewhand/open-swarm-mcp
 """
 
 from swarm import Swarm, Agent
+
+EXAMPLE_METADATA = {
+    "title": "SQLite and Search Integration",
+    "description": "Integrates SQLite database querying with search capabilities via MCP servers.",
+    "required_mcp_servers": ["sqlite"],
+    "env_vars": ["SQLITE_DB_PATH"]
+}
 
 def run_example():
     client = Swarm()

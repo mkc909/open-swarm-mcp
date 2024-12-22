@@ -91,10 +91,8 @@ Your Triage Blueprint ensures that messages are routed to the right tools or age
 
 2. **Install Dependencies**  
    ```bash
-   # using uv
+   # using uv, get it here => https://docs.astral.sh/uv/
    uv sync
-   # or using pip directly
-   pip install -r requirements.txt
    ```
 
 3. **Setup Environment**  
@@ -140,7 +138,11 @@ For detailed design information, sequence diagrams, and project layout reference
 - **Advanced Topics**: Multi-agent collaboration, custom blueprint creation, and scaling strategies.
 
 ---
+
 ## TODO
+- [x] **Setup Pytest for Blueprints**
+    - Implement and configure pytest to ensure all blueprint modules are correctly discovered and loaded.
+
 - [ ] MCP Host Mode
     - [ ] Implement `run_mcp_host_mode` functionality for hosting MCP tools.
     - [ ] Add configuration support for running multiple host agents simultaneously.
@@ -213,7 +215,7 @@ For detailed design information, sequence diagrams, and project layout reference
     - [ ] Integrate with third-party services (e.g., Slack, Discord).
     - [ ] Explore adding support for non-LLM backends (e.g., traditional ML models).
 
---- 
+---
 
 ## License
 
@@ -222,4 +224,3 @@ Open Swarm MCP is licensed under the MIT License. See the [LICENSE](LICENSE) fil
 ---
 
 *Thank you for choosing Open Swarm MCP. If you have any questions, issues, or suggestions, feel free to open an issue or contribute a pull request on our [GitHub repository](https://github.com/matthewhand/open-swarm-mcp).* 
-

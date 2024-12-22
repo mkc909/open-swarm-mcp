@@ -71,9 +71,9 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--mode",
         type=str,
-        choices=["cli", "rest", "mcp-service"],
+        choices=["cli", "rest", "mcp-host"],
         default="cli",
-        help="Select the mode to run the MCP (cli, rest, mcp-service). Default is 'cli'."
+        help="Select the mode to run the MCP (cli, rest, mcp-host). Default is 'cli'."
     )
     parser.add_argument(
         "--config",
@@ -288,7 +288,7 @@ async def run_blueprint_mode(
 
     try:
         logger.debug("Building agent with MCP tools")
-        agent = await build_agent_with_mcp_tools(config)
+        agent = build_agent_with_mcp_tools(config)  # Synchronously build the agent
         logger.info("Agent built successfully with MCP tools")
     except Exception as e:
         logger.error(f"Failed to build agent: {e}")
@@ -298,7 +298,7 @@ async def run_blueprint_mode(
     if args.mode == "rest":
         logger.debug("Running in REST mode")
         await run_rest_mode(agent)
-    elif args.mode == "mcp-service":
+    elif args.mode == "mcp-host":
         # await run_mcp_host_mode(agent)
         logger.error("MCP host mode is not implemented yet")
         print(color_text("MCP host mode is not implemented yet", "red"))
@@ -382,7 +382,7 @@ async def main():
     logger.debug(f"Blueprint specified via args or environment: '{blueprint}'")
 
     # Handle different operational modes
-    if args.mode in ["rest", "mcp-service"]:
+    if args.mode in ["rest", "mcp-host"]:
         logger.debug(f"Operating in '{args.mode}' mode")
         if not blueprint:
             logger.error("No blueprint specified. Use --blueprint or set SWARM_BLUEPRINT environment variable.")
@@ -433,9 +433,9 @@ async def main():
         if blueprint:
             try:
                 logger.debug("Building agent for CLI mode")
-                agent = await build_agent_with_mcp_tools(config)
+                agent = build_agent_with_mcp_tools(config)  # Synchronously build the agent
                 logger.info("Agent built successfully for CLI mode")
-                await run_cli_mode(agent, colorama_available=True)
+                await run_cli_mode(agent, colorama_available=True)  # Ensure run_cli_mode is async if being awaited
             except Exception as e:
                 logger.error(f"Fatal error: {e}")
                 print(color_text(f"Fatal error: {e}", "red"))

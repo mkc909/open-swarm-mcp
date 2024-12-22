@@ -2,7 +2,7 @@
 
 <img src="assets/images/logo.webp" alt="Project Logo" width="256"/>
 
-**Open Swarm MCP** is a modular framework designed to integrate [OpenAI Swarm](https://github.com/matthewhand/open-swarm) agents with [Anthropic’s Message Context Protocol (MCP)](https://anthropic.com/mcp-protocol), enabling dynamic agent behavior across multiple operational modes. Whether you’re orchestrating a simple conversational workflow or building teams of agents that can hand off tasks between each other, Open Swarm MCP provides the flexibility and extensibility to power your project.
+**Open Swarm MCP** is a modular framework designed to integrate [OpenAI Swarm](https://github.com/openai/swarm) agents with [Anthropic’s Message Context Protocol (MCP)](https://github.com/modelcontextprotocol), enabling dynamic agent behavior across multiple operational modes. Whether you’re orchestrating a simple conversational workflow or building teams of agents that can hand off tasks between each other, Open Swarm MCP provides the flexibility and extensibility to power your project.
 
 ---
 
@@ -59,7 +59,7 @@ This framework is suitable for:
 
 ### Architecture Diagram
 
-*(A high-level architecture diagram will be added here, illustrating how Swarm agents, MCP servers, and your custom tools interact. Refer to the [Development Documentation](docs/DEVELOPMENT.md) for in-depth sequence diagrams and design details.)*
+*(A high-level architecture diagram will be added here, illustrating how Swarm agents, MCP servers, and your custom tools interact. Refer to the [Development Documentation](DEVELOPMENT.md) for in-depth sequence diagrams and design details.)*
 
 ---
 

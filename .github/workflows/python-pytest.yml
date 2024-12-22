@@ -20,16 +20,16 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v4
 
-      - name: Set up Python environment
-        run: uv python install
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Create virtual environment
+        run: uv venv
 
       - name: Install dependencies
         run: |
-          uv sync --all-extras --dev
-          uv run pip install pytest pytest-cov
-
-      - name: Debug virtual environment
-        run: uv run which pytest
+          uv pip install --system -e ".[dev]"
+          uv pip install --system pytest pytest-cov
 
       - name: Run tests with coverage
         run: |
@@ -41,12 +41,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: coverage-report-xml
+          name: coverage-report-xml-${{ matrix.python-version }}
           path: coverage.xml
 
       - name: Upload Coverage Report (HTML)
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: coverage-report-html
+          name: coverage-report-html-${{ matrix.python-version }}
           path: htmlcov/

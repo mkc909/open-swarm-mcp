@@ -1,0 +1,32 @@
+[project]
+name = "open-swarm-mcp"
+version = "0.1.0"
+description = "A tool for orchestrating Swarm MCP using both CLI and API."
+readme = "README.md"
+authors = [
+    { name = "Matthew Hand", email = "matthewhandau@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "flask",
+    "apispec",
+    "apispec-webframeworks",
+    "marshmallow",
+    "swarm @ git+https://github.com/openai/swarm.git",
+    "mcp",
+    "python-dotenv>=1.0.1",
+    "colorama>=0.4.6",
+]
+
+[project.scripts]
+open-swarm-mcp = "open_swarm_mcp:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.uv.workspace]
+members = ["open-swarm-mcp"]

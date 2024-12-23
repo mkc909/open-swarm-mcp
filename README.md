@@ -144,6 +144,7 @@ To create a new Blueprint:
 2. **Install Dependencies**  
    ```bash
    # using uv, get it here => https://docs.astral.sh/uv/
+   uv python install
    uv sync
    ```
    
@@ -154,28 +155,27 @@ To create a new Blueprint:
 ### Running with UV and Python
 
 ```bash
-# Basic CLI usage
-uv run src/open_swarm_mcp/main.py --mode cli --config src/open_swarm_mcp/mcp_server_config.json
+# Basic CLI usage (default mode, setup wizard to help generate mcp_server_config.json)
+uv run src/open_swarm_mcp/main.py 
 
-# Expose as REST endpoint
-uv run src/open_swarm_mcp/main.py --mode rest --config src/open_swarm_mcp/mcp_server_config.json
+# Example blueprints
+## Basic CLI usage 
+uv run src/open_swarm_mcp/main.py --blueprint path_e_tech
 
-# Run as an MCP-compliant service
-uv run src/open_swarm_mcp/main.py --mode mcp-service --config src/open_swarm_mcp/mcp_server_config.json
+## Expose as REST endpoint
+uv run src/open_swarm_mcp/main.py --mode rest --blueprint sqlite_and_search --config mcp_server_config.json
+
+## Run as an MCP-compliant host
+uv run src/open_swarm_mcp/main.py --mode mcp-host --blueprint filesystem --config mcp_server_config.json
 ```
 
-### Deployment with Docker Compose
+### (TODO) Deployment with Docker Compose
 
 For production-grade deployments, **Docker Compose** simplifies running Open Swarm MCP alongside any required MCP servers or databases:
 
 ```bash
 docker-compose up -d
 ```
-
-A sample `docker-compose.yml` might define:
-- **open-swarm-mcp** service  
-- **MCP servers** (e.g., `sqlite` server, `search` server)  
-- **Reverse proxy** for SSL termination
 
 Check our [Deployment Documentation](docs/DEVELOPMENT.md#docker-deployment) for an example `docker-compose.yml` file.
 

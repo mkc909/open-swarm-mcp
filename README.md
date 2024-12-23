@@ -157,15 +157,20 @@ To create a new Blueprint:
 ```bash
 # Basic CLI usage (default mode, setup wizard to help generate mcp_server_config.json)
 uv run src/open_swarm_mcp/main.py 
+```
 
-# Example blueprints
-## Basic CLI usage 
+### Example Blueprints
+```bash
+# Basic CLI usage 
 uv run src/open_swarm_mcp/main.py --blueprint path_e_tech
 
-## Expose as REST endpoint
+# ... or run as standalone (bypasses setup wizard)
+uv run blueprints/path_e_tech/blueprint_path_e_tech.py
+
+# Expose as REST endpoint
 uv run src/open_swarm_mcp/main.py --mode rest --blueprint sqlite_and_search --config mcp_server_config.json
 
-## Run as an MCP-compliant host
+# Run as an MCP-compliant host
 uv run src/open_swarm_mcp/main.py --mode mcp-host --blueprint filesystem --config mcp_server_config.json
 ```
 

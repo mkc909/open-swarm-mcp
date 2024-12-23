@@ -13,6 +13,11 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 from open_swarm_mcp.blueprint_base import BlueprintBase
 
+pytestmark = pytest.mark.skipif(
+    os.getenv('CI') == 'true',
+    reason="Skipping blueprint_default tests in CI environment due to missing OpenAI API key"
+)
+
 @pytest.fixture
 def temporary_blueprints_dir(tmp_path):
     """
@@ -43,6 +48,7 @@ def temporary_blueprints_dir(tmp_path):
 
     return temp_blueprints
 
+# @pytest.mark.skipif(os.getenv('CI') == 'true', reason="Skipping blueprint_default tests in CI environment due to missing OpenAI API key")
 @patch('swarm.Swarm.run')
 def test_execute_echo(mock_run, temporary_blueprints_dir):
     """

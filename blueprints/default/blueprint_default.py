@@ -7,8 +7,21 @@ This blueprint provides a simple agent that echoes user inputs.
 """
 
 from typing import Dict, Any, Optional
-from swarm import Agent
 from open_swarm_mcp.blueprint_base import BlueprintBase
+import logging
+import random
+from typing import Dict, Any, Optional, List, Callable, Union
+
+from swarm import Agent, Swarm
+from swarm.repl import run_demo_loop
+
+# Configure logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+stream_handler = logging.StreamHandler()
+formatter = logging.Formatter("[%(levelname)s] %(message)s")
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
 class DefaultBlueprint(BlueprintBase):
     """
@@ -16,13 +29,17 @@ class DefaultBlueprint(BlueprintBase):
     """
 
     def __init__(self):
-        super().__init__()
+        # super().__init__()
         self._metadata = {
             "title": "Default Simple Agent",
             "description": "A simple agent that echoes user inputs.",
             "required_mcp_servers": [],
             "env_vars": []
         }
+
+        self.client = Swarm()
+        print("Starting Swarm 🐝")
+
 
     @property
     def metadata(self) -> Dict[str, Any]:
@@ -43,6 +60,12 @@ Please repeat back what the user says.""",
             # tool_choice=None,
             parallel_tool_calls=True
         )
+
+    def get_agents(self) -> Dict[str, Agent]:
+        """
+        Satisfies BlueprintBase requirement to return the agent dictionary.
+        """
+        return {"DefaultAgent": self.create_agent()}
 
     def execute(self, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
@@ -71,6 +94,13 @@ Please repeat back what the user says.""",
             "messages": response.messages,
             "metadata": self.metadata
         }
+
+    def interactive_mode(self) -> None:
+         """
+         Use Swarm's REPL loop, starting with a random agent.
+         """
+         logger.info("Launching interactive mode with a default agent.")
+         run_demo_loop(starting_agent=self.create_agent())
 
 # Entry point for standalone execution
 if __name__ == "__main__":

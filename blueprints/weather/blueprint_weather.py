@@ -1,27 +1,28 @@
-# blueprints/default/blueprint_default.py
+# blueprints/weather/blueprint_weather.py
 
 """
-Default Simple Agent Blueprint
+Weather Information Blueprint
 
-This blueprint provides a simple agent that echoes user inputs.
+This blueprint provides weather-related information using the Open Swarm MCP framework.
 """
 
+import os
 from typing import Dict, Any, Optional
 from swarm import Agent
 from open_swarm_mcp.blueprint_base import BlueprintBase
 
-class DefaultBlueprint(BlueprintBase):
+class WeatherBlueprint(BlueprintBase):
     """
-    Default Simple Agent Blueprint Implementation.
+    Weather Information Blueprint Implementation.
     """
 
     def __init__(self):
         super().__init__()
         self._metadata = {
-            "title": "Default Simple Agent",
-            "description": "A simple agent that echoes user inputs.",
-            "required_mcp_servers": [],
-            "env_vars": []
+            "title": "Weather Information",
+            "description": "Provides current weather information based on user queries.",
+            "required_mcp_servers": ["weather"],
+            "env_vars": ["WEATHER_API_KEY"]
         }
 
     @property
@@ -30,17 +31,18 @@ class DefaultBlueprint(BlueprintBase):
 
     def validate_env_vars(self) -> None:
         """Validate that required environment variables are set."""
-        # This blueprint does not require any environment variables.
-        pass
+        api_key = os.getenv("WEATHER_API_KEY")
+        if not api_key:
+            raise ValueError("Environment variable WEATHER_API_KEY is not set.")
 
     def create_agent(self) -> Agent:
-        """Create and configure the default simple agent."""
+        """Create and configure the weather information agent."""
         return Agent(
-            name="DefaultAgent",
-            instructions="""You are a simple agent that echoes user inputs.
-Please repeat back what the user says.""",
+            name="WeatherAgent",
+            instructions="""You can provide current weather information based on user queries.
+Please ensure that all operations are within the allowed parameters.""",
             functions=[],
-            # tool_choice=None,
+            tool_choice=None,
             parallel_tool_calls=True
         )
 
@@ -60,7 +62,7 @@ Please repeat back what the user says.""",
         # Allow for message override from framework config
         default_message = {
             "role": "user",
-            "content": "Hello, how are you?"
+            "content": "What's the weather like today in New York?"
         }
         messages = config.get('messages', [default_message]) if config else [default_message]
 
@@ -74,8 +76,8 @@ Please repeat back what the user says.""",
 
 # Entry point for standalone execution
 if __name__ == "__main__":
-    blueprint = DefaultBlueprint()
+    blueprint = WeatherBlueprint()
     try:
         blueprint.interactive_mode()
     except Exception as e:
-        print(f"Error running Default Blueprint: {e}")
+        print(f"Error running Weather Blueprint: {e}")

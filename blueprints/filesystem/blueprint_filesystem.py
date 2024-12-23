@@ -1,9 +1,9 @@
-# blueprints/sqlite_and_search/blueprint_sqlite_and_search.py
+# blueprints/filesystem/blueprint_filesystem.py
 
 """
-SQLite and Search Integration Blueprint
+Filesystem Integration Blueprint
 
-This blueprint integrates SQLite database querying with search capabilities via MCP servers.
+This blueprint demonstrates filesystem operations using the Open Swarm MCP framework.
 """
 
 import os
@@ -11,18 +11,18 @@ from typing import Dict, Any, Optional
 from swarm import Agent
 from open_swarm_mcp.blueprint_base import BlueprintBase
 
-class SQLiteSearchBlueprint(BlueprintBase):
+class FilesystemBlueprint(BlueprintBase):
     """
-    SQLite and Search Integration Blueprint Implementation.
+    Filesystem Integration Blueprint Implementation.
     """
 
     def __init__(self):
         super().__init__()
         self._metadata = {
-            "title": "SQLite and Search Integration",
-            "description": "Integrates SQLite database querying with search capabilities via MCP servers.",
-            "required_mcp_servers": ["sqlite"],
-            "env_vars": ["SQLITE_DB_PATH"]
+            "title": "Filesystem Integration",
+            "description": "Demonstrates filesystem operations with access to specified directories via MCP servers.",
+            "required_mcp_servers": ["filesystem"],
+            "env_vars": ["ALLOWED_PATHS"]
         }
 
     @property
@@ -31,22 +31,26 @@ class SQLiteSearchBlueprint(BlueprintBase):
 
     def validate_env_vars(self) -> None:
         """Validate that required environment variables are set and directories exist."""
-        sqlite_db_path = os.getenv("SQLITE_DB_PATH")
-        if not sqlite_db_path:
-            raise ValueError("Environment variable SQLITE_DB_PATH is not set.")
+        allowed_paths = os.getenv("ALLOWED_PATHS")
+        if not allowed_paths:
+            raise ValueError("Environment variable ALLOWED_PATHS is not set.")
 
-        if not os.path.exists(sqlite_db_path):
-            raise ValueError(f"SQLite database file does not exist at: {sqlite_db_path}")
+        for path in allowed_paths.split(","):
+            path = path.strip()
+            if not os.path.exists(path):
+                raise ValueError(f"Directory does not exist: {path}")
 
     def create_agent(self) -> Agent:
-        """Create and configure the SQLite and Search agent."""
+        """Create and configure the filesystem agent."""
         return Agent(
-            name="SQLiteSearchAgent",
-            instructions="""You can query the SQLite database and perform searches.
-Please ensure that all operations are within the allowed parameters.""",
-            functions=[],
-            tool_choice=None,
-            parallel_tool_calls=True
+            name="FilesystemAgent",
+            instructions="""You can perform filesystem operations in the allowed directories.
+Available operations include:
+- Listing directory contents
+- Reading file contents
+- Creating new files
+- Moving files between allowed directories
+Please ensure all operations stay within the allowed paths."""
         )
 
     def execute(self, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -65,7 +69,7 @@ Please ensure that all operations are within the allowed parameters.""",
         # Allow for message override from framework config
         default_message = {
             "role": "user",
-            "content": "Find all users in the database."
+            "content": "List all PDF files in the allowed directories."
         }
         messages = config.get('messages', [default_message]) if config else [default_message]
 
@@ -79,8 +83,8 @@ Please ensure that all operations are within the allowed parameters.""",
 
 # Entry point for standalone execution
 if __name__ == "__main__":
-    blueprint = SQLiteSearchBlueprint()
+    blueprint = FilesystemBlueprint()
     try:
         blueprint.interactive_mode()
     except Exception as e:
-        print(f"Error running SQLite and Search Blueprint: {e}")
+        print(f"Error running Filesystem Blueprint: {e}")

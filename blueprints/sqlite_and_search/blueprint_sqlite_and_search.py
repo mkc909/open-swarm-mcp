@@ -45,7 +45,7 @@ class SQLiteSearchBlueprint(BlueprintBase):
             instructions="""You can query the SQLite database and perform searches.
 Please ensure that all operations are within the allowed parameters.""",
             functions=[],
-            tool_choice=None,
+            # tool_choice=None,
             parallel_tool_calls=True
         )
 

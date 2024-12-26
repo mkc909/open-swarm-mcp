@@ -1,59 +1,37 @@
-# src/open_swarm_mcp/modes/rest_mode.py
-
-from typing import Any, Dict
-from swarm import Agent, Swarm
-from open_swarm_mcp.utils.logger import setup_logger
+import logging
+import subprocess
+import sys
+import os
 from open_swarm_mcp.utils.color_utils import color_text
 
-logger = setup_logger(__name__)
+logger = logging.getLogger(__name__)
 
-async def run_rest_mode(agent: Agent):
+def run_rest_mode(agent):
     """
-    REST API mode for Open Swarm MCP.
-    
+    Launches the Django development server to serve REST endpoints.
+
     Args:
-        agent (Agent): Swarm agent to handle REST API requests.
+        agent: The agent object passed in by main.py, not actually used here.
     """
     try:
-        from fastapi import FastAPI
-        from fastapi.middleware.cors import CORSMiddleware
-        from pydantic import BaseModel
-        import uvicorn
+        logger.info("Launching Django server for REST mode...")
+        
+        # Retrieve host and port from environment variables, defaulting to 0.0.0.0:8000
+        host = os.getenv("HOST", "0.0.0.0")
+        port = os.getenv("PORT", "8000")
+        
+        logger.info(f"Using host '{host}' and port '{port}' for the Django server.")
+        print(color_text(f"Starting Django REST server on http://{host}:{port}", "cyan"))
 
-        app = FastAPI(title="Open Swarm MCP REST API")
-
-        # Configure CORS if needed
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
+        # Use subprocess to run the Django server with the specified host and port
+        subprocess.run(
+            [sys.executable, "manage.py", "runserver", f"{host}:{port}"],
+            check=True
         )
 
-        class Query(BaseModel):
-            query: str
-
-        @app.post("/query")
-        async def handle_query(query: Query):
-            response = await Swarm().run(
-                agent=agent,
-                messages=[{"role": "user", "content": query.query}],
-                stream=False,
-            )
-            result = next(
-                (message.get("content") for message in response.messages if message["role"] == "assistant"),
-                "No response."
-            )
-            return {"response": result}
-
-        logger.info("Starting REST API server on http://0.0.0.0:8000")
-        print(color_text("Starting REST API server on http://0.0.0.0:8000", "cyan"))
-        uvicorn.run(app, host="0.0.0.0", port=8000)
-
-    except ImportError as e:
-        logger.error(f"Failed to import REST mode dependencies: {e}")
-        print(f"Failed to import REST mode dependencies: {e}")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to launch Django server: {e}")
+        print(color_text(f"Failed to launch Django server: {e}", "red"))
     except Exception as e:
-        logger.error(f"Error running REST mode: {e}")
-        print(f"Error running REST mode: {e}")
+        logger.error(f"Unexpected error in run_rest_mode: {e}", exc_info=True)
+        print(color_text(f"Unexpected error in run_rest_mode: {e}", "red"))

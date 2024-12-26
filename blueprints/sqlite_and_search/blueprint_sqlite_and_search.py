@@ -8,8 +8,17 @@ This blueprint integrates SQLite database querying with search capabilities via 
 
 import os
 from typing import Dict, Any, Optional
-from swarm import Agent
+from swarm import Agent, Swarm
 from open_swarm_mcp.blueprint_base import BlueprintBase
+import logging
+
+# Configure logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+stream_handler = logging.StreamHandler()
+formatter = logging.Formatter("[%(levelname)s] %(message)s")
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
 class SQLiteSearchBlueprint(BlueprintBase):
     """
@@ -17,13 +26,14 @@ class SQLiteSearchBlueprint(BlueprintBase):
     """
 
     def __init__(self):
-        super().__init__()
         self._metadata = {
             "title": "SQLite and Search Integration",
             "description": "Integrates SQLite database querying with search capabilities via MCP servers.",
             "required_mcp_servers": ["sqlite"],
             "env_vars": ["SQLITE_DB_PATH"]
         }
+        self.client = Swarm()
+        logger.info("Initialized SQLiteSearch Blueprint with Swarm.")
 
     @property
     def metadata(self) -> Dict[str, Any]:
@@ -37,17 +47,31 @@ class SQLiteSearchBlueprint(BlueprintBase):
 
         if not os.path.exists(sqlite_db_path):
             raise ValueError(f"SQLite database file does not exist at: {sqlite_db_path}")
+        logger.info("Validated SQLITE_DB_PATH environment variable.")
 
     def create_agent(self) -> Agent:
         """Create and configure the SQLite and Search agent."""
-        return Agent(
+        agent = Agent(
             name="SQLiteSearchAgent",
             instructions="""You can query the SQLite database and perform searches.
-Please ensure that all operations are within the allowed parameters.""",
-            functions=[],
-            # tool_choice=None,
+Available operations include:
+- Querying data from tables
+- Searching records
+Please ensure all queries are optimized and secure.""",
+            functions=[
+                self.query_table,
+                self.search_records
+            ],
             parallel_tool_calls=True
         )
+        logger.info("Created SQLiteSearchAgent with SQLite operation functions.")
+        return agent
+
+    def get_agents(self) -> Dict[str, Agent]:
+        """
+        Returns a dictionary of agents.
+        """
+        return {"SQLiteSearchAgent": self.create_agent()}
 
     def execute(self, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
@@ -65,7 +89,7 @@ Please ensure that all operations are within the allowed parameters.""",
         # Allow for message override from framework config
         default_message = {
             "role": "user",
-            "content": "Find all users in the database."
+            "content": "Query all records from the 'users' table."
         }
         messages = config.get('messages', [default_message]) if config else [default_message]
 
@@ -77,10 +101,76 @@ Please ensure that all operations are within the allowed parameters.""",
             "metadata": self.metadata
         }
 
-# Entry point for standalone execution
-if __name__ == "__main__":
-    blueprint = SQLiteSearchBlueprint()
-    try:
-        blueprint.interactive_mode()
-    except Exception as e:
-        print(f"Error running SQLite and Search Blueprint: {e}")
+    def interactive_mode(self) -> None:
+        """
+        Use Swarm's REPL loop, starting with the SQLiteSearchAgent.
+        """
+        logger.info("Launching interactive mode with SQLiteSearchAgent.")
+        run_demo_loop(starting_agent=self.create_agent())
+
+    # SQLite and Search operation functions
+
+    def query_table(self, table_name: str) -> str:
+        """
+        Query all records from the specified table in the SQLite database.
+
+        Args:
+            table_name (str): Name of the table to query.
+
+        Returns:
+            str: Query results or error message.
+        """
+        sqlite_db_path = os.getenv("SQLITE_DB_PATH")
+        try:
+            import sqlite3
+            conn = sqlite3.connect(sqlite_db_path)
+            cursor = conn.cursor()
+            cursor.execute(f"SELECT * FROM {table_name}")
+            rows = cursor.fetchall()
+            conn.close()
+            logger.info(f"Queried table '{table_name}' successfully.")
+            return f"Records from '{table_name}':\n" + "\n".join(map(str, rows))
+        except Exception as e:
+            error_msg = f"Error querying table '{table_name}': {e}"
+            logger.error(error_msg)
+            return error_msg
+
+    def search_records(self, search_term: str) -> str:
+        """
+        Search records in the SQLite database that match the search term.
+
+        Args:
+            search_term (str): Term to search for in the records.
+
+        Returns:
+            str: Search results or error message.
+        """
+        sqlite_db_path = os.getenv("SQLITE_DB_PATH")
+        try:
+            import sqlite3
+            conn = sqlite3.connect(sqlite_db_path)
+            cursor = conn.cursor()
+            # Example: Search all text fields in all tables
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            tables = cursor.fetchall()
+            results = []
+            for table in tables:
+                table_name = table[0]
+                cursor.execute(f"PRAGMA table_info({table_name});")
+                columns = cursor.fetchall()
+                text_columns = [col[1] for col in columns if col[2].upper() in ('TEXT', 'VARCHAR')]
+                for col in text_columns:
+                    cursor.execute(f"SELECT * FROM {table_name} WHERE {col} LIKE ?", ('%'+search_term+'%',))
+                    rows = cursor.fetchall()
+                    results.extend(rows)
+            conn.close()
+            if results:
+                logger.info(f"Found {len(results)} records matching '{search_term}'.")
+                return f"Search results for '{search_term}':\n" + "\n".join(map(str, results))
+            else:
+                logger.info(f"No records found matching '{search_term}'.")
+                return f"No records found matching '{search_term}'."
+        except Exception as e:
+            error_msg = f"Error searching records with term '{search_term}': {e}"
+            logger.error(error_msg)
+            return error_msg

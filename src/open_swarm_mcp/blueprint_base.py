@@ -86,3 +86,24 @@ class BlueprintBase(ABC):
         starting_agent = self.get_starting_agent()
         logger.info(f"Starting agent: {starting_agent.name}")
         run_demo_loop(starting_agent=starting_agent)
+
+    def validate_metadata(self) -> None:
+        """
+        Validate that the metadata property meets the required structure.
+
+        Raises:
+            ValueError: If metadata is invalid or missing required fields.
+        """
+        required_fields = ["title", "description"]
+        for field in required_fields:
+            if field not in self.metadata:
+                raise ValueError(f"Missing required metadata field: {field}")
+
+    def summarize_agents(self) -> Dict[str, str]:
+        """
+        Provide a summary of all agents defined in the blueprint.
+
+        Returns:
+            Dict[str, str]: A dictionary mapping agent names to their instructions.
+        """
+        return {name: agent.instructions for name, agent in self.get_agents().items()}

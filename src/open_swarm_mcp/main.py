@@ -6,16 +6,16 @@ import json
 import logging
 import os
 import sys
-import random  # For delay in REST/MCP modes
-import shlex    # For splitting command-line arguments
+import random
+import shlex
 
 from dotenv import load_dotenv
 
-# Import typing annotations
 from typing import Any, Dict, List, Optional
 
 # Add the project root to sys.path
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))  # Adjust as needed
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
     logging.debug(f"Added '{project_root}' to sys.path")
@@ -100,7 +100,8 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--blueprint",
         type=str,
-        help="Specify the blueprint to run (e.g., 'sqlite_and_search')."
+        action='append',
+        help="Specify one or more blueprints to load (can be used multiple times)."
     )
     parser.add_argument(
         "--setup",
@@ -240,71 +241,77 @@ def save_configuration(config_path: str, config: Dict[str, Any]):
         print(color_text("Failed to save configuration. Please check permissions.", "red"))
 
 async def run_blueprint_mode(
-    blueprint: str,
+    blueprints: List[str],
     config: Dict[str, Any],
     blueprints_metadata: Dict[str, Dict[str, Any]],
     args: argparse.Namespace
 ):
     """
-    Run a specified blueprint.
+    Run specified blueprints.
 
     Args:
-        blueprint (str): The blueprint to run (e.g., 'sqlite_and_search').
+        blueprints (List[str]): List of blueprints to run.
         config (Dict[str, Any]): Configuration dictionary.
         blueprints_metadata (Dict[str, Dict[str, Any]]): Metadata of all discovered blueprints.
         args (argparse.Namespace): Parsed command-line arguments.
     """
-    logger.debug(f"Running blueprint mode with blueprint '{blueprint}'")
-    if blueprint not in blueprints_metadata:
-        logger.error(f"Blueprint '{blueprint}' not found.")
-        print(color_text(f"Blueprint '{blueprint}' not found.", "red"))
+    logger.debug(f"Running blueprint mode with blueprints: {blueprints}")
+    if not blueprints:
+        logger.error("No blueprints specified.")
+        print(color_text("No blueprints specified.", "red"))
         return
 
-    blueprint_metadata = blueprints_metadata[blueprint]
-    logger.debug(f"Blueprint metadata for '{blueprint}': {blueprint_metadata}")
-    required_servers = blueprint_metadata.get("required_mcp_servers", [])
-    logger.debug(f"Blueprint '{blueprint}' requires MCP servers: {required_servers}")
+    for blueprint in blueprints:
+        if blueprint not in blueprints_metadata:
+            logger.error(f"Blueprint '{blueprint}' not found.")
+            print(color_text(f"Blueprint '{blueprint}' not found.", "red"))
+            continue
 
-    all_running, missing_servers = are_required_mcp_servers_running(required_servers, config)
-    logger.debug(f"Are all required MCP servers running? {all_running}")
-    if not all_running:
-        print(color_text(
-            f"\nBlueprint '{blueprint}' requires the following MCP servers to be configured: {', '.join(required_servers)}", 
-            "yellow"
-        ))
-        print(color_text(
-            "Some required MCP servers are missing or improperly configured.", 
-            "yellow"
-        ))
-        configure_missing = input("Would you like to configure the missing MCP servers now? (yes/no): ").strip().lower()
-        logger.debug(f"User chose to configure missing MCP servers: {configure_missing}")
-        if configure_missing in ['yes', 'y']:
-            config = await configure_missing_mcp_servers(missing_servers, config, blueprint_metadata)
-            save_configuration(args.config, config)
+        blueprint_metadata = blueprints_metadata[blueprint]
+        logger.debug(f"Blueprint metadata for '{blueprint}': {blueprint_metadata}")
+        required_servers = blueprint_metadata.get("required_mcp_servers", [])
+        logger.debug(f"Blueprint '{blueprint}' requires MCP servers: {required_servers}")
+
+        all_running, missing_servers = are_required_mcp_servers_running(required_servers, config)
+        logger.debug(f"Are all required MCP servers running? {all_running}")
+        if not all_running:
+            print(color_text(
+                f"\nBlueprint '{blueprint}' requires the following MCP servers to be configured: {', '.join(missing_servers)}", 
+                "yellow"
+            ))
+            print(color_text(
+                "Some required MCP servers are missing or improperly configured.", 
+                "yellow"
+            ))
+            configure_missing = input("Would you like to configure the missing MCP servers now? (yes/no): ").strip().lower()
+            logger.debug(f"User chose to configure missing MCP servers: {configure_missing}")
+            if configure_missing in ['yes', 'y']:
+                config = await configure_missing_mcp_servers(missing_servers, config, blueprint_metadata)
+                save_configuration(args.config, config)
+            else:
+                print(color_text("Cannot proceed without configuring the required MCP servers.", "red"))
+                logger.warning("User declined to configure missing MCP servers")
+                continue
+
+        try:
+            logger.debug("Building agent with MCP tools")
+            agent = build_agent_with_mcp_tools(config)  # Synchronously build the agent
+            logger.info(f"Agent built successfully for blueprint '{blueprint}' with MCP tools")
+        except Exception as e:
+            logger.error(f"Failed to build agent for blueprint '{blueprint}': {e}")
+            print(color_text(f"Failed to build agent for blueprint '{blueprint}': {e}", "red"))
+            continue
+
+        if args.mode == "rest":
+            logger.debug(f"Running in REST mode for blueprint '{blueprint}'")
+            await run_rest_mode(agent, blueprint)
+        elif args.mode == "mcp-host":
+            # await run_mcp_host_mode(agent)
+            logger.error("MCP host mode is not implemented yet")
+            print(color_text("MCP host mode is not implemented yet", "red"))
         else:
-            print(color_text("Cannot proceed without configuring the required MCP servers.", "red"))
-            logger.warning("User declined to configure missing MCP servers")
-            return
-
-    try:
-        logger.debug("Building agent with MCP tools")
-        agent = build_agent_with_mcp_tools(config)  # Synchronously build the agent
-        logger.info("Agent built successfully with MCP tools")
-    except Exception as e:
-        logger.error(f"Failed to build agent: {e}")
-        print(color_text(f"Failed to build agent: {e}", "red"))
-        return
-
-    if args.mode == "rest":
-        logger.debug("Running in REST mode")
-        await run_rest_mode(agent)
-    elif args.mode == "mcp-host":
-        # await run_mcp_host_mode(agent)
-        logger.error("MCP host mode is not implemented yet")
-        print(color_text("MCP host mode is not implemented yet", "red"))
-    else:
-        logger.debug("Running in CLI mode")
-        await run_cli_mode(agent, colorama_available=True)
+            logger.debug(f"Running in CLI mode for blueprint '{blueprint}'")
+            await run_cli_mode(agent, colorama_available=True)
 
 def handle_shutdown():
     """
@@ -377,69 +384,31 @@ async def main():
         print(color_text(f"Failed to load configuration: {e}", "red"))
         return
 
-    # Get blueprint from args or environment
-    blueprint = args.blueprint or os.getenv("SWARM_BLUEPRINT")
-    logger.debug(f"Blueprint specified via args or environment: '{blueprint}'")
+    # Determine which blueprints to load
+    if args.blueprint:
+        blueprints_to_load = args.blueprint  # List of blueprints specified via command-line
+        logger.debug(f"Blueprints specified via --blueprint: {blueprints_to_load}")
+    else:
+        blueprints_to_load = list(blueprints_metadata.keys())  # Load all available blueprints
+        logger.debug("No --blueprint specified. Loading all available blueprints.")
 
-    # Handle different operational modes
+    # Run in the specified mode
     if args.mode in ["rest", "mcp-host"]:
         logger.debug(f"Operating in '{args.mode}' mode")
-        if not blueprint:
-            logger.error("No blueprint specified. Use --blueprint or set SWARM_BLUEPRINT environment variable.")
-            print(color_text("No blueprint specified. Use --blueprint or set SWARM_BLUEPRINT environment variable.", "red"))
-            delay = 60 + random.randint(0, 60)
-            logger.info(f"Delaying exit for {delay} seconds.")
-            await asyncio.sleep(delay)
-            return
-
-        await run_blueprint_mode(blueprint, config, blueprints_metadata, args)
-
+        await run_blueprint_mode(blueprints_to_load, config, blueprints_metadata, args)
     elif args.mode == "cli":
         logger.debug("Operating in 'cli' mode")
-        if not blueprint:
-            print(color_text("\nNo blueprint specified. Prompting to select a blueprint.\n", "cyan"))
-            blueprint = prompt_user_to_select_blueprint(blueprints_metadata)
-            logger.debug(f"Selected blueprint after selection prompt: '{blueprint}'")
-
-        if blueprint:
-            # Verify blueprint requirements
-            blueprint_metadata = blueprints_metadata.get(blueprint, {})
-            required_servers = blueprint_metadata.get("required_mcp_servers", [])
-            logger.debug(f"Blueprint '{blueprint}' requires MCP servers: {required_servers}")
-
-            all_running, missing_servers = are_required_mcp_servers_running(required_servers, config)
-            logger.debug(f"Are all required MCP servers running? {all_running}")
-
-            if not all_running:
-                print(color_text(
-                    f"\nBlueprint '{blueprint}' requires the following MCP servers to be configured: {', '.join(required_servers)}", 
-                    "yellow"
-                ))
-                print(color_text(
-                    "Some required MCP servers are missing or improperly configured.", 
-                    "yellow"
-                ))
-                configure_missing = input("Would you like to configure the missing MCP servers now? (yes/no): ").strip().lower()
-                logger.debug(f"User chose to configure missing MCP servers: {configure_missing}")
-                if configure_missing in ['yes', 'y']:
-                    config = await configure_missing_mcp_servers(missing_servers, config, blueprint_metadata)
-                    save_configuration(args.config, config)
-                else:
-                    print(color_text("Cannot proceed without configuring the required MCP servers.", "red"))
-                    logger.warning("User declined to configure missing MCP servers")
-                    blueprint = None
-
-        # Run CLI mode with or without blueprint
-        if blueprint:
-            try:
-                logger.debug("Building agent for CLI mode")
-                agent = build_agent_with_mcp_tools(config)  # Synchronously build the agent
-                logger.info("Agent built successfully for CLI mode")
-                await run_cli_mode(agent, colorama_available=True)  # Ensure run_cli_mode is async if being awaited
-            except Exception as e:
-                logger.error(f"Fatal error: {e}")
-                print(color_text(f"Fatal error: {e}", "red"))
-
+        if not blueprints_to_load:
+            print(color_text("\nNo blueprints specified. Prompting to select a blueprint.\n", "cyan"))
+            selected_blueprint = prompt_user_to_select_blueprint(blueprints_metadata)
+            if selected_blueprint:
+                blueprints_to_load = [selected_blueprint]
+                logger.debug(f"Selected blueprint after selection prompt: '{selected_blueprint}'")
+            else:
+                print(color_text("No blueprint selected. Exiting.", "red"))
+                logger.warning("No blueprint selected. Exiting.")
+                return
+        await run_blueprint_mode(blueprints_to_load, config, blueprints_metadata, args)
     else:
         logger.error(f"Unsupported mode: {args.mode}")
         print(color_text(f"Unsupported mode: {args.mode}", "red"))

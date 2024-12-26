@@ -1,2 +1,1 @@
-def main() -> None:
-    print("Hello from open-swarm-mcp!")
+# This file is intentionally left blank to indicate that open_swarm_mcp is a Python package.

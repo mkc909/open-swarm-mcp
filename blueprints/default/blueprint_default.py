@@ -1,19 +1,9 @@
 # blueprints/default/blueprint_default.py
 
-"""
-Default Simple Agent Blueprint
-
-This blueprint provides a simple agent that echoes user inputs.
-"""
-
-from typing import Dict, Any, Optional
 from open_swarm_mcp.blueprint_base import BlueprintBase
-import logging
-import random
-from typing import Dict, Any, Optional, List, Callable, Union
-
+from typing import Dict, Any, Optional
 from swarm import Agent, Swarm
-from swarm.repl import run_demo_loop
+import logging
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -29,7 +19,6 @@ class DefaultBlueprint(BlueprintBase):
     """
 
     def __init__(self):
-        # super().__init__()
         self._metadata = {
             "title": "Default Simple Agent",
             "description": "A simple agent that echoes user inputs.",
@@ -38,8 +27,7 @@ class DefaultBlueprint(BlueprintBase):
         }
 
         self.client = Swarm()
-        print("Starting Swarm 🐝")
-
+        logger.info("Initialized Swarm 🐝")
 
     @property
     def metadata(self) -> Dict[str, Any]:
@@ -52,18 +40,19 @@ class DefaultBlueprint(BlueprintBase):
 
     def create_agent(self) -> Agent:
         """Create and configure the default simple agent."""
-        return Agent(
+        agent = Agent(
             name="DefaultAgent",
             instructions="""You are a simple agent that echoes user inputs.
 Please repeat back what the user says.""",
-            functions=[],
-            # tool_choice=None,
+            functions=[self.echo_function],
             parallel_tool_calls=True
         )
+        logger.info("Created DefaultAgent with echo function.")
+        return agent
 
     def get_agents(self) -> Dict[str, Agent]:
         """
-        Satisfies BlueprintBase requirement to return the agent dictionary.
+        Returns a dictionary of agents.
         """
         return {"DefaultAgent": self.create_agent()}
 
@@ -96,11 +85,24 @@ Please repeat back what the user says.""",
         }
 
     def interactive_mode(self) -> None:
-         """
-         Use Swarm's REPL loop, starting with a random agent.
-         """
-         logger.info("Launching interactive mode with a default agent.")
-         run_demo_loop(starting_agent=self.create_agent())
+        """
+        Use Swarm's REPL loop, starting with the default agent.
+        """
+        logger.info("Launching interactive mode with DefaultAgent.")
+        run_demo_loop(starting_agent=self.create_agent())
+
+    def echo_function(self, content: str) -> str:
+        """
+        Echoes the user input.
+
+        Args:
+            content (str): The user's input.
+
+        Returns:
+            str: The echoed content.
+        """
+        logger.info(f"Echoing content: {content}")
+        return content
 
 # Entry point for standalone execution
 if __name__ == "__main__":

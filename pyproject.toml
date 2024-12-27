@@ -20,17 +20,19 @@ dependencies = [
     "importlib>=1.0.4",
     "pylint>=3.3.2",
     "django>=5.1.4",
+    "djangorestframework>=3.15.2",
+    "pytest-asyncio>=0.25.0",
+    "pytest-django>=4.9.0",
 ]
-
 [project.scripts]
 open-swarm-mcp = "open_swarm_mcp:main"
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
 [tool.hatch.metadata]
 allow-direct-references = true
-
 [tool.uv.workspace]
 members = ["open-swarm-mcp"]
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "src.open_swarm_mcp.settings"
+pythonpath = ["src"]  # Add the 'src' directory to the Python path for pytest

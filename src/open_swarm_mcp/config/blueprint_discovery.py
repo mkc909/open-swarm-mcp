@@ -1,5 +1,3 @@
-# src/open_swarm_mcp/config/blueprint_discovery.py
-
 import os
 import importlib.util
 import logging
@@ -38,10 +36,8 @@ def discover_blueprints(blueprints_paths: List[str]) -> Dict[str, Dict[str, Any]
                     logger.debug(f"Found blueprint module: {blueprint_module_path}")
                     try:
                         # Dynamically load the blueprint module
-                        spec = importlib.util.spec_from_file_location(
-                            f"blueprints.{blueprint_dir}.blueprint_{blueprint_dir}",
-                            blueprint_module_path
-                        )
+                        module_name = f"blueprints.{blueprint_dir}.blueprint_{blueprint_dir}"
+                        spec = importlib.util.spec_from_file_location(module_name, blueprint_module_path)
                         if spec and spec.loader:
                             module = importlib.util.module_from_spec(spec)
                             spec.loader.exec_module(module)

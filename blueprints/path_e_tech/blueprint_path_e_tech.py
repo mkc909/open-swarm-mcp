@@ -53,6 +53,7 @@ class GamifiedDilbertBlueprint(BlueprintBase):
         }
         self.client = Swarm()
         self.agents = self.create_agents()
+        logger.debug("Initialized blueprint with agents.")
 
     @property
     def metadata(self) -> Dict[str, Any]:
@@ -60,10 +61,12 @@ class GamifiedDilbertBlueprint(BlueprintBase):
 
     def validate_env_vars(self) -> None:
         """No environment variables needed for comedic meltdown."""
+        logger.debug("Validated environment variables.")
         pass
 
     def get_agents(self) -> Dict[str, Agent]:
         """Return dictionary of comedic 9-step SDLC agents."""
+        logger.debug("Retrieved agents.")
         return self.agents
 
     # =========================================
@@ -183,6 +186,7 @@ class GamifiedDilbertBlueprint(BlueprintBase):
         Each agent has a deepened persona and explicit step definitions.
         """
         agents: Dict[str, Agent] = {}
+        logger.debug("Validated environment variables.")
 
         # Good Agents
 
@@ -429,6 +433,7 @@ class GamifiedDilbertBlueprint(BlueprintBase):
 
         # Step tracking: Keep track of each agent's step
         step_tracker: Dict[str, int] = {agent_name: 1 for agent_name in self.agents.keys()}
+        logger.debug("Validated environment variables.")
 
         while True:
             try:

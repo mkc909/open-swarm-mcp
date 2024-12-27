@@ -1,5 +1,4 @@
 {
-
     "llm": {
         "provider": "openai",
         "model": "gpt-4",
@@ -8,7 +7,6 @@
     },
 
     "mcpServers": {
-
         "brave-search": {
             "command": "npx",
             "args": ["-y", "@modelcontextprotocol/server-brave-search"],
@@ -23,13 +21,13 @@
         },
 
         "filesystem": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@modelcontextprotocol/server-filesystem",
-                "${ALLOWED_PATHS}"
-            ]
+            "command": "bash",
+            "args": ["-c", "command -v mcp-filesystem-server >/dev/null 2>&1 || go install github.com/mark3labs/mcp-filesystem-server && mcp-filesystem-server $(echo $ALLOWED_PATHS | tr ',' ' ')"],
+            "env": {
+                "ALLOWED_PATHS": "${ALLOWED_PATHS}"
+            }
         }
+
 
     }
 }

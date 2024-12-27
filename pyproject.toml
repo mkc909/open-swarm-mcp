@@ -23,6 +23,7 @@ dependencies = [
     "djangorestframework>=3.15.2",
     "pytest-asyncio>=0.25.0",
     "pytest-django>=4.9.0",
+    "pytest-cov>=6.0.0",
 ]
 [project.scripts]
 open-swarm-mcp = "open_swarm_mcp:main"

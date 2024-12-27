@@ -33,6 +33,10 @@ async def test_construct_openai_response():
     assert result['usage']['total_tokens'] > 0
 
 @pytest.mark.django_db
+@pytest.mark.skipif(
+    not os.getenv("OPENAI_API_KEY"),
+    reason="Skipping test because OPENAI_API_KEY is not set"
+)
 def test_chat_completion_endpoint():
     '''
     Test the chat_completion endpoint to ensure it returns a valid response.
@@ -71,6 +75,10 @@ def test_chat_completion_invalid_input():
 
 @pytest.mark.asyncio
 @patch('open_swarm_mcp.rest_mode.views.run_swarm_sync')
+@pytest.mark.skipif(
+    not os.getenv("OPENAI_API_KEY"),
+    reason="Skipping test because OPENAI_API_KEY is not set"
+)
 async def test_swarm_execution(mock_run_swarm_sync):
     '''
     Test the swarm_execution function to ensure it executes the Swarm correctly.

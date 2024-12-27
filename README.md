@@ -162,21 +162,25 @@ docker compose up -d
 
 Below is the current development progress, reflecting professional stewardship of feature requests and deliverables:
 
-- **[ ] CLI Mode**
+- [ ] **CLI Mode**
   - [x] Setup Wizard  
   - [ ] Blueprint Runner  
 
-- **[ ] Django REST**
+- [ ] **Django REST**
   - [x] Inference via `/v1/chat/completions`  
   - [x] Blueprints listed via `/v1/models`  
   - [ ] Application management via `/admin`  
 
-- **[ ] Standalone Example Blueprints**
+- [ ] **Docker**
+  - [x] Dockerfile and docker-compose.yaml
+  - [ ] Publish to docker registry
+
+- [ ] **Standalone Example Blueprints**
   - [x] Filesystem utility example  
   - [x] Path-e-tech game example  
   - [ ] University example  
 
-- **[ ] Example MCP Servers**
+- [ ] **Example MCP Servers**
   - [x] filesystem  
   - [ ] web search  
   - [ ] database  

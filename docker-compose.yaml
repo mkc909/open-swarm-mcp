@@ -1,0 +1,23 @@
+services:
+  open-swarm-mcp:
+    image: openswarmmcp:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: open-swarm-mcp
+    environment:
+      # Explicitly define environment variables
+      - OPENAI_API_KEY
+      - PORT=${PORT:-8000}
+    ports:
+      # Expose the service on the specified port
+      - "${PORT:-8000}:${PORT:-8000}"
+    env_file:
+      # Load additional environment variables from .env
+      - .env
+    volumes:
+      # Map the blueprints directory
+      - ./blueprints:/app/blueprints
+      # Map the configuration JSON
+      - ./src/open_swarm_mcp/mcp_server_config.json:/app/src/open_swarm_mcp/mcp_server_config.json
+    restart: unless-stopped

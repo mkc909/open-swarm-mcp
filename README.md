@@ -36,7 +36,10 @@ Open Swarm MCP is a modular, Python-based framework that seamlessly integrates *
 
 4. **OpenAI API Compatibility + Agent Sender**  
    - Exposes an endpoint at `/v1/chat/completions` that is functionally similar to the OpenAI Chat Completions API.
-   - Adds an optional `sender` field in agent responses, allowing the framework (and any supporting UI) to display which agent in the swarm produced a given message.
+   - Includes a **mandatory** `sender` field in agent responses.  
+     - This field identifies which Swarm agent provided the response and must be preserved in the conversation history for proper handoffs between agents.
+     - While the framework is compatible with OpenAI-like API clients, it assumes the client application maintains the `sender` field and, ideally, displays it in the user interface.
+     - **Note:** Most OpenAI API-compatible applications will ignore the `sender` field by default and not display the agent name. Custom UI or logic is required to utilise and present this information.
 
 ---
 

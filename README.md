@@ -14,6 +14,9 @@ Open Swarm MCP is a modular, Python-based framework that seamlessly integrates *
 - [Configuration & Metadata](#configuration--metadata)
 - [Installation](#installation)
 - [Running with UV and Python](#running-with-uv-and-python)
+- [Deploying with Docker](#deploying-with-docker)
+  - [Deploy with Docker Compose (Recommended)](#deploy-with-docker-compose-recommended)
+  - [Deploy Without Docker Compose (Image Pending Docker Registry)](#deploy-without-docker-compose-image-pending-docker-registry)
 - [Progress Tracker](#progress-tracker)
 - [Further Documentation](#further-documentation)
 - [License](#license)
@@ -155,6 +158,61 @@ uv run manage.py runserver 0.0.0.0:8000
 # Option E - Launch HTTP REST endpoint using Docker (port 8000 if $PORT not set in .env)
 docker compose up -d
 ```
+
+---
+
+## Deploying with Docker
+
+### Deploy with Docker Compose (Recommended)
+
+1. **Download the Compose File**  
+   You can quickly fetch the pre-configured `docker-compose.yaml` file:
+   ```bash
+   wget https://raw.githubusercontent.com/matthewhand/open-swarm-mcp/refs/heads/main/docker-compose.yaml
+   ```
+
+2. **Update the Environment File**  
+   Make sure your `.env` file includes the following keys:
+   - **`OPENAI_API_KEY`** (mandatory) for LLM inference.
+   - Optionally update the `api_base` configuration in `mcp_server_config.json` if you plan to use a local LLM provider like Ollama:
+     ```json
+     {
+       "api_base": "http://host.docker.internal:11434/v1"
+     }
+     ```
+
+3. **Start the Container**  
+   Run the following command to build and start the service in the background:
+   ```bash
+   docker compose up -d
+   ```
+   This:
+   - Builds the image if needed.
+   - Reads port settings and environment variables from `.env`.
+   - Exposes the application on `8000` (unless overridden via `$PORT`).
+
+4. **Access the Service**  
+   Open [http://localhost:8000](http://localhost:8000) in your browser to interact with Open Swarm MCP.
+
+### Deploy Without Docker Compose (Image Pending Docker Registry)
+
+1. **Pull the Prebuilt Image**  
+   *(Coming soon: official image on Docker Hub or GitHub Container Registry.)*
+
+2. **Run the Container**  
+   After the image is published:
+   ```bash
+   docker run \
+     --env-file .env \
+     -p 8000:8000 \
+     open-swarm-mcp:latest
+   ```
+
+3. **Update `.env`**  
+   Ensure at least `OPENAI_API_KEY` is set. Or, modify `mcp_server_config.json` to point to a local LLM instead of an OpenAI endpoint.
+
+4. **Access the Service**  
+   Navigate to [http://localhost:8000](http://localhost:8000).
 
 ---
 

@@ -16,14 +16,15 @@
 
         body {
             font-family: Arial, sans-serif;
-            line-height: 1.4; /* Reduced for tighter spacing */
+            line-height: 1.6;
             margin: 0;
             padding: 0;
             background-color: #f9f9f9;
         }
 
         .container {
-            max-width: 800px;
+            display: flex;
+            max-width: 1400px;
             margin: 20px auto;
             padding: 20px;
             background: white;
@@ -31,87 +32,18 @@
             border-radius: 5px;
         }
 
-        /* Message Styling */
-        .message {
-            width: 100%; /* Stretch to full width of the container */
-            padding: 8px; /* Reduced from 10px */
-            margin: 8px 0; /* Reduced from 10px */
-            border-radius: 8px;
-            font-size: 0.95em; /* Slightly smaller font */
-            line-height: 1.4; /* Adjusted for tighter spacing */
-            background-color: #f0e9ff; /* Default for assistant */
-            color: #333;
-            word-wrap: break-word;
-        }
-
-        .message.user {
-            background-color: #d6eaff;
-            align-self: flex-end;
-        }
-
-        .message.assistant {
-            background-color: #f0e9ff;
-        }
-
-        /* Debug Information Styling */
-        .debug-info {
-            margin-top: 8px; /* Reduced from 10px */
-            background-color: #f7f7f9;
-            padding: 8px; /* Reduced from 10px */
-            border: 1px solid #ccc;
-            font-size: 0.8em; /* Slightly smaller font */
-            overflow-x: auto;
-            border-radius: 5px;
-        }
-
-        .sender-header {
-            font-weight: bold;
-            margin-bottom: 4px; /* Reduced from 5px */
-            color: #555;
-        }
-
-        /* Form Styling */
-        .form-container {
-            display: flex;
-            margin-top: 20px;
-        }
-
-        #userInput {
-            flex: 1;
-            padding: 8px; /* Reduced from 10px */
-            font-size: 0.95em; /* Slightly smaller font */
-            border: 1px solid #ccc;
-            border-radius: 5px 0 0 5px;
-        }
-
-        #submitButton {
-            padding: 8px 16px; /* Reduced from 10px 20px */
-            font-size: 0.95em; /* Slightly smaller font */
-            border: 1px solid #007bff;
-            background-color: #007bff;
-            color: white;
-            border-radius: 0 5px 5px 0;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        #submitButton:hover {
-            background-color: #0056b3;
-        }
-
-        /* Debug Toggle Styling */
-        #debugToggleContainer {
-            margin-top: 10px;
-        }
-
-        #debugToggle {
-            margin-right: 5px;
-        }
-
-        /* Message History Styling */
-        #messageHistory {
+        /* Chat Pane Styling */
+        .chat-pane {
+            flex: 2;
             display: flex;
             flex-direction: column;
+            margin-right: 20px;
+        }
+
+        .chat-pane h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
         }
 
         /* Blueprint Metadata Styling */
@@ -125,57 +57,321 @@
 
         .blueprint-metadata h2 {
             margin: 0;
-            font-size: 1.3em; /* Slightly smaller font */
+            font-size: 1.3em;
             color: #333;
         }
 
         .blueprint-metadata p {
             margin: 5px 0 0;
             color: #555;
-            font-size: 0.95em; /* Slightly smaller font */
+            font-size: 1em;
+        }
+
+        /* Toggle Controls */
+        .toggle-container {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .toggle-container input {
+            margin-right: 5px;
+        }
+
+        /* Message History Styling */
+        /* Updated to limit height to 80% of viewport and enable scrollbar */
+        #messageHistory {
+            flex: 1;
+            height: 80vh; /* Limit height to 80% of viewport height */
+            overflow-y: auto; /* Enable vertical scrollbar when content exceeds height */
+            padding-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #fafafa;
+        }
+
+        /* Message Styling */
+        .message {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-size: 1em;
+            color: #333;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background-color: #d6eaff;
+            align-self: flex-end;
+        }
+
+        .message.assistant {
+            background-color: #f0e9ff;
+        }
+
+        .message.tool {
+            background-color: #ffe4e1; /* Pastel shade for tool messages */
+            border: 1px solid #ffb6c1;
+        }
+
+        .message.other {
+            background-color: #e1f5fe; /* Light blue for other roles */
+            border: 1px solid #81d4fa;
+        }
+
+        /* Tool Call Buttons */
+        .tool-call-buttons {
+            margin-top: 10px;
+        }
+
+        .tool-call-buttons button {
+            padding: 6px 12px;
+            margin-right: 8px;
+            font-size: 0.85em;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .approve-button {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .approve-button:hover {
+            background-color: #218838;
+        }
+
+        .deny-button {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .deny-button:hover {
+            background-color: #c82333;
+        }
+
+        /* Form Styling */
+        .form-container {
+            display: flex;
+            margin-top: 20px;
+        }
+
+        #userInput {
+            flex: 1;
+            padding: 10px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: 5px 0 0 5px;
+        }
+
+        #submitButton {
+            padding: 10px 20px;
+            font-size: 1em;
+            border: 1px solid #007bff;
+            background-color: #007bff;
+            color: white;
+            border-radius: 0 5px 5px 0;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #submitButton:hover {
+            background-color: #0056b3;
+        }
+
+        /* Raw Messages Pane Styling */
+        .raw-messages-pane {
+            flex: 1;
+            background-color: #f7f7f9;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            overflow-y: auto;
+            display: none; /* Hidden by default */
+            height: 600px; /* Adjust as needed */
+            margin-right: 20px;
+        }
+
+        .raw-messages-pane h2 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #333;
+            text-align: center;
+        }
+
+        .raw-message {
+            margin-bottom: 15px;
+            padding: 8px;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        /* Debug Pane Styling */
+        .debug-pane {
+            flex: 1;
+            background-color: #f7f7f9;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            overflow-y: auto;
+            display: none; /* Hidden by default */
+            height: 600px; /* Adjust as needed */
+        }
+
+        .debug-pane h2 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #333;
+            text-align: center;
+        }
+
+        .debug-message {
+            margin-bottom: 15px;
+            padding: 8px;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .debug-role-user {
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        .debug-role-assistant {
+            color: #6f42c1;
+            font-weight: bold;
+        }
+
+        .debug-role-tool {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .debug-boolean-true {
+            color: #28a745; /* Green */
+            font-weight: bold;
+        }
+
+        .debug-boolean-false {
+            color: #dc3545; /* Red */
+            font-weight: bold;
+        }
+
+        /* Toggle Containers */
+        .toggle-container {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .toggle-container input {
+            margin-right: 5px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1400px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .chat-pane {
+                margin-right: 0;
+                margin-bottom: 20px;
+            }
+
+            .raw-messages-pane, .debug-pane {
+                max-width: 100%;
+                margin-right: 0;
+                margin-bottom: 20px;
+                height: 300px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Blueprint Metadata -->
-        <div class="blueprint-metadata" id="blueprintMetadata">
-            <h2>Loading...</h2>
-            <p>Please wait, fetching blueprint metadata...</p>
+        <!-- Chat Pane -->
+        <div class="chat-pane">
+            <!-- Blueprint Metadata -->
+            <div class="blueprint-metadata" id="blueprintMetadata">
+                <h2>Loading...</h2>
+                <p>Please wait, fetching blueprint metadata...</p>
+            </div>
+
+            <h1>Interactive Chat Interface</h1>
+
+            <!-- Toggle Controls -->
+            <div class="toggle-container">
+                <div>
+                    <input type="checkbox" id="rawToggle" onclick="toggleRawMessages()" />
+                    <label for="rawToggle">Show Raw Messages</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="debugToggle" onclick="toggleDebugPane()" />
+                    <label for="debugToggle">Show Debug Info</label>
+                </div>
+            </div>
+
+            <!-- Message History -->
+            <div id="messageHistory"></div>
+
+            <!-- Input Form -->
+            <div class="form-container">
+                <input
+                    type="text"
+                    id="userInput"
+                    placeholder="Type your message here..."
+                    onkeypress="handleKeyPress(event)"
+                />
+                <button id="submitButton" onclick="handleSubmit()">Send</button>
+            </div>
         </div>
 
-        <h1>Interactive Chat Interface</h1>
-
-        <!-- Debug Toggle -->
-        <div id="debugToggleContainer">
-            <label>
-                <input type="checkbox" id="debugToggle" />
-                Show Debug Info
-            </label>
+        <!-- Raw Messages Pane -->
+        <div class="raw-messages-pane" id="rawMessagesPane">
+            <h2>Raw Messages</h2>
+            <div id="rawMessagesContent"></div>
         </div>
 
-        <!-- Message History -->
-        <div id="messageHistory"></div>
-
-        <!-- Input Form -->
-        <div class="form-container">
-            <input
-                type="text"
-                id="userInput"
-                placeholder="Type your message here..."
-                onkeypress="handleKeyPress(event)"
-            />
-            <button id="submitButton" onclick="handleSubmit()">Send</button>
+        <!-- Debug Pane -->
+        <div class="debug-pane" id="debugPane">
+            <h2>Debug Information</h2>
+            <div id="debugContent"></div>
         </div>
     </div>
 
     <script>
-        const messageHistory = document.getElementById("messageHistory");
-        const debugToggle = document.getElementById("debugToggle");
-        const blueprintMetadataContainer = document.getElementById("blueprintMetadata");
+        // Initialize chat history
+        let chatHistory = [];
 
-        // Get CSRF token from meta tag
+        const messageHistory = document.getElementById("messageHistory");
+        const rawMessagesContent = document.getElementById("rawMessagesContent");
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const rawToggle = document.getElementById("rawToggle");
+        const rawMessagesPane = document.getElementById("rawMessagesPane");
+        const debugToggle = document.getElementById("debugToggle");
+        const debugPane = document.getElementById("debugPane");
+        const debugContent = document.getElementById("debugContent");
+
+        /**
+         * Generates a unique tool_call_id.
+         * @returns {string} - A unique identifier for tool calls.
+         */
+        function generateToolCallId() {
+            return 'call_' + Math.random().toString(36).substr(2, 9);
+        }
 
         /**
          * Fetches and displays blueprint metadata based on the URL path.
@@ -189,7 +385,7 @@
                 console.log("Extracted blueprintId:", blueprintId); // Log the extracted ID
 
                 if (!blueprintId) {
-                    blueprintMetadataContainer.innerHTML = `
+                    document.getElementById("blueprintMetadata").innerHTML = `
                         <h2>Error</h2>
                         <p>Blueprint ID is missing from the URL.</p>
                     `;
@@ -211,25 +407,25 @@
                     console.log("Matched blueprint:", blueprint); // Log the matched blueprint
 
                     if (blueprint) {
-                        blueprintMetadataContainer.innerHTML = `
+                        document.getElementById("blueprintMetadata").innerHTML = `
                             <h2>${blueprint.title || "Blueprint Title"}</h2>
                             <p>${blueprint.description || "No description available."}</p>
                         `;
                     } else {
-                        blueprintMetadataContainer.innerHTML = `
+                        document.getElementById("blueprintMetadata").innerHTML = `
                             <h2>Error</h2>
                             <p>No matching blueprint found for ID: ${blueprintId}.</p>
                         `;
                     }
                 } else {
-                    blueprintMetadataContainer.innerHTML = `
+                    document.getElementById("blueprintMetadata").innerHTML = `
                         <h2>Error</h2>
                         <p>Unable to fetch blueprint metadata.</p>
                     `;
                 }
             } catch (error) {
                 console.error("Error fetching blueprint metadata:", error);
-                blueprintMetadataContainer.innerHTML = `
+                document.getElementById("blueprintMetadata").innerHTML = `
                     <h2>Error</h2>
                     <p>Unable to fetch blueprint metadata.</p>
                 `;
@@ -238,83 +434,409 @@
 
         /**
          * Renders a single message in the chat interface.
-         * @param {string} role - The role of the sender ('user' or 'assistant').
+         * @param {string} role - The role of the sender ('user', 'assistant', or 'tool').
          * @param {object} message - The message content.
          * @param {string} sender - The display name of the sender.
-         * @param {object|null} debugInfo - Optional debug information.
+         * @param {object|null} metadata - Optional debug information.
          */
-        function renderMessage(role, message, sender, debugInfo) {
+        function renderMessage(role, message, sender, metadata) {
             const container = document.createElement("div");
-            container.className = `message ${role}`;
+
+            if (role === "tool") {
+                container.className = "message tool";
+            } else if (role === "user" || role === "assistant") {
+                container.className = `message ${role}`;
+            } else {
+                container.className = "message other";
+            }
 
             const header = document.createElement("h4");
-            header.textContent = sender;
+            // Assign a default sender if sender is missing or empty
+            const finalSender = sender || (role === "tool" ? "Tool" : "Unknown");
+            header.textContent = finalSender;
             header.className = "sender-header";
             container.appendChild(header);
 
-            const content = document.createElement("p");
-            content.textContent = message.content || "No content.";
-            container.appendChild(content);
+            if (role === "tool") {
+                console.log("Rendering tool message:", message); // Log the entire tool message
 
-            if (debugToggle.checked && debugInfo) {
-                const debugSection = document.createElement("div");
-                debugSection.className = "debug-info";
+                // Check if 'function' exists before rendering 'Function:'
+                if (message.function && message.function.name) {
+                    // Parse the content JSON string if available
+                    let toolContent = "";
+                    if (message.content) {
+                        try {
+                            const parsedContent = JSON.parse(message.content);
+                            toolContent = JSON.stringify(parsedContent);
+                        } catch (e) {
+                            toolContent = message.content;
+                        }
+                    }
 
-                const functionCall = document.createElement("pre");
-                functionCall.textContent = JSON.stringify(debugInfo, null, 2);
-                debugSection.appendChild(functionCall);
+                    const content = document.createElement("p");
+                    content.textContent = `Function: ${message.function.name}(${toolContent})`;
+                    container.appendChild(content);
+                }
 
-                container.appendChild(debugSection);
+                // Log the presence of tool_call_id
+                console.log("Tool Call ID:", message.tool_call_id);
+
+                // Add Approve and Deny buttons only if tool_call_id exists and is not empty
+                if (message.tool_call_id && message.tool_call_id.trim() !== "") {
+                    const buttonContainer = document.createElement("div");
+                    buttonContainer.className = "tool-call-buttons";
+
+                    const approveButton = document.createElement("button");
+                    approveButton.textContent = "Approve";
+                    approveButton.className = "approve-button";
+                    approveButton.onclick = () => handleToolCallDecision('approved', message);
+
+                    const denyButton = document.createElement("button");
+                    denyButton.textContent = "Deny";
+                    denyButton.className = "deny-button";
+                    denyButton.onclick = () => handleToolCallDecision('denied', message);
+
+                    buttonContainer.appendChild(approveButton);
+                    buttonContainer.appendChild(denyButton);
+                    container.appendChild(buttonContainer);
+
+                    console.log("Approve and Deny buttons rendered.");
+                } else {
+                    console.warn("No tool_call_id found. Approve/Deny buttons not rendered.");
+                }
+            } else {
+                const content = document.createElement("p");
+                content.textContent = message.content || "No content.";
+                container.appendChild(content);
             }
 
             messageHistory.appendChild(container);
+            messageHistory.scrollTop = messageHistory.scrollHeight;
+
+            console.log(`Rendered message - Role: ${role}, Sender: ${finalSender}, Content: ${message.content}`);
         }
 
         /**
-         * Appends a message to the chat interface.
-         * @param {string} role - The role of the sender ('user' or 'assistant').
+         * Appends raw message data to the Raw Messages pane.
+         * @param {string} role - The role of the sender.
          * @param {object} content - The message content.
          * @param {string} sender - The display name of the sender.
-         * @param {object} metadata - Additional metadata for debug purposes.
+         * @param {object} metadata - The metadata associated with the message.
          */
-        function appendMessage(role, content, sender, metadata) {
-            const debugInfo = debugToggle.checked
-                ? {
-                      toolCalls: metadata.toolCalls || "None",
-                      handoffs: metadata.handoffs || "None",
-                      functions: metadata.functions || "None",
-                      rawMessage: metadata.rawMessage || "None",
-                  }
-                : null;
+        function appendRawMessage(role, content, sender, metadata) {
+            const rawMessage = document.createElement("div");
+            rawMessage.className = "raw-message";
 
-            renderMessage(role, content, sender, debugInfo);
+            // Assign a default sender if missing
+            const finalSender = sender || (role === "tool" ? "Tool" : "Unknown");
+
+            // Correctly map tool_call_id and tool_name based on metadata structure
+            const toolCallId = metadata.id || metadata.tool_call_id || null;
+            const toolName = (metadata.function && metadata.function.name) ? metadata.function.name : metadata.tool_name || null;
+
+            const rawData = {
+                role: role,
+                sender: finalSender, // Include sender in rawData
+                tool_call_id: toolCallId,
+                tool_name: toolName,
+                content: content.content
+            };
+
+            // Display raw JSON in a <pre> block for better readability
+            const pre = document.createElement("pre");
+            pre.textContent = JSON.stringify(rawData, null, 2);
+            rawMessage.appendChild(pre);
+
+            rawMessagesContent.appendChild(rawMessage);
+            rawMessagesContent.scrollTop = rawMessagesContent.scrollHeight;
+
+            console.log("Appended Raw Message:", rawData);
+        }
+
+        /**
+         * Renders debug information in the Debug pane.
+         * @param {string} role - The role of the sender.
+         * @param {object} content - The message content.
+         * @param {string} sender - The display name of the sender.
+         * @param {object} metadata - The metadata associated with the message.
+         */
+        function renderDebugInfo(role, content, sender, metadata) {
+            const debugMessage = document.createElement("div");
+            debugMessage.className = "debug-message";
+
+            const roleSpan = document.createElement("span");
+            if (role === "user") {
+                roleSpan.className = "debug-role-user";
+                roleSpan.textContent = "User";
+            } else if (role === "assistant") {
+                roleSpan.className = "debug-role-assistant";
+                roleSpan.textContent = "Assistant";
+            } else if (role === "tool") {
+                roleSpan.className = "debug-role-tool";
+                roleSpan.textContent = "Tool";
+            } else {
+                roleSpan.textContent = role;
+            }
+
+            // Assign a default sender if missing
+            const finalSender = sender || (role === "tool" ? "Tool" : "Unknown");
+
+            // Parse metadata
+            const parsedMetadata = parseMetadata(metadata);
+
+            // Format boolean fields with colors
+            const refusalFormatted = formatBoolean(parsedMetadata.refusal);
+            const audioFormatted = parsedMetadata.audio !== null ? (parsedMetadata.audio ? formatBoolean(true) : formatBoolean(false)) : "N/A";
+            const functionCallFormatted = parsedMetadata.function_call || "None";
+            const toolCallsFormatted = parsedMetadata.tool_calls ? JSON.stringify(parsedMetadata.tool_calls, null, 2) : "None";
+
+            debugMessage.innerHTML = `<strong>Role:</strong> ${roleSpan.outerHTML}<br/>
+                                      <strong>Sender:</strong> ${finalSender}<br/>
+                                      <strong>Refusal:</strong> ${refusalFormatted}<br/>
+                                      <strong>Audio:</strong> ${audioFormatted}<br/>
+                                      <strong>Function Call:</strong> ${functionCallFormatted}<br/>
+                                      <strong>Tool Calls:</strong> ${toolCallsFormatted}<br/>`;
+
+            debugContent.appendChild(debugMessage);
+            debugContent.scrollTop = debugContent.scrollHeight;
+
+            console.log(`Rendered debug info for message - Role: ${role}, Sender: ${finalSender}`);
+        }
+
+        /**
+         * Parses the metadata object to extract relevant fields.
+         * @param {object} metadata - The metadata associated with the message.
+         * @returns {object} - Parsed metadata with specific fields.
+         */
+        function parseMetadata(metadata) {
+            return {
+                refusal: metadata.refusal || null,
+                role: metadata.role || null,
+                audio: metadata.audio || null,
+                function_call: metadata.function_call || null,
+                tool_calls: metadata.tool_calls || null,
+                sender: metadata.sender || null
+            };
+        }
+
+        /**
+         * Formats boolean values with colored text.
+         * @param {boolean|null} value - The boolean value to format.
+         * @returns {string} - HTML string with colored boolean.
+         */
+        function formatBoolean(value) {
+            if (value === true) {
+                return `<span class="debug-boolean-true">True</span>`;
+            } else if (value === false) {
+                return `<span class="debug-boolean-false">False</span>`;
+            } else {
+                return "N/A";
+            }
+        }
+
+        /**
+         * Toggles the visibility of the Raw Messages pane.
+         */
+        function toggleRawMessages() {
+            if (rawToggle.checked) {
+                rawMessagesPane.style.display = "block";
+            } else {
+                rawMessagesPane.style.display = "none";
+                rawMessagesContent.innerHTML = ""; // Clear raw messages when hidden
+            }
+        }
+
+        /**
+         * Toggles the visibility of the Debug pane.
+         */
+        function toggleDebugPane() {
+            if (debugToggle.checked) {
+                debugPane.style.display = "block";
+            } else {
+                debugPane.style.display = "none";
+                debugContent.innerHTML = ""; // Clear debug content when hidden
+            }
+        }
+
+        /**
+         * Handles user decision on tool calls (Approve or Deny).
+         * Sends the decision to the backend for processing.
+         * @param {string} decision - 'approved' or 'denied'.
+         * @param {object} toolMessage - The tool call message object.
+         */
+        async function handleToolCallDecision(decision, toolMessage) {
+            console.log(`User has ${decision} the tool call: ${toolMessage.tool_name}(${toolMessage.content})`);
+
+            // Create user decision message object
+            const decisionMessage = {
+                role: "user",
+                content: decision,
+                sender: "User",
+                metadata: {}
+            };
+
+            // Add user's decision to chat history
+            chatHistory.push(decisionMessage);
+
+            // Render user's decision message
+            renderMessage(decisionMessage.role, { content: decisionMessage.content }, decisionMessage.sender, decisionMessage.metadata);
+            appendRawMessage(decisionMessage.role, { content: decisionMessage.content }, decisionMessage.sender, decisionMessage.metadata);
+
+            if (debugToggle.checked) {
+                renderDebugInfo(decisionMessage.role, { content: decisionMessage.content }, decisionMessage.sender, decisionMessage.metadata);
+            }
+
+            try {
+                // Send the tool call decision to /v1/tool_call_decision
+                const response = await fetch("/v1/tool_call_decision", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken, // Include CSRF token
+                    },
+                    body: JSON.stringify({
+                        decision: decision, // 'approved' or 'denied'
+                        tool_call_id: toolMessage.tool_call_id || toolMessage.id || null, // Include tool_call_id if available
+                        function_name: toolMessage.tool_name || (toolMessage.function && toolMessage.function.name) || null,
+                        arguments: toolMessage.function && toolMessage.function.arguments ? JSON.parse(toolMessage.function.arguments) : {},
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log("Tool call decision response:", data);
+
+                if (data.status === "success") {
+                    // Create assistant message object for success
+                    const successMessage = {
+                        role: "assistant",
+                        content: data.result || "Tool function executed successfully.",
+                        sender: "Assistant",
+                        metadata: {}
+                    };
+
+                    // Add to chat history
+                    chatHistory.push(successMessage);
+
+                    // Render assistant's success message
+                    renderMessage(successMessage.role, { content: successMessage.content }, successMessage.sender, successMessage.metadata);
+                    appendRawMessage(successMessage.role, { content: successMessage.content }, successMessage.sender, successMessage.metadata);
+
+                    if (debugToggle.checked) {
+                        renderDebugInfo(successMessage.role, { content: successMessage.content }, successMessage.sender, successMessage.metadata);
+                    }
+                } else if (data.status === "denied") {
+                    // Create assistant message object for denial
+                    const deniedMessage = {
+                        role: "assistant",
+                        content: data.message || "Tool call was denied.",
+                        sender: "Assistant",
+                        metadata: {}
+                    };
+
+                    // Add to chat history
+                    chatHistory.push(deniedMessage);
+
+                    // Render assistant's denial message
+                    renderMessage(deniedMessage.role, { content: deniedMessage.content }, deniedMessage.sender, deniedMessage.metadata);
+                    appendRawMessage(deniedMessage.role, { content: deniedMessage.content }, deniedMessage.sender, deniedMessage.metadata);
+
+                    if (debugToggle.checked) {
+                        renderDebugInfo(deniedMessage.role, { content: deniedMessage.content }, deniedMessage.sender, deniedMessage.metadata);
+                    }
+                } else {
+                    // Handle other statuses
+                    const errorMsg = {
+                        role: "assistant",
+                        content: data.message || "An error occurred.",
+                        sender: "Assistant",
+                        metadata: {}
+                    };
+
+                    chatHistory.push(errorMsg);
+                    renderMessage(errorMsg.role, { content: errorMsg.content }, errorMsg.sender, errorMsg.metadata);
+                    appendRawMessage(errorMsg.role, { content: errorMsg.content }, errorMsg.sender, errorMsg.metadata);
+
+                    if (debugToggle.checked) {
+                        renderDebugInfo(errorMsg.role, { content: errorMsg.content }, errorMsg.sender, errorMsg.metadata);
+                    }
+                }
+            } catch (error) {
+                console.error("Error sending tool call decision:", error);
+                const errorMessage = {
+                    role: "assistant",
+                    content: "There was an error processing your decision. Please try again.",
+                    sender: "Assistant",
+                    metadata: {}
+                };
+                chatHistory.push(errorMessage);
+                renderMessage(errorMessage.role, { content: errorMessage.content }, errorMessage.sender, errorMessage.metadata);
+                appendRawMessage(errorMessage.role, { content: errorMessage.content }, errorMessage.sender, errorMessage.metadata);
+            }
+        }
+
+        /**
+         * Handles the 'Enter' key press to submit the form.
+         * @param {KeyboardEvent} event 
+         */
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                event.preventDefault(); // Prevent form submission if inside a form
+                handleSubmit();
+            }
         }
 
         /**
          * Handles the submission of a user message.
-         * Sends the message to the server and displays the assistant's response.
+         * Sends the entire chat history to the server and displays the assistant's response.
+         * @param {string|null} messageText - Optional text to send instead of user input.
          */
-        async function handleSubmit() {
+        async function handleSubmit(messageText = null) {
             const userInput = document.getElementById("userInput");
-            const userMessage = userInput.value.trim();
-            if (!userMessage) return;
+            const userMessageContent = messageText ? messageText : userInput.value.trim();
+            if (!userMessageContent) return;
 
-            // Extract blueprint ID from URL
-            const urlPath = window.location.pathname;
-            const blueprintId = urlPath.split("/").filter(Boolean).pop();
-            console.log("Submitting model ID:", blueprintId); // Log the model ID
-
-            if (!blueprintId) {
-                console.error("Error: Blueprint ID is missing.");
-                alert("Unable to identify the blueprint. Please check the URL.");
-                return;
+            // Clear the input field if not sending a predefined message
+            if (!messageText) {
+                userInput.value = "";
             }
 
-            // Add user's message to the interface
-            appendMessage("user", { content: userMessage }, "User", {});
+            // Create user message object
+            const userMessage = {
+                role: "user",
+                content: userMessageContent,
+                sender: "User",
+                metadata: {}
+            };
+
+            // Add user's message to chat history
+            chatHistory.push(userMessage);
+
+            // Render the user's message
+            renderMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
+            appendRawMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
+
+            if (debugToggle.checked) {
+                renderDebugInfo(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
+            }
 
             try {
-                // Send request to /v1/chat/completions
+                // Extract blueprint ID from URL
+                const urlPath = window.location.pathname;
+                const blueprintId = urlPath.split("/").filter(Boolean).pop();
+
+                console.log("Submitting model ID:", blueprintId); // Log the model ID
+
+                if (!blueprintId) {
+                    console.error("Error: Blueprint ID is missing.");
+                    alert("Unable to identify the blueprint. Please check the URL.");
+                    return;
+                }
+
+                // Send the entire chat history to /v1/chat/completions
                 const response = await fetch("/v1/chat/completions", {
                     method: "POST",
                     headers: { 
@@ -323,7 +845,12 @@
                     },
                     body: JSON.stringify({
                         model: blueprintId, // Use the extracted blueprint ID
-                        messages: [{ role: "user", content: userMessage }],
+                        messages: chatHistory.map(msg => ({
+                            role: msg.role,
+                            content: msg.content,
+                            sender: msg.sender,
+                            tool_calls: msg.metadata.tool_calls || undefined // Include tool_calls if present
+                        })),
                     }),
                 });
 
@@ -340,22 +867,196 @@
                     const assistantSender = assistantResponse?.sender || 'Assistant'; // Default to 'Assistant' if sender is missing
                     const toolCalls = assistantResponse?.tool_calls || [];
 
-                    appendMessage("assistant", { content: assistantMessage }, assistantSender, assistantResponse);
+                    // Create assistant message object
+                    const assistantMsgObject = {
+                        role: "assistant",
+                        content: assistantMessage,
+                        sender: assistantSender,
+                        metadata: assistantResponse
+                    };
+
+                    // Add assistant's message to chat history
+                    chatHistory.push(assistantMsgObject);
+
+                    // Render assistant's message
+                    renderMessage(assistantMsgObject.role, { content: assistantMsgObject.content }, assistantMsgObject.sender, assistantMsgObject.metadata);
+                    appendRawMessage(assistantMsgObject.role, { content: assistantMsgObject.content }, assistantMsgObject.sender, assistantMsgObject.metadata);
+
+                    if (debugToggle.checked && assistantMsgObject.metadata) {
+                        renderDebugInfo(assistantMsgObject.role, { content: assistantMsgObject.content }, assistantMsgObject.sender, assistantMsgObject.metadata);
+                    }
 
                     // Render tool calls if any
                     toolCalls.forEach(toolCall => {
-                        appendMessage("assistant", `Tool call: ${toolCall.function.name} (${toolCall.function.arguments})`, assistantSender, toolCall);
+                        const toolMessageContent = toolCall.content || "";
+                        const toolCallId = toolCall.id || toolCall.tool_call_id || null;
+                        const toolName = (toolCall.function && toolCall.function.name) ? toolCall.function.name : toolCall.tool_name || "Unknown Tool";
+
+                        console.log(`Processing tool call - ID: ${toolCallId}, Name: ${toolName}, Content: ${toolMessageContent}`);
+
+                        // Create tool message object
+                        const toolMsgObject = {
+                            role: "tool",
+                            content: toolMessageContent,
+                            sender: `Tool: ${toolName}`,
+                            metadata: toolCall
+                        };
+
+                        // Add tool message to chat history
+                        chatHistory.push(toolMsgObject);
+
+                        // Render tool message
+                        renderMessage(toolMsgObject.role, { content: toolMsgObject.content }, toolMsgObject.sender, toolMsgObject.metadata);
+                        appendRawMessage(toolMsgObject.role, { content: toolMsgObject.content }, toolMsgObject.sender, toolMsgObject.metadata);
+
+                        if (debugToggle.checked && toolMsgObject.metadata) {
+                            renderDebugInfo(toolMsgObject.role, { content: toolMsgObject.content }, toolMsgObject.sender, toolMsgObject.metadata);
+                        }
                     });
                 } else {
-                    appendMessage("assistant", { content: "No response received." }, "Assistant", {});
+                    // Handle cases where no response is received
+                    const noResponseMessage = {
+                        role: "assistant",
+                        content: "No response received.",
+                        sender: "Assistant",
+                        metadata: {}
+                    };
+                    chatHistory.push(noResponseMessage);
+                    renderMessage(noResponseMessage.role, { content: noResponseMessage.content }, noResponseMessage.sender, noResponseMessage.metadata);
+                    appendRawMessage(noResponseMessage.role, { content: noResponseMessage.content }, noResponseMessage.sender, noResponseMessage.metadata);
                 }
             } catch (error) {
                 console.error("Error submitting chat completion:", error);
-                appendMessage("assistant", { content: "Error occurred. Please try again." }, "Assistant", {});
+                const errorMessage = {
+                    role: "assistant",
+                    content: "Error occurred. Please try again.",
+                    sender: "Assistant",
+                    metadata: {}
+                };
+                chatHistory.push(errorMessage);
+                renderMessage(errorMessage.role, { content: errorMessage.content }, errorMessage.sender, errorMessage.metadata);
+                appendRawMessage(errorMessage.role, { content: errorMessage.content }, errorMessage.sender, errorMessage.metadata);
+            }
+        }
+
+        /**
+         * Handles user decision on tool calls (Approve or Deny).
+         * Sends the decision to the backend for processing.
+         * @param {string} decision - 'approved' or 'denied'.
+         * @param {object} toolMessage - The tool call message object.
+         */
+        async function handleToolCallDecision(decision, toolMessage) {
+            console.log(`User has ${decision} the tool call: ${toolMessage.tool_name}(${toolMessage.content})`);
+
+            // Create user decision message object
+            const decisionMessage = {
+                role: "user",
+                content: decision,
+                sender: "User",
+                metadata: {}
+            };
+
+            // Add user's decision to chat history
+            chatHistory.push(decisionMessage);
+
+            // Render user's decision message
+            renderMessage(decisionMessage.role, { content: decisionMessage.content }, decisionMessage.sender, decisionMessage.metadata);
+            appendRawMessage(decisionMessage.role, { content: decisionMessage.content }, decisionMessage.sender, decisionMessage.metadata);
+
+            if (debugToggle.checked) {
+                renderDebugInfo(decisionMessage.role, { content: decisionMessage.content }, decisionMessage.sender, decisionMessage.metadata);
             }
 
-            // Clear the input field
-            userInput.value = "";
+            try {
+                // Send the tool call decision to /v1/tool_call_decision
+                const response = await fetch("/v1/tool_call_decision", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken, // Include CSRF token
+                    },
+                    body: JSON.stringify({
+                        decision: decision, // 'approved' or 'denied'
+                        tool_call_id: toolMessage.tool_call_id || toolMessage.id || null, // Include tool_call_id if available
+                        function_name: toolMessage.tool_name || (toolMessage.function && toolMessage.function.name) || null,
+                        arguments: toolMessage.function && toolMessage.function.arguments ? JSON.parse(toolMessage.function.arguments) : {},
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log("Tool call decision response:", data);
+
+                if (data.status === "success") {
+                    // Create assistant message object for success
+                    const successMessage = {
+                        role: "assistant",
+                        content: data.result || "Tool function executed successfully.",
+                        sender: "Assistant",
+                        metadata: {}
+                    };
+
+                    // Add to chat history
+                    chatHistory.push(successMessage);
+
+                    // Render assistant's success message
+                    renderMessage(successMessage.role, { content: successMessage.content }, successMessage.sender, successMessage.metadata);
+                    appendRawMessage(successMessage.role, { content: successMessage.content }, successMessage.sender, successMessage.metadata);
+
+                    if (debugToggle.checked) {
+                        renderDebugInfo(successMessage.role, { content: successMessage.content }, successMessage.sender, successMessage.metadata);
+                    }
+                } else if (data.status === "denied") {
+                    // Create assistant message object for denial
+                    const deniedMessage = {
+                        role: "assistant",
+                        content: data.message || "Tool call was denied.",
+                        sender: "Assistant",
+                        metadata: {}
+                    };
+
+                    // Add to chat history
+                    chatHistory.push(deniedMessage);
+
+                    // Render assistant's denial message
+                    renderMessage(deniedMessage.role, { content: deniedMessage.content }, deniedMessage.sender, deniedMessage.metadata);
+                    appendRawMessage(deniedMessage.role, { content: deniedMessage.content }, deniedMessage.sender, deniedMessage.metadata);
+
+                    if (debugToggle.checked) {
+                        renderDebugInfo(deniedMessage.role, { content: deniedMessage.content }, deniedMessage.sender, deniedMessage.metadata);
+                    }
+                } else {
+                    // Handle other statuses
+                    const errorMsg = {
+                        role: "assistant",
+                        content: data.message || "An error occurred.",
+                        sender: "Assistant",
+                        metadata: {}
+                    };
+
+                    chatHistory.push(errorMsg);
+                    renderMessage(errorMsg.role, { content: errorMsg.content }, errorMsg.sender, errorMsg.metadata);
+                    appendRawMessage(errorMsg.role, { content: errorMsg.content }, errorMsg.sender, errorMsg.metadata);
+
+                    if (debugToggle.checked) {
+                        renderDebugInfo(errorMsg.role, { content: errorMsg.content }, errorMsg.sender, errorMsg.metadata);
+                    }
+                }
+            } catch (error) {
+                console.error("Error sending tool call decision:", error);
+                const errorMessage = {
+                    role: "assistant",
+                    content: "There was an error processing your decision. Please try again.",
+                    sender: "Assistant",
+                    metadata: {}
+                };
+                chatHistory.push(errorMessage);
+                renderMessage(errorMessage.role, { content: errorMessage.content }, errorMessage.sender, errorMessage.metadata);
+                appendRawMessage(errorMessage.role, { content: errorMessage.content }, errorMessage.sender, errorMessage.metadata);
+            }
         }
 
         /**

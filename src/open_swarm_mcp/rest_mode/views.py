@@ -27,7 +27,7 @@ from .utils.logger import setup_logger
 from swarm import Agent, Swarm
 
 from open_swarm_mcp.config.blueprint_discovery import discover_blueprints
-from open_swarm_mcp.config.config_loader import load_server_config
+from open_swarm_mcp.config.config_loader import load_server_config, validate_api_keys, are_required_mcp_servers_running
 
 # Initialize logger for this module
 logger = setup_logger(__name__)
@@ -37,13 +37,26 @@ CONFIG_PATH = Path(settings.BASE_DIR) / "mcp_server_config.json"
 config = load_server_config(str(CONFIG_PATH))
 logger.debug(f"Loaded configuration in REST views: {config}")
 
+# Validate API keys
+try:
+    config = validate_api_keys(config)
+except ValueError as ve:
+    logger.error(f"Configuration validation error: {ve}")
+    # Depending on your application structure, handle this appropriately
+    # For example, you might raise an exception or halt the server
+    raise ve
+
 # Discover blueprints
 BLUEPRINTS_DIR = (Path(settings.BASE_DIR) / "blueprints").resolve()
 logger.debug(f"Attempting to locate blueprints at: {BLUEPRINTS_DIR}")
 blueprints_metadata = discover_blueprints([str(BLUEPRINTS_DIR)])
 
-logger.debug(f"Loaded blueprints metadata for REST views: {blueprints_metadata}")
+# Inject 'openai_model' from server config into blueprints metadata
+llm_model = config['llm'].get('model', 'gpt-4o-mini')
+for blueprint in blueprints_metadata.values():
+    blueprint['openai_model'] = llm_model
 
+logger.debug(f"Loaded blueprints metadata for REST views: {blueprints_metadata}")
 
 def get_file_modification_timestamp(file_path: str) -> int:
     """
@@ -91,16 +104,14 @@ def construct_openai_response(response: Any, openai_model: str) -> Dict[str, Any
         logger.error("Invalid response: 'messages' is not a list or is empty.")
         raise ValueError("Invalid response: 'messages' is not a list or is empty.")
 
-    # Guard: Ensure openai_model is not None or empty
-    if not openai_model:
-        logger.error("Invalid openai_model: openai_model is None or empty.")
-        raise ValueError("Invalid openai_model: openai_model is None or empty.")
+    # Select all assistant messages with non-None content
+    assistant_messages = [m for m in messages if m.get("role") == "assistant" and m.get("content") is not None]
 
-    # Select the first assistant message with non-None content
-    assistant_message = next(
-        (m for m in messages if m.get("role") == "assistant" and m.get("content") is not None),
-        {"content": "No response."}
-    )
+    if not assistant_messages:
+        assistant_messages = [{"content": "No response.", "role": "assistant", "sender": "Assistant"}]
+
+    # Use the last assistant message
+    assistant_message = assistant_messages[-1]
     logger.debug(f"Selected assistant message: {assistant_message}")
 
     # Generate a unique response ID
@@ -121,7 +132,7 @@ def construct_openai_response(response: Any, openai_model: str) -> Dict[str, Any
         "id": response_id,
         "object": "chat.completion",
         "created": get_file_modification_timestamp(openai_model),
-        "model": openai_model,  # Use the actual OpenAI model name
+        "model": openai_model,  # Use the actual OpenAI model name from server config
         "choices": [
             {
                 "index": 0,
@@ -173,7 +184,7 @@ async def chat_completions(request):
         logger.debug(f"Model '{model}' found in metadata: {blueprints_metadata[model]}")
         
         # Retrieve the actual OpenAI model name
-        openai_model = blueprints_metadata[model].get("openai_model", "gpt-3.5-turbo")
+        openai_model = blueprints_metadata[model].get("openai_model", llm_model)
         logger.debug(f"Using OpenAI model '{openai_model}' for blueprint '{model}'")
         
         # Retrieve the blueprint class and agent

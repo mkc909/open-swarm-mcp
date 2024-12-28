@@ -226,7 +226,7 @@ class GamifiedDilbertBlueprint(BlueprintBase):
             "3. With approximately a 1/3 chance, decide to finalize the product by calling build_product() or pass the user to Asok by calling alice_pass_neutral(). Explain your reasoning before making the call.\n"
             "   - If step 3 action is taken, increment step counter and proceed accordingly.\n"
             "4. Continue probing with more abstract design-related questions to deepen your understanding.\n"
-            "5. Further interact with additional abstract design queries to refine project insights.\n"
+            "5. Further interact the user with additional abstract design queries to refine project insights.\n"
             "6. With approximately a 2/3 chance, decide again to finalize the product by calling build_product() or pass to Asok by calling alice_pass_neutral(). Provide a comedic rationale before your decision.\n"
             "   - If step 6 action is taken, increment step counter and proceed accordingly.\n"
             "7. Continue with further abstract questions to maintain engagement.\n"
@@ -444,54 +444,27 @@ class GamifiedDilbertBlueprint(BlueprintBase):
 
             # Process response messages
             for message in response.messages:
-                # Check if message contains a function call in JSON
+                # Handle system messages and function calls internally
                 if isinstance(message, dict) and 'content' in message:
                     content = message['content']
-                    if content.startswith("```json") and content.endswith("```"):
-                        # Extract the function call
-                        try:
-                            json_start = content.find("{")
-                            json_end = content.rfind("}")
-                            if json_start != -1 and json_end != -1:
-                                function_call = content[json_start:json_end+1]
-                                # Parse the function call
-                                import json
-                                func_call = json.loads(function_call)
-                                tool_uses = func_call.get("tool_uses", [])
-                                for tool_use in tool_uses:
-                                    recipient_name = tool_use.get("recipient_name")
-                                    parameters = tool_use.get("parameters", {})
-                                    # Call the appropriate function
-                                    if recipient_name == "functions.build_product":
-                                        result = self.build_product()
-                                        messages.append({"role": "system", "content": result})
-                                        break  # End game
-                                    elif recipient_name == "functions.sabotage_project":
-                                        result = self.sabotage_project()
-                                        messages.append({"role": "system", "content": result})
-                                        break  # End game
-                                    elif recipient_name in [
-                                        "functions.dilbert_pass_neutral",
-                                        "functions.alice_pass_neutral",
-                                        "functions.carol_pass_neutral",
-                                        "functions.boss_pass_neutral",
-                                        "functions.dogbert_pass_neutral",
-                                        "functions.wally_pass_good",
-                                        "functions.wally_pass_evil",
-                                        "functions.asok_pass_good",
-                                        "functions.asok_pass_evil",
-                                        "functions.ratbert_pass_good",
-                                        "functions.ratbert_pass_evil",
-                                    ]:
-                                        # Call the pass function
-                                        pass_func = getattr(self, recipient_name.replace("functions.", ""))
-                                        next_agent = pass_func()
-                                        messages.append({"role": "system", "content": f"Passing you to {next_agent.name}."})
-                                        starting_agent = next_agent
-                                        break
-                        except Exception as parse_error:
-                            logger.error(f"Error parsing function call: {parse_error}")
-                            continue
+                    if content.startswith("```") and "GAME OVER:" in content:
+                        # Extract the game over message
+                        game_over_message = content.strip("```").strip()
+                        messages.append({"role": "system", "content": game_over_message})
+                        logger.info("Detected game over => finishing.")
+                        break
+                    elif "Passing you to" in content:
+                        # Extract the next agent's name
+                        parts = content.split("Passing you to ")
+                        if len(parts) > 1:
+                            next_agent_name = parts[1].replace(".", "").strip()
+                            if next_agent_name in self.agents:
+                                starting_agent = self.agents[next_agent_name]
+                                messages.append({"role": "system", "content": f"Now interacting with {next_agent_name}."})
+                                logger.info(f"Passing to agent: {next_agent_name}")
+                    else:
+                        # Regular message, append to messages
+                        messages.append(message)
                 else:
                     # Regular message, append to messages
                     messages.append(message)

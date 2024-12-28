@@ -2,8 +2,9 @@ import os
 import importlib.util
 import logging
 from typing import Dict, Any, List
+from datetime import datetime
 
-from open_swarm_mcp.blueprint_base import BlueprintBase  # Correct import
+from open_swarm_mcp.blueprint_base import BlueprintBase
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,9 @@ def discover_blueprints(blueprints_paths: List[str]) -> Dict[str, Dict[str, Any]
                                 logger.warning(f"No BlueprintBase subclass found in {blueprint_module_path}. Skipping blueprint.")
                                 continue
 
+                            # Get the modification time of the blueprint file
+                            modification_timestamp = int(os.path.getmtime(blueprint_module_path))
+
                             # Instantiate the blueprint class
                             blueprint_instance = blueprint_class()
 
@@ -61,6 +65,7 @@ def discover_blueprints(blueprints_paths: List[str]) -> Dict[str, Dict[str, Any]
                             metadata = getattr(blueprint_instance, "metadata", None)
                             if isinstance(metadata, dict):
                                 metadata['blueprint_class'] = blueprint_class  # Add class reference
+                                metadata['created'] = modification_timestamp  # Add the file modification timestamp
                                 blueprints_metadata[blueprint_dir] = metadata
                                 logger.info(f"Discovered blueprint '{blueprint_dir}': {metadata}")
                             else:

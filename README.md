@@ -28,6 +28,7 @@ Open Swarm MCP is a modular, Python-based framework that seamlessly integrates *
 1. **CLI & REST Support**  
    - Includes a setup wizard for quick initialisation.  
    - Provides flexible modes to run agents from the command line or via a Django-powered REST interface.
+   - Offers interactive webpages for each blueprint via `/<blueprint_name>/`.  
 
 2. **MCP Server Integrations**  
    - Agents can utilise external tools provided by MCP servers.  
@@ -91,8 +92,10 @@ In practice, this blueprint:
    - Exposes endpoints compatible with OpenAI-like interfaces:
      - `POST /v1/chat/completions` for inference (supports an optional `sender` field).
      - `GET /v1/models` to list enabled blueprints.
-     - `/admin` portal (Django admin) to manage application settings (e.g., which blueprints are enabled).
-   - Ideal for integrating with front-end clients or external automation scripts that already work with OpenAI’s API style.
+     - `/admin` portal (Django admin) to manage application settings
+   - Provides interactive blueprint webpages at `/<blueprint_name>/` (e.g. /university/):
+     - Each page allows users to interact directly with the blueprint, submit queries, and view responses.
+   - Ideal for integrating with front-end clients, external automation scripts, or exploring specific blueprints in a user-friendly format.
 
 ---
 
@@ -154,6 +157,10 @@ uv run blueprints/university/blueprint_university.py
 
 # Option D - Launch HTTP REST endpoint
 uv run manage.py runserver 0.0.0.0:8000
+
+# After launching the REST endpoint, open a browser and visit:
+# - http://localhost:8000/<blueprint_name>/ (e.g., http://localhost:8000/university/)
+# This will load an interactive webpage to test the blueprint functionality.
 
 # Option E - Launch HTTP REST endpoint using Docker (port 8000 if $PORT not set in .env)
 docker compose up -d

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interactive Chat Interface</title>
+    <!-- Include CSRF token in a meta tag -->
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <style>
+        /* Reset default browser styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.4; /* Reduced for tighter spacing */
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        /* Message Styling */
+        .message {
+            width: 100%; /* Stretch to full width of the container */
+            padding: 8px; /* Reduced from 10px */
+            margin: 8px 0; /* Reduced from 10px */
+            border-radius: 8px;
+            font-size: 0.95em; /* Slightly smaller font */
+            line-height: 1.4; /* Adjusted for tighter spacing */
+            background-color: #f0e9ff; /* Default for assistant */
+            color: #333;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background-color: #d6eaff;
+            align-self: flex-end;
+        }
+
+        .message.assistant {
+            background-color: #f0e9ff;
+        }
+
+        /* Debug Information Styling */
+        .debug-info {
+            margin-top: 8px; /* Reduced from 10px */
+            background-color: #f7f7f9;
+            padding: 8px; /* Reduced from 10px */
+            border: 1px solid #ccc;
+            font-size: 0.8em; /* Slightly smaller font */
+            overflow-x: auto;
+            border-radius: 5px;
+        }
+
+        .sender-header {
+            font-weight: bold;
+            margin-bottom: 4px; /* Reduced from 5px */
+            color: #555;
+        }
+
+        /* Form Styling */
+        .form-container {
+            display: flex;
+            margin-top: 20px;
+        }
+
+        #userInput {
+            flex: 1;
+            padding: 8px; /* Reduced from 10px */
+            font-size: 0.95em; /* Slightly smaller font */
+            border: 1px solid #ccc;
+            border-radius: 5px 0 0 5px;
+        }
+
+        #submitButton {
+            padding: 8px 16px; /* Reduced from 10px 20px */
+            font-size: 0.95em; /* Slightly smaller font */
+            border: 1px solid #007bff;
+            background-color: #007bff;
+            color: white;
+            border-radius: 0 5px 5px 0;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #submitButton:hover {
+            background-color: #0056b3;
+        }
+
+        /* Debug Toggle Styling */
+        #debugToggleContainer {
+            margin-top: 10px;
+        }
+
+        #debugToggle {
+            margin-right: 5px;
+        }
+
+        /* Message History Styling */
+        #messageHistory {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Blueprint Metadata Styling */
+        .blueprint-metadata {
+            padding: 10px;
+            margin-bottom: 20px;
+            background-color: #f2f4f8;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .blueprint-metadata h2 {
+            margin: 0;
+            font-size: 1.3em; /* Slightly smaller font */
+            color: #333;
+        }
+
+        .blueprint-metadata p {
+            margin: 5px 0 0;
+            color: #555;
+            font-size: 0.95em; /* Slightly smaller font */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Blueprint Metadata -->
+        <div class="blueprint-metadata" id="blueprintMetadata">
+            <h2>Loading...</h2>
+            <p>Please wait, fetching blueprint metadata...</p>
+        </div>
+
+        <h1>Interactive Chat Interface</h1>
+
+        <!-- Debug Toggle -->
+        <div id="debugToggleContainer">
+            <label>
+                <input type="checkbox" id="debugToggle" />
+                Show Debug Info
+            </label>
+        </div>
+
+        <!-- Message History -->
+        <div id="messageHistory"></div>
+
+        <!-- Input Form -->
+        <div class="form-container">
+            <input
+                type="text"
+                id="userInput"
+                placeholder="Type your message here..."
+                onkeypress="handleKeyPress(event)"
+            />
+            <button id="submitButton" onclick="handleSubmit()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const messageHistory = document.getElementById("messageHistory");
+        const debugToggle = document.getElementById("debugToggle");
+        const blueprintMetadataContainer = document.getElementById("blueprintMetadata");
+
+        // Get CSRF token from meta tag
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        /**
+         * Fetches and displays blueprint metadata based on the URL path.
+         */
+        async function fetchBlueprintMetadata() {
+            try {
+                // Extract blueprint ID from the URL path
+                const urlPath = window.location.pathname;
+                const blueprintId = urlPath.split("/").filter(Boolean).pop(); // Get the last segment of the path
+
+                console.log("Extracted blueprintId:", blueprintId); // Log the extracted ID
+
+                if (!blueprintId) {
+                    blueprintMetadataContainer.innerHTML = `
+                        <h2>Error</h2>
+                        <p>Blueprint ID is missing from the URL.</p>
+                    `;
+                    return;
+                }
+
+                // Fetch all models from /v1/models
+                const response = await fetch("/v1/models");
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                console.log("Fetched data:", data); // Log the response data
+
+                if (data && data.data && data.data.length > 0) {
+                    // Find the matching blueprint by ID
+                    const blueprint = data.data.find(bp => bp.id === blueprintId);
+                    console.log("Matched blueprint:", blueprint); // Log the matched blueprint
+
+                    if (blueprint) {
+                        blueprintMetadataContainer.innerHTML = `
+                            <h2>${blueprint.title || "Blueprint Title"}</h2>
+                            <p>${blueprint.description || "No description available."}</p>
+                        `;
+                    } else {
+                        blueprintMetadataContainer.innerHTML = `
+                            <h2>Error</h2>
+                            <p>No matching blueprint found for ID: ${blueprintId}.</p>
+                        `;
+                    }
+                } else {
+                    blueprintMetadataContainer.innerHTML = `
+                        <h2>Error</h2>
+                        <p>Unable to fetch blueprint metadata.</p>
+                    `;
+                }
+            } catch (error) {
+                console.error("Error fetching blueprint metadata:", error);
+                blueprintMetadataContainer.innerHTML = `
+                    <h2>Error</h2>
+                    <p>Unable to fetch blueprint metadata.</p>
+                `;
+            }
+        }
+
+        /**
+         * Renders a single message in the chat interface.
+         * @param {string} role - The role of the sender ('user' or 'assistant').
+         * @param {object} message - The message content.
+         * @param {string} sender - The display name of the sender.
+         * @param {object|null} debugInfo - Optional debug information.
+         */
+        function renderMessage(role, message, sender, debugInfo) {
+            const container = document.createElement("div");
+            container.className = `message ${role}`;
+
+            const header = document.createElement("h4");
+            header.textContent = sender;
+            header.className = "sender-header";
+            container.appendChild(header);
+
+            const content = document.createElement("p");
+            content.textContent = message.content || "No content.";
+            container.appendChild(content);
+
+            if (debugToggle.checked && debugInfo) {
+                const debugSection = document.createElement("div");
+                debugSection.className = "debug-info";
+
+                const functionCall = document.createElement("pre");
+                functionCall.textContent = JSON.stringify(debugInfo, null, 2);
+                debugSection.appendChild(functionCall);
+
+                container.appendChild(debugSection);
+            }
+
+            messageHistory.appendChild(container);
+        }
+
+        /**
+         * Appends a message to the chat interface.
+         * @param {string} role - The role of the sender ('user' or 'assistant').
+         * @param {object} content - The message content.
+         * @param {string} sender - The display name of the sender.
+         * @param {object} metadata - Additional metadata for debug purposes.
+         */
+        function appendMessage(role, content, sender, metadata) {
+            const debugInfo = debugToggle.checked
+                ? {
+                      toolCalls: metadata.toolCalls || "None",
+                      handoffs: metadata.handoffs || "None",
+                      functions: metadata.functions || "None",
+                      rawMessage: metadata.rawMessage || "None",
+                  }
+                : null;
+
+            renderMessage(role, content, sender, debugInfo);
+        }
+
+        /**
+         * Handles the submission of a user message.
+         * Sends the message to the server and displays the assistant's response.
+         */
+        async function handleSubmit() {
+            const userInput = document.getElementById("userInput");
+            const userMessage = userInput.value.trim();
+            if (!userMessage) return;
+
+            // Extract blueprint ID from URL
+            const urlPath = window.location.pathname;
+            const blueprintId = urlPath.split("/").filter(Boolean).pop();
+            console.log("Submitting model ID:", blueprintId); // Log the model ID
+
+            if (!blueprintId) {
+                console.error("Error: Blueprint ID is missing.");
+                alert("Unable to identify the blueprint. Please check the URL.");
+                return;
+            }
+
+            // Add user's message to the interface
+            appendMessage("user", { content: userMessage }, "User", {});
+
+            try {
+                // Send request to /v1/chat/completions
+                const response = await fetch("/v1/chat/completions", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken, // Include CSRF token
+                    },
+                    body: JSON.stringify({
+                        model: blueprintId, // Use the extracted blueprint ID
+                        messages: [{ role: "user", content: userMessage }],
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log("Chat completions response:", data); // Log the response
+
+                if (data && data.choices && data.choices.length > 0) {
+                    const assistantResponse = data.choices[0].message;
+                    const assistantMessage = assistantResponse?.content || 'No response.';
+                    const assistantSender = assistantResponse?.sender || 'Assistant'; // Default to 'Assistant' if sender is missing
+                    const toolCalls = assistantResponse?.tool_calls || [];
+
+                    appendMessage("assistant", { content: assistantMessage }, assistantSender, assistantResponse);
+
+                    // Render tool calls if any
+                    toolCalls.forEach(toolCall => {
+                        appendMessage("assistant", `Tool call: ${toolCall.function.name} (${toolCall.function.arguments})`, assistantSender, toolCall);
+                    });
+                } else {
+                    appendMessage("assistant", { content: "No response received." }, "Assistant", {});
+                }
+            } catch (error) {
+                console.error("Error submitting chat completion:", error);
+                appendMessage("assistant", { content: "Error occurred. Please try again." }, "Assistant", {});
+            }
+
+            // Clear the input field
+            userInput.value = "";
+        }
+
+        /**
+         * Handles the 'Enter' key press to submit the form.
+         * @param {KeyboardEvent} event 
+         */
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                event.preventDefault(); // Prevent form submission if inside a form
+                handleSubmit();
+            }
+        }
+
+        // Fetch blueprint metadata on page load
+        fetchBlueprintMetadata();
+    </script>
+</body>
+</html>

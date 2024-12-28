@@ -5,9 +5,17 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 """
 
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path
+from .rest_mode import views
 
 urlpatterns = [
+    # Admin route
     path('admin/', admin.site.urls),
-    path('v1/', include('rest_mode.urls')),  # Include rest_mode app URLs
+
+    # API-style routes
+    path('v1/chat/completions', views.chat_completions, name='chat_completions'),
+    path('v1/models', views.list_models, name='list_models'),
+
+    # Blueprint routes
+    path('<str:blueprint_name>/', views.blueprint_webpage, name='blueprint_webpage'),
 ]

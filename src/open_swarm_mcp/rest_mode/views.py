@@ -15,13 +15,13 @@ import uuid
 import time
 import logging
 import asyncio
-from typing import Any, Dict, List, AsyncGenerator, Generator, cast
-from functools import partial
+from typing import Any, Dict, List
 from pathlib import Path
 
-from django.http import JsonResponse, StreamingHttpResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
+from django.shortcuts import render
 
 from .utils.logger import setup_logger
 from swarm import Agent, Swarm
@@ -38,35 +38,28 @@ config = load_server_config(str(CONFIG_PATH))
 logger.debug(f"Loaded configuration in REST views: {config}")
 
 # Discover blueprints
-BLUEPRINTS_DIR = (Path(settings.BASE_DIR).parent / "blueprints").resolve()
+BLUEPRINTS_DIR = (Path(settings.BASE_DIR) / "blueprints").resolve()
 logger.debug(f"Attempting to locate blueprints at: {BLUEPRINTS_DIR}")
 blueprints_metadata = discover_blueprints([str(BLUEPRINTS_DIR)])
-
-# Example blueprint_metadata after discovery (ensure 'openai_model' is included)
-# blueprints_metadata = {
-#     "default": {
-#         "title": "Default Simple Agent",
-#         "description": "A simple agent that echoes user inputs.",
-#         "required_mcp_servers": [],
-#         "env_vars": [],
-#         "blueprint_class": <class 'blueprints.default.blueprint_default.DefaultBlueprint'>,
-#         "openai_model": "gpt-3.5-turbo"  # Ensure this key exists
-#     },
-#     # Add other blueprints similarly
-# }
 
 logger.debug(f"Loaded blueprints metadata for REST views: {blueprints_metadata}")
 
 
-def get_current_timestamp() -> int:
+def get_file_modification_timestamp(file_path: str) -> int:
     """
-    Retrieve the current UNIX timestamp.
+    Get the modification timestamp of a file.
+
+    Args:
+        file_path (str): Path to the file.
 
     Returns:
-        int: Current timestamp in seconds since the epoch.
+        int: Timestamp of the last modification.
     """
-    return int(time.time())
-
+    try:
+        return int(os.path.getmtime(file_path))
+    except Exception as e:
+        logger.error(f"Error getting modification timestamp for {file_path}: {e}")
+        return int(time.time())
 
 def construct_openai_response(response: Any, openai_model: str) -> Dict[str, Any]:
     """
@@ -127,7 +120,7 @@ def construct_openai_response(response: Any, openai_model: str) -> Dict[str, Any
     return {
         "id": response_id,
         "object": "chat.completion",
-        "created": get_current_timestamp(),
+        "created": get_file_modification_timestamp(openai_model),
         "model": openai_model,  # Use the actual OpenAI model name
         "choices": [
             {
@@ -247,26 +240,40 @@ async def list_models(request):
     """
     Lists discovered blueprint folders as 'models' (like OpenAI's /v1/models).
     """
-    if request.method != 'GET':
+    if request.method != "GET":
         return JsonResponse({"error": "Method not allowed. Use GET."}, status=405)
 
     try:
-        data = [
-            {
+        data = []
+        for folder_name, metadata in blueprints_metadata.items():
+            blueprint_file = os.path.join(BLUEPRINTS_DIR, folder_name, f"blueprint_{folder_name}.py")
+            created_timestamp = get_file_modification_timestamp(blueprint_file)
+            title = metadata.get("title", "No title available")
+            description = metadata.get("description", "No description available")
+            data.append({
                 "id": folder_name,
                 "object": "model",
-                "created": get_current_timestamp(),
+                "created": created_timestamp,
                 "owned_by": "open-swarm-mcp",
                 "permissions": [],
                 "root": None,
-                "parent": None
-            }
-            for folder_name, metadata in blueprints_metadata.items()
-        ]
-        logger.debug(f"List of models prepared: {data}")
-        return JsonResponse({"object": "list", "data": data}, status=200)
+                "parent": None,
+                "title": title,
+                "description": description,
+            })
 
+        return JsonResponse({"object": "list", "data": data}, status=200)
     except Exception as e:
         logger.error(f"Error listing models: {e}", exc_info=True)
         return JsonResponse({"error": "Internal Server Error"}, status=500)
 
+@csrf_exempt
+def blueprint_webpage(request, blueprint_name):
+    if blueprint_name not in blueprints_metadata:
+        available_blueprints = "".join(f"<li>{bp}</li>" for bp in blueprints_metadata)
+        return HttpResponse(
+            f"<h1>Blueprint '{blueprint_name}' not found.</h1><p>Available blueprints:</p><ul>{available_blueprints}</ul>",
+            status=404,
+        )
+
+    return render(request, "rest_mode/blueprint_page.html", {"blueprint_name": blueprint_name})

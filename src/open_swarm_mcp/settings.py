@@ -1,13 +1,21 @@
 import os
 import sys
 from pathlib import Path
-from django.db import connection  # Import connection for debugging purposes
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append(str(BASE_DIR))  # Add the root directory (src)
-sys.path.append(str(BASE_DIR / 'open_swarm_mcp'))  # Add the open_swarm_mcp directory
-print(f"System path: {sys.path}")
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+print(f"BASE_DIR resolved to: {BASE_DIR}")
+
+# Define a logs directory within the base directory
+LOGS_DIR = BASE_DIR / 'logs'
+
+# Ensure the logs directory exists
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Add the project root and the app directory to the system path
+sys.path.append(str(BASE_DIR))  # Add the project root
+sys.path.append(str(BASE_DIR / 'src/open_swarm_mcp')) 
+print(f"System path updated: {sys.path}")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-your-secret-key'  # Replace with a strong secret key
@@ -32,7 +40,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',  # Consider disabling for API-only
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -43,7 +51,7 @@ ROOT_URLCONF = 'open_swarm_mcp.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],  # No templates needed for API
+        'DIRS': [BASE_DIR / 'templates'],  # Updated to use pathlib for consistency
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -57,15 +65,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'open_swarm_mcp.wsgi.application'
-ASGI_APPLICATION = 'open_swarm_mcp.asgi.application'  # For ASGI
+ASGI_APPLICATION = 'open_swarm_mcp.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-# Using SQLite for simplicity; switch to PostgreSQL or others in production
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',  # Database at project root
     }
 }
 
@@ -96,6 +103,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # Define a root directory for collectstatic
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -119,8 +127,8 @@ LOGGING = {
         'file_rest_mode': {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'rest_mode.log'),
-            'maxBytes': 5*1024*1024,  # 5 MB
+            'filename': BASE_DIR / 'rest_mode.log',  # Log file in project root
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB
             'backupCount': 5,
             'formatter': 'verbose',
         },

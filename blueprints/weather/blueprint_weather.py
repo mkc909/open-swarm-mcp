@@ -9,9 +9,11 @@ This blueprint provides weather-related information using external APIs.
 from open_swarm_mcp.blueprint_base import BlueprintBase
 from typing import Dict, Any, Optional
 from swarm import Agent, Swarm
+from swarm.repl import run_demo_loop  # Added import for run_demo_loop
 import os
 import logging
 import requests
+import traceback  # Added import for traceback
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -137,6 +139,7 @@ Please ensure all operations are based on user-provided locations.""",
         except Exception as e:
             error_msg = f"Error fetching weather data: {e}"
             logger.error(error_msg)
+            traceback.print_exc()
             return error_msg
 
     def fetch_weather_forecast(self, location: str) -> str:
@@ -172,4 +175,15 @@ Please ensure all operations are based on user-provided locations.""",
         except Exception as e:
             error_msg = f"Error fetching weather forecast: {e}"
             logger.error(error_msg)
+            traceback.print_exc()
             return error_msg
+
+# Entry point for standalone execution
+if __name__ == "__main__":
+    blueprint = WeatherBlueprint()
+    try:
+        blueprint.interactive_mode()
+    except Exception as e:
+        logger.error(f"Error running Weather Blueprint: {e}")
+        traceback.print_exc()
+        print(f"Error running Weather Blueprint: {e}")

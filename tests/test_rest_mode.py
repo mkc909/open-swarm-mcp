@@ -10,6 +10,10 @@ from open_swarm_mcp.rest_mode.views import construct_openai_response, chat_compl
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'src.open_swarm_mcp.settings')
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(
+    not os.getenv("OPENAI_API_KEY"),
+    reason="Skipping test because OPENAI_API_KEY is not set"
+)
 async def test_construct_openai_response():
     '''
     Test the construct_openai_response function to ensure it constructs a valid OpenAI-like response.
@@ -58,6 +62,10 @@ def test_chat_completion_endpoint():
     assert 'message' in response_data['choices'][0]
 
 @pytest.mark.django_db
+@pytest.mark.skipif(
+    not os.getenv("OPENAI_API_KEY"),
+    reason="Skipping test because OPENAI_API_KEY is not set"
+)
 def test_chat_completion_invalid_input():
     '''
     Test the chat_completion endpoint with invalid input (empty messages).

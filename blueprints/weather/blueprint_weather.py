@@ -9,11 +9,10 @@ This blueprint provides weather-related information using external APIs.
 from open_swarm_mcp.blueprint_base import BlueprintBase
 from typing import Dict, Any, Optional
 from swarm import Agent, Swarm
-from swarm.repl import run_demo_loop  # Added import for run_demo_loop
-import os
+from swarm.repl import run_demo_loop
 import logging
 import requests
-import traceback  # Added import for traceback
+import traceback
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -29,12 +28,14 @@ class WeatherBlueprint(BlueprintBase):
     """
 
     def __init__(self) -> None:
+        # Initialize _metadata before calling super().__init__()
         self._metadata = {
             "title": "Weather Team",
             "description": "Provides weather-related information.",
             "required_mcp_servers": ["weather"],
             "env_vars": ["WEATHER_API_KEY"]
         }
+        super().__init__()  # Initialize BlueprintBase to load config and validate metadata
         self.client = Swarm()
         logger.info("Initialized Weather Blueprint with Swarm.")
 
@@ -44,15 +45,15 @@ class WeatherBlueprint(BlueprintBase):
 
     def validate_env_vars(self) -> None:
         """Validate that required environment variables are set."""
-        api_key = os.getenv("WEATHER_API_KEY")
-        if not api_key:
-            raise ValueError("Environment variable WEATHER_API_KEY is not set.")
-        logger.info("Validated WEATHER_API_KEY environment variable.")
+        super().validate_env_vars()
+        # No additional validations needed as 'WEATHER_API_KEY' is already validated by BlueprintBase
 
     def create_agent(self) -> Agent:
         """Create and configure the Weather agent."""
+        model = self.get_model()  # Retrieve model from config
         agent = Agent(
             name="WeatherAgent",
+            model=model,  # Pass the model to the Agent
             instructions="""You can provide weather-related information based on user queries.
 Available operations include:
 - Fetching current weather data for a location.
@@ -83,7 +84,6 @@ Please ensure all operations are based on user-provided locations.""",
         Returns:
             Dict[str, Any]: Execution results containing status, messages, and metadata.
         """
-        self.validate_env_vars()
         agent = self.create_agent()
 
         # Allow for message override from framework config
@@ -120,8 +120,8 @@ Please ensure all operations are based on user-provided locations.""",
         Returns:
             str: Weather information or error message.
         """
-        api_key = os.getenv("WEATHER_API_KEY")
         try:
+            api_key = self.get_env_var("WEATHER_API_KEY")  # Use BlueprintBase method to get API key
             # Example using OpenWeatherMap API
             url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={api_key}&units=metric"
             response = requests.get(url)
@@ -152,8 +152,8 @@ Please ensure all operations are based on user-provided locations.""",
         Returns:
             str: Weather forecast information or error message.
         """
-        api_key = os.getenv("WEATHER_API_KEY")
         try:
+            api_key = self.get_env_var("WEATHER_API_KEY")  # Use BlueprintBase method to get API key
             # Example using OpenWeatherMap API
             url = f"http://api.openweathermap.org/data/2.5/forecast?q={location}&appid={api_key}&units=metric"
             response = requests.get(url)

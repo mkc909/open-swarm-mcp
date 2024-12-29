@@ -11,7 +11,7 @@
             "command": "npx",
             "args": ["-y", "@modelcontextprotocol/server-brave-search"],
             "env": {
-                "BRAVE_API_KEY": ""
+                "BRAVE_API_KEY": "${BRAVE_API_KEY}"
             }
         },
 
@@ -22,7 +22,7 @@
 
         "filesystem": {
             "command": "bash",
-            "args": ["-c", "command -v mcp-filesystem-server >/dev/null 2>&1 || go install github.com/mark3labs/mcp-filesystem-server && mcp-filesystem-server $(echo $ALLOWED_PATHS | tr ',' ' ')"],
+            "args": ["-c", "command -v mcp-filesystem-server >/dev/null 2>&1 || go install github.com/mark3labs/mcp-filesystem-server@latest && ~/go/bin/mcp-filesystem-server $(echo $ALLOWED_PATHS | tr ',' ' ')"],
             "env": {
                 "ALLOWED_PATHS": "${ALLOWED_PATHS}"
             }

@@ -1,4 +1,4 @@
-# src/open_swarm_mcp/blueprints/filesystem/blueprint_filesystem.py
+# src/swarm/blueprints/filesystem/blueprint_filesystem.py
 
 """
 Filesystem Integration Blueprint
@@ -12,8 +12,8 @@ import logging
 import asyncio
 from typing import Dict, Any, List, Optional
 
-from open_swarm_mcp.blueprint_base import BlueprintBase
-from open_swarm_mcp.utils.mcp_session_manager import MCPSessionManager
+from swarm.blueprint_base import BlueprintBase
+from swarm.utils.mcp_session_manager import MCPSessionManager
 from swarm import Agent, Swarm
 from concurrent.futures import ThreadPoolExecutor
 

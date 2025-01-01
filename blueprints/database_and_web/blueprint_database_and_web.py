@@ -8,7 +8,7 @@ It serves as a unified interface for combining database operations and web resea
 import logging
 import os
 import traceback
-from open_swarm_mcp.blueprint_base import BlueprintBase
+from swarm.blueprint_base import BlueprintBase
 from .sqlite_agent import SQLiteAgent
 from .brave_agent import BraveAgent
 

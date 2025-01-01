@@ -1,6 +1,6 @@
 # Updated default blueprint for standard alignment.
 
-from open_swarm_mcp.blueprint_base import BlueprintBase
+from swarm.blueprint_base import BlueprintBase
 from typing import Dict, Any, Optional
 from swarm import Agent, Swarm
 from swarm.repl import run_demo_loop

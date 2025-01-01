@@ -20,7 +20,7 @@ from typing import Dict, Any, Optional, List, Callable, Union
 
 from swarm import Agent, Swarm
 from swarm.repl import run_demo_loop
-from open_swarm_mcp.blueprint_base import BlueprintBase
+from swarm.blueprint_base import BlueprintBase
 
 # Configure logging with detailed debug statements
 logger = logging.getLogger(__name__)

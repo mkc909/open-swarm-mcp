@@ -1,5 +1,3 @@
-# src/open_swarm_mcp/llm_providers/openai_llm.py
-
 """
 OpenAI LLM Provider Module for Open Swarm MCP.
 
@@ -14,11 +12,9 @@ import asyncio
 import json
 import requests
 
-from open_swarm_mcp.llm_providers.base_llm_provider import BaseLLMProvider
-
+from .base_llm_provider import BaseLLMProvider
 
 logger = logging.getLogger(__name__)
-
 
 class OpenAILLMProvider(BaseLLMProvider):
     """
@@ -52,6 +48,8 @@ class OpenAILLMProvider(BaseLLMProvider):
         self.headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
+        } if api_key else {
+            "Content-Type": "application/json",
         }
         logger.debug(
             f"Initialized OpenAILLMProvider with model={self.model}, base_url={self.base_url}, "

@@ -53,15 +53,6 @@ class UniversitySupportBlueprint(BlueprintBase):
         logger.debug("Initializing UniversitySupportBlueprint.")
         super().__init__(config=config, **kwargs)  # Pass config and any overrides to superclass
 
-        self._metadata = {
-            "title": "University Support System Blueprint",
-            "description": (
-                "A blueprint that orchestrates multiple agents to handle university-related queries, "
-                "including course recommendations, campus culture insights, and scheduling assistance."
-            ),
-            "required_mcp_servers": ["sqlite"],
-            "env_vars": ["SQLITE_DB_PATH"],
-        }
         logger.debug("Swarm client initialized.")
         self.client = Swarm()
         logger.debug("Creating agents.")
@@ -69,8 +60,13 @@ class UniversitySupportBlueprint(BlueprintBase):
         logger.info("University Support Blueprint initialized successfully.")
 
     @property
-    def metadata(self) -> Dict[str, Any]:
-        return self._metadata
+    def metadata(self):
+        return {
+            "title": "Default Blueprint",
+            "description": "A basic blueprint for demonstration purposes.",
+            "required_mcp_servers": [],
+            "env_vars": [],
+        }
 
     def validate_env_vars(self) -> None:
         """Validate required environment variables and set up the SQLite database."""

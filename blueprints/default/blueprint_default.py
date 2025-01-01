@@ -19,26 +19,25 @@ class DefaultBlueprint(BlueprintBase):
     Default Simple Agent Blueprint Implementation.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: Optional[Dict[str, Any]] = None, **kwargs):
         """
         Initialize the DefaultBlueprint.
 
         Args:
             config (Optional[Dict[str, Any]]): Configuration dictionary.
         """
-        super().__init__(config=config)
-        self._metadata = {
-            "title": "Default Simple Agent",
-            "description": "A simple agent that echoes user inputs.",
-            "required_mcp_servers": [],
-            "env_vars": []
-        }
+        super().__init__(config=config, **kwargs)
         self.client = Swarm()
         logger.info("Initialized Swarm 🐝")
 
     @property
-    def metadata(self) -> Dict[str, Any]:
-        return self._metadata
+    def metadata(self):
+        return {
+            "title": "Default Blueprint",
+            "description": "A basic blueprint for demonstration purposes.",
+            "required_mcp_servers": [],
+            "env_vars": [],
+        }
 
     def validate_env_vars(self) -> None:
         """

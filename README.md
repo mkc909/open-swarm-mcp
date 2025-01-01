@@ -1,6 +1,6 @@
 # Open Swarm MCP
 
-<img src="assets/images/logo.webp" alt="Project Logo" width="256"/>
+<img src="assets/images/openswarm-project-image.jpg" alt="Project Logo" width="512"/>
 
 Open Swarm MCP is a modular, Python-based framework that seamlessly integrates **OpenAI Swarm** with **Message Context Protocol (MCP)** for multi-agent orchestration. Designed for both **CLI** and **REST** usage, it provides a structured approach to configuring agents, tools, and environment variables via its **Blueprint** standard. This ensures adaptability and scalability for diverse use cases—from educational demos to enterprise-grade solutions.
 

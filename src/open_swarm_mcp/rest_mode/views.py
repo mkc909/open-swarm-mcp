@@ -1,5 +1,3 @@
-# src/open_swarm_mcp/rest_mode/views.py
-
 """
 REST Mode Views for Open Swarm MCP.
 
@@ -203,6 +201,7 @@ async def run_swarm_sync(swarm_instance: Swarm, **params) -> Any:
     logger.debug("Running Swarm instance in executor.")
     return await loop.run_in_executor(None, lambda: swarm_instance.run(**params))
 
+
 @csrf_exempt
 def chat_completions(request):
     """
@@ -289,7 +288,6 @@ def chat_completions(request):
     except Exception as e:
         logger.error(f"Internal server error during Swarm execution: {e}")
         return JsonResponse({"error": f"Internal server error during Swarm execution: {e}"}, status=500)
-
 
 @csrf_exempt
 async def list_models(request):

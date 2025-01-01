@@ -18,7 +18,6 @@ from .utils.logger import setup_logger
 # Initialize logger for this module
 logger = setup_logger(__name__)
 
-
 def resolve_placeholders(obj: Any) -> Any:
     """
     Recursively resolve placeholders in the given object.
@@ -52,7 +51,6 @@ def resolve_placeholders(obj: Any) -> Any:
     else:
         return obj
 
-
 def load_server_config(file_path: str) -> Dict[str, Any]:
     """
     Loads the server configuration from a JSON file and resolves any environment variable placeholders.
@@ -83,7 +81,6 @@ def load_server_config(file_path: str) -> Dict[str, Any]:
 
     return resolved_config
 
-
 def validate_api_keys(config: Dict[str, Any], selected_llm: str = None) -> Dict[str, Any]:
     """
     Validates that all required API keys are present in the configuration.
@@ -97,7 +94,7 @@ def validate_api_keys(config: Dict[str, Any], selected_llm: str = None) -> Dict[
         Dict[str, Any]: The validated configuration.
 
     Raises:
-        ValueError: If any required API keys are missing.
+        ValueError: If any required API keys are missing or empty.
     """
     if selected_llm is None:
         selected_llm = "default"
@@ -125,10 +122,12 @@ def validate_api_keys(config: Dict[str, Any], selected_llm: str = None) -> Dict[
                     logger.error(f"Environment variable '{var_key}' for server '{server_name}' is missing.")
                     raise ValueError(f"Environment variable '{var_key}' for server '{server_name}' is missing.")
                 logger.debug(f"Environment variable '{var_key}' for server '{server_name}' is present.")
+            elif isinstance(var_value, str) and not var_value:
+                logger.error(f"Environment variable '{var_name}' for server '{server_name}' is set to an empty value.")
+                raise ValueError(f"Environment variable '{var_name}' for server '{server_name}' is set to an empty value.")
 
     logger.debug("All required API keys are present.")
     return config
-
 
 def get_llm_provider(config: Dict[str, Any], selected_llm: str) -> Any:
     """
@@ -165,7 +164,6 @@ def get_llm_provider(config: Dict[str, Any], selected_llm: str) -> Any:
     except ImportError as e:
         logger.error(f"Failed to import LLM provider module: {e}")
         raise ValueError(f"Failed to import LLM provider module: {e}")
-
 
 def are_required_mcp_servers_running(required_servers: List[str], config: Dict[str, Any]) -> Tuple[bool, List[str]]:
     """

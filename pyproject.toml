@@ -1,7 +1,7 @@
 [project]
-name = "open-swarm-mcp"
+name = "swarm"
 version = "0.1.0"
-description = "A tool for orchestrating Swarm MCP using both CLI and API."
+description = "A tool for orchestrating Swarm using both CLI and API."
 readme = "README.md"
 authors = [
     { name = "Matthew Hand", email = "matthewhandau@gmail.com" }

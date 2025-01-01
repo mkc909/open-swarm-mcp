@@ -1,7 +1,7 @@
 import logging
 import pytest
 from unittest.mock import patch, Mock
-from open_swarm_mcp.agent.agent_builder import build_agent, build_agent_with_mcp_tools, create_tool_function
+from swarm.agent.agent_builder import build_agent, build_agent_with_mcp_tools, create_tool_function
 from swarm import Agent
 import requests
 
@@ -51,7 +51,7 @@ def test_build_agent_without_tools(basic_config):
     assert agent.instructions == 'You are a test agent.'
     assert len(agent.functions) == 0  # No tools should be registered
 
-@patch('open_swarm_mcp.agent.agent_builder.create_tool_function')
+@patch('swarm.agent.agent_builder.create_tool_function')
 def test_build_agent_with_tools(mock_create_tool_function, mcp_config):
     '''
     Test building an Agent with MCP tools.

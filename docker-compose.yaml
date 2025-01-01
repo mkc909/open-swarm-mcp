@@ -1,10 +1,10 @@
 services:
-  open-swarm-mcp:
-    image: openswarmmcp:latest
+  open-swarm:
+    image: openswarm:latest
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: open-swarm-mcp
+    container_name: open-swarm
     environment:
       # Explicitly define environment variables
       - OPENAI_API_KEY
@@ -19,5 +19,5 @@ services:
       # Map the blueprints directory
       - ./blueprints:/app/blueprints
       # Map the configuration JSON
-      - ./src/open_swarm_mcp/mcp_server_config.json:/app/src/open_swarm_mcp/mcp_server_config.json
+      - ./src/swarm/mcp_server_config.json:/app/src/swarm/mcp_server_config.json
     restart: unless-stopped

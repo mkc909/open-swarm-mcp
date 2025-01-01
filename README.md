@@ -245,11 +245,11 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
  │                 Open Swarm REST API Service (Django)                │
  │        (Exposes /v1/models, /v1/chat/completions, /admin)           │
  └─────────────────────────────────────────────────────────────────────┘
-                   |                          |                
-       (Mandatory) |                          | MCP Servers    
-       GPT Actions |                          | (filesystem,    
-       or Python   |                          | database, etc.)           
-       Functions   ▼                          ▼                
+                     |                        |                
+       (Mandatory)   |                        | GPT Actions and/or MCP Servers    
+       LLM Inference |                        | (filesystem,    
+                     |                        | database, etc.)           
+                     ▼                        ▼                
        ┌────────────────────────┐         ┌────────────────────────┐
        │OpenAI-Compatible LLMs  │         │ External APIs/Services │
        │ (OpenAI, Grok, Ollama) │         │ (Weather, Database, ..)│

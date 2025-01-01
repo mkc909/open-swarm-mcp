@@ -3,7 +3,7 @@ Tests for the blueprint discovery module.
 """
 
 import pytest
-from open_swarm_mcp.config.blueprint_discovery import discover_blueprints
+from swarm.config.blueprint_discovery import discover_blueprints
 from pathlib import Path
 import logging
 
@@ -25,7 +25,7 @@ def temporary_blueprints_dir(tmp_path: Path) -> Path:
     valid_blueprint_dir.mkdir()
 
     blueprint_code = '''
-from open_swarm_mcp.blueprint_base import BlueprintBase
+from swarm.blueprint_base import BlueprintBase
 
 class ValidBlueprint(BlueprintBase):
     @property

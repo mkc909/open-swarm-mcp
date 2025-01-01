@@ -16,8 +16,8 @@ Dependencies:
 
 import pytest
 from unittest.mock import patch
-from open_swarm_mcp.config.blueprint_discovery import discover_blueprints
-from open_swarm_mcp.config.blueprint_selection import prompt_user_to_select_blueprint
+from swarm.config.blueprint_discovery import discover_blueprints
+from swarm.config.blueprint_selection import prompt_user_to_select_blueprint
 
 
 @pytest.fixture
@@ -38,7 +38,7 @@ def setup_blueprints(tmp_path):
     valid_bp_dir.mkdir()
     valid_bp_file = valid_bp_dir / f"blueprint_{valid_bp_name}.py"
     valid_bp_file.write_text("""
-from open_swarm_mcp.blueprint_base import BlueprintBase
+from swarm.blueprint_base import BlueprintBase
 
 class ValidBlueprint(BlueprintBase):
     \"\"\"
@@ -64,7 +64,7 @@ class ValidBlueprint(BlueprintBase):
     missing_metadata_bp_dir.mkdir()
     missing_metadata_bp_file = missing_metadata_bp_dir / f"blueprint_{missing_metadata_bp_name}.py"
     missing_metadata_bp_file.write_text("""
-from open_swarm_mcp.blueprint_base import BlueprintBase
+from swarm.blueprint_base import BlueprintBase
 
 class MissingMetadataBlueprint(BlueprintBase):
     \"\"\"

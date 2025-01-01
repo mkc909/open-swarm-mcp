@@ -1,4 +1,4 @@
-# blueprints/default/blueprint_default.py
+# Updated default blueprint for standard alignment.
 
 from open_swarm_mcp.blueprint_base import BlueprintBase
 from typing import Dict, Any, Optional
@@ -19,15 +19,20 @@ class DefaultBlueprint(BlueprintBase):
     Default Simple Agent Blueprint Implementation.
     """
 
-    def __init__(self, config=None, **kwargs):
-        super().__init__(config=config, **kwargs)
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        """
+        Initialize the DefaultBlueprint.
+
+        Args:
+            config (Optional[Dict[str, Any]]): Configuration dictionary.
+        """
+        super().__init__(config=config)
         self._metadata = {
             "title": "Default Simple Agent",
             "description": "A simple agent that echoes user inputs.",
             "required_mcp_servers": [],
             "env_vars": []
         }
-
         self.client = Swarm()
         logger.info("Initialized Swarm 🐝")
 
@@ -36,12 +41,19 @@ class DefaultBlueprint(BlueprintBase):
         return self._metadata
 
     def validate_env_vars(self) -> None:
-        """Validate that required environment variables are set."""
-        # This blueprint does not require any environment variables.
+        """
+        Validate that required environment variables are set.
+        """
+        # No environment variables needed for DefaultBlueprint.
         pass
 
     def create_agent(self) -> Agent:
-        """Create and configure the default simple agent."""
+        """
+        Create and configure the default agent.
+
+        Returns:
+            Agent: A configured Agent instance.
+        """
         agent = Agent(
             name="DefaultAgent",
             instructions="""You are a simple agent that echoes user inputs.
@@ -54,7 +66,10 @@ Please repeat back what the user says.""",
 
     def get_agents(self) -> Dict[str, Agent]:
         """
-        Returns a dictionary of agents.
+        Retrieve the dictionary of agents.
+
+        Returns:
+            Dict[str, Agent]: A dictionary containing all created agents.
         """
         return {"DefaultAgent": self.create_agent()}
 
@@ -69,17 +84,12 @@ Please repeat back what the user says.""",
             Dict[str, Any]: Execution results containing status, messages, and metadata.
         """
         self.validate_env_vars()
-        agent = self.create_agent()
 
-        # Allow for message override from framework config
-        default_message = {
-            "role": "user",
-            "content": "Hello, how are you?"
-        }
+        agent = self.create_agent()
+        default_message = {"role": "user", "content": "Hello, how are you?"}
         messages = config.get('messages', [default_message]) if config else [default_message]
 
         response = self.client.run(agent=agent, messages=messages)
-
         return {
             "status": "success",
             "messages": response.messages,

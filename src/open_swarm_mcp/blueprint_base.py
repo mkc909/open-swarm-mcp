@@ -18,6 +18,7 @@ from open_swarm_mcp.config.config_loader import (
 )
 from open_swarm_mcp.agent.agent_builder import build_agent_with_mcp_tools
 from open_swarm_mcp.utils.mcp_session_manager import MCPSessionManager
+from swarm.utils.redact import redact_sensitive_values
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)  # Set DEBUG level for detailed output
@@ -91,8 +92,9 @@ class BlueprintBase:
         else:
             try:
                 self.config = load_server_config(self.config_path)
+                redacted_config = redact_sensitive_values(self.config)
                 logger.info(f"Successfully loaded configuration from '{self.config_path}'.")
-                logger.debug(f"Loaded configuration: {self.config}")
+                logger.debug(f"Loaded configuration (redacted): {redacted_config}")
             except FileNotFoundError:
                 logger.error(f"Configuration file '{self.config_path}' not found. Using empty configuration.")
                 self.config = {}

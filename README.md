@@ -1,22 +1,26 @@
-# Open Swarm MCP
+# Open Swarm
 
 <img src="assets/images/openswarm-project-image.jpg" alt="Project Logo" width="512"/>
 
-Open Swarm MCP is a modular, Python-based framework that seamlessly integrates **OpenAI Swarm** with **Message Context Protocol (MCP)** for multi-agent orchestration. Designed for both **CLI** and **REST** usage, it provides a structured approach to configuring agents, tools, and environment variables via its **Blueprint** standard. This ensures adaptability and scalability for diverse use cases—from educational demos to enterprise-grade solutions.
+**Open Swarm** is a versatile, modular framework for building intelligent, multi-agent systems. It's meant as a **drop-in alternative** to the [OpenAI Swarm](https://github.com/openai/swarm) framework—accepting new pull requests and actively maintained with additional features for agentic workflows. 
 
 ---
 
 ## Table of Contents
 - [Key Features](#key-features)
 - [Blueprints](#blueprints)
-  - [University Support Example](#university-support-example)
+  - [Echo Blueprint](#echo-blueprint)
+  - [Database and Web Blueprint](#database-and-web-blueprint)
+  - [Filesystem Blueprint](#filesystem-blueprint)
+  - [University Blueprint](#university-blueprint)
+  - [Weather Blueprint](#weather-blueprint)
 - [Operational Modes](#operational-modes)
-- [Configuration & Metadata](#configuration--metadata)
+- [Configuration & Multiple LLM Providers](#configuration--multiple-llm-providers)
 - [Installation](#installation)
-- [Running with UV and Python](#running-with-uv-and-python)
+- [Running Open Swarm](#running-open-swarm)
 - [Deploying with Docker](#deploying-with-docker)
   - [Deploy with Docker Compose (Recommended)](#deploy-with-docker-compose-recommended)
-  - [Deploy Without Docker Compose (Image Pending Docker Registry)](#deploy-without-docker-compose-image-pending-docker-registry)
+  - [Deploy Standalone](#deploy-standalone)
 - [Progress Tracker](#progress-tracker)
 - [Further Documentation](#further-documentation)
 - [License](#license)
@@ -25,25 +29,34 @@ Open Swarm MCP is a modular, Python-based framework that seamlessly integrates *
 
 ## Key Features
 
-1. **CLI & REST Support**  
-   - Includes a setup wizard for quick initialisation.  
-   - Provides flexible modes to run agents from the command line or via a Django-powered REST interface.
-   - Offers interactive webpages for each blueprint via `/<blueprint_name>/`.  
+1. **Multi-Agent Orchestration**  
+   - Define multiple agents, each with unique instructions and roles.
+   - Agents coordinate tasks, share context, or hand off queries between one another.
 
-2. **MCP Server Integrations**  
-   - Agents can utilise external tools provided by MCP servers.  
-   - Facilitates secure, configurable connections to services like filesystems, databases, or web search.
+2. **Blueprint-Driven Architecture**  
+   - Each **Blueprint** encapsulates logic, tool connections, and environment/config settings.
+   - Encourages reusable, modular patterns for different use cases.
 
-3. **Blueprint Standard**  
-   - Each blueprint encapsulates logic for one or more Swarm agents, along with any MCP server tool requirements.  
-   - Integrates `.env` secrets and `.json` configuration for robust environment handling.
+3. **Optional MCP or GPT Actions**  
+   - Integrate with external tools (e.g., databases, web search, filesystems) through **MCP servers**.
+   - (TODO) Use **GPT Actions** as an alternative for agent expansions without dedicated MCP infrastructure.
 
-4. **OpenAI API Compatibility + Agent Sender**  
+4. **CLI & REST Interface**  
+   - A setup wizard helps define or update blueprint configurations.
+   - Run from the command line or expose a Django-powered REST API for broader integration.
+   - Interactive web pages per blueprint at `/<blueprint_name>/`.
+
+5. **OpenAI API Compatibility**  
    - Exposes an endpoint at `/v1/chat/completions` that is functionally similar to the OpenAI Chat Completions API.
    - Includes a **mandatory** `sender` field in agent responses.  
      - This field identifies which Swarm agent provided the response and must be preserved in the conversation history for proper handoffs between agents.
      - While the framework is compatible with OpenAI-like API clients, it assumes the client application maintains the `sender` field and, ideally, displays it in the user interface.
      - **Note:** Most OpenAI API-compatible applications will ignore the `sender` field by default and not display the agent name. Custom UI or logic is required to utilise and present this information.
+
+6. **Configurable LLM Providers**  
+   - Supports multiple OpenAI-compatible providers in a single environment (e.g., `echo`, `grok`, `ollama`).
+   - Allows specifying different models/providers for different agents—even within the same blueprint.
+   - Use environment variable to specify default llm model provider used by blueprints, `LLM=ollama`
 
 ---
 
@@ -79,46 +92,69 @@ In practice, this blueprint:
 - Requires environment variable, `OPENAI_API_KEY` for LLM inference.  
 - Performs both **CLI** and **REST** interactions, so you can either run it locally or expose it as a service through `/v1/chat/completions`.
 
+### Other Examples
+Open Swarm showcases a growing library of **Blueprint** examples:
+
+#### Echo Blueprint
+A straightforward agent that simply echoes user inputs—ideal for testing or as a starter template.
+
+#### Database and Web Blueprint
+Demonstrates MCP-based integration with an SQLite database and Brave Search, illustrating how to combine data retrieval with real-time web queries.
+
+#### Filesystem Blueprint
+Provides agents that can interact with local file directories (read/write operations) through a **filesystem** MCP server.
+
+#### Weather Blueprint
+Fetches current weather and forecasts via external APIs (e.g., OpenWeatherMap), showing how environment variables and requests-based calls can be integrated.
+
 ---
 
 ## Operational Modes
 
 1. **CLI Mode**  
-   - Offers an interactive command-line interface to experiment with agent behaviours.  
-   - Includes a setup wizard to guide basic configuration.  
-   - Allows running specific blueprints directly from the CLI.
+   - Run `uv run src/swarm/main.py --wizard` to configure blueprints interactively.  
+   - Execute specific blueprint files (e.g., `uv run blueprints/echo/blueprint_default.py`).  
+   - Great for local testing, debugging, and iterative development.
 
 2. **REST Mode**  
-   - Exposes endpoints compatible with OpenAI-like interfaces:
-     - `POST /v1/chat/completions` for inference (supports an optional `sender` field).
-     - `GET /v1/models` to list enabled blueprints.
-     - `/admin` portal (Django admin) to manage application settings
-   - Provides interactive blueprint webpages at `/<blueprint_name>/` (e.g. /university/):
-     - Each page allows users to interact directly with the blueprint, submit queries, and view responses.
-   - Ideal for integrating with front-end clients, external automation scripts, or exploring specific blueprints in a user-friendly format.
+   - Launch Django with `uv run manage.py runserver 0.0.0.0:8000`.  
+   - Access endpoints:
+     - `POST /v1/chat/completions`: Chat-style agent interactions (OpenAI-compatible).
+     - `GET /v1/models`: Lists available blueprints.
+     - `http://localhost:8000/<blueprint_name>/`: Interactive, web-based blueprint tester.
+   - (TODO) Optionally integrate with Django Admin at `/admin`.
 
 ---
 
-## Configuration & Metadata
+## Configuration & Multiple LLM Providers
 
-Open Swarm MCP relies on **environment variables** and a **JSON config** to manage agent-specific parameters, LLM provider details, and references to MCP servers:
+Open Swarm uses:
+- **`.env`** files for API keys or critical environment variables (e.g., `OPENAI_API_KEY`).  
+- **`mcp_server_config.json`** (or custom JSON) for advanced settings:
+  - **`llm_providers`**: Define multiple OpenAI-compatible endpoints (e.g., `echo`, `grok`, `ollama`).
+  - **`mcpServers`**: Tools/services that agents can call.
+  - **`gptActions`**: (TODO) More tools/services that agents can call.
 
-- **`.env` Files**: Store sensitive values like API keys (e.g., `BRAVE_API_KEY`) or database paths.  
-- **JSON Config (`mcp_server_config.json`)**: Lists the MCP servers to use and other key-value pairs (e.g., `"allowed_paths"` for filesystem access).
-
-Each **Blueprint** exposes a `metadata` property which declares:
-- **`title`**: A brief description of the blueprint.
-- **`description`**: A longer description of the blueprint.
-- **`required_mcp_servers`**: An array of MCP servers needed by the blueprint.  
-- **`config`**: Runtime configuration keys that are stored in the JSON file and updated via the CLI wizard.  
-- **`env_vars`**: Required environment variables validated before the blueprint runs.
-
-During the setup wizard or at runtime, the framework reads the **`metadata`** from each blueprint and ensures:
-1. All required environment variables are set in `.env`.
-2. Config items (like `"allowed_paths"`) are present or updated in the JSON file.
-3. MCP servers needed by the blueprint (`"required_mcp_servers"`) are registered in `mcp_server_config.json`.
-
-This approach provides a clean, modular way to organise agent logic, external tool references, and custom settings across different blueprints.
+Different agents in a single blueprint can reference different LLM providers. For example:
+```json
+{
+  "llm_providers": {
+    "echo": {
+      "provider": "openai",
+      "model": "gpt-4",
+      "base_url": "https://api.openai.com/v1",
+      "api_key": "${OPENAI_API_KEY}"
+    },
+    "grok": {
+      "provider": "openai",
+      "model": "grok-2-1212",
+      "base_url": "https://api.x.ai/v1",
+      "api_key": "${XAI_API_KEY}"
+    }
+  }
+}
+```
+These references let you quickly switch providers based on environment or agent specificity.
 
 ---
 
@@ -126,44 +162,43 @@ This approach provides a clean, modular way to organise agent logic, external to
 
 1. **Clone the Repository**  
    ```bash
-   git clone https://github.com/matthewhand/open-swarm-mcp.git
-   cd open-swarm-mcp
+   git clone https://github.com/matthewhand/open-swarm.git
+   cd open-swarm
    ```
 2. **Install Dependencies**  
    ```bash
-   # using uv, get it here => https://docs.astral.sh/uv/
+   # Get 'uv' here => https://docs.astral.sh/uv/
    uv python install
    uv venv
    source .venv/bin/activate
    uv sync
    ```
-3. **Setup Environment**  
-   - Copy `.env.example` to `.env` and populate it with your API keys (e.g., `OPENAI_API_KEY`).
-   - (Optional) Edit `mcp_server_config.json` (in `src/open_swarm_mcp`) to add additional MCP servers or change LLM provider details (e.g., replace `'gpt-4o'` with `'o1-mini'`, or override `api_base` to use a local LLM provider like [Ollama](https://github.com/jmorganca/ollama)).
+3. **Environment Setup**  
+   - Copy `.env.example` to `.env` and fill in sensitive details (`OPENAI_API_KEY`, etc.).
+   - *(Optional)* Update `mcp_server_config.json` to add or modify LLM providers, MCP servers, etc.
 
 ---
 
-## Running with UV and Python
+## Running Open Swarm
 
 ```bash
-# Option A - Setup wizard, list and choose blueprints
-uv run src/open_swarm_mcp/main.py 
+# Option A - Run the CLI wizard (setup / blueprint runner)
+uv run src/swarm/main.py
 
-# Option B - Setup wizard then run specific blueprint
-uv run src/open_swarm_mcp/main.py --blueprint university
+# Option B - Execute a specific blueprint in CLI mode
+uv run blueprints/echo/blueprint_default.py
 
-# Option C - Run specific blueprint (no setup wizard) 
-uv run blueprints/university/blueprint_university.py
-
-# Option D - Launch HTTP REST endpoint
+# Option C - Start the REST API on port 8000
 uv run manage.py runserver 0.0.0.0:8000
 
 # After launching the REST endpoint, open a browser and visit:
 # - http://localhost:8000/<blueprint_name>/ (e.g., http://localhost:8000/university/)
 # This will load an interactive webpage to test the blueprint functionality.
 
-# Option E - Launch HTTP REST endpoint using Docker (port 8000 if $PORT not set in .env)
-docker compose up -d
+# Alternatively use the completions endpoint directly with cURL:
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"echo","messages":[{"role":"user","content":"Hello!"}]}'
 ```
 
 ---
@@ -172,24 +207,24 @@ docker compose up -d
 
 ### Deploy with Docker Compose (Recommended)
 
-1. **Download the Compose File**  
-   You can quickly fetch the pre-configured `docker-compose.yaml` file:
+1. **Obtain `docker-compose.yaml`**  
    ```bash
-   wget https://raw.githubusercontent.com/matthewhand/open-swarm-mcp/refs/heads/main/docker-compose.yaml
+   wget https://raw.githubusercontent.com/matthewhand/open-swarm/refs/heads/main/docker-compose.yaml
+   ```
+2. **Configure `.env` & (Optional) `mcp_server_config.json`**  
+   - Ensure `.env` has `OPENAI_API_KEY`.  
+   - Adjust `mcp_server_config.json` if you want to use local LLM endpoints or different providers. For example,
+   ```json
+           "ollama": {
+            "provider": "ollama",
+            "model": "llama3.2:latest",
+            "base_url": "http://localhost:11434/",
+            "api_key": "",
+            "temperature": 0.0
+        }
    ```
 
-2. **Update the Environment File**  
-   Make sure your `.env` file includes the following keys:
-   - **`OPENAI_API_KEY`** (mandatory) for LLM inference.
-   - Optionally update the `api_base` configuration in `mcp_server_config.json` if you plan to use a local LLM provider like Ollama:
-     ```json
-     {
-       "api_base": "http://host.docker.internal:11434/v1"
-     }
-     ```
-
-3. **Start the Container**  
-   Run the following command to build and start the service in the background:
+3. **Start the Service**  
    ```bash
    docker compose up -d
    ```
@@ -198,70 +233,84 @@ docker compose up -d
    - Reads port settings and environment variables from `.env`.
    - Exposes the application on `8000` (unless overridden via `$PORT`).
 
-4. **Access the Service**  
-   Open [http://localhost:8000](http://localhost:8000) in your browser to interact with Open Swarm MCP.
+4. **Access**  
+   - Visit [http://localhost:8000](http://localhost:8000) for the interactive blueprint pages.
 
-### Deploy Without Docker Compose (Image Pending Docker Registry)
+### Deploy Standalone (TODO) 
 
-1. **Pull the Prebuilt Image**  
-   *(Coming soon: official image on Docker Hub or GitHub Container Registry.)*
+```bash
+docker run \
+  --env-file .env \
+  -p 8000:8000 \
+  open-swarm:latest
+```
+*(An official Docker image is planned for registry release.)*
 
-2. **Run the Container**  
-   After the image is published:
-   ```bash
-   docker run \
-     --env-file .env \
-     -p 8000:8000 \
-     open-swarm-mcp:latest
-   ```
+---
 
-3. **Update `.env`**  
-   Ensure at least `OPENAI_API_KEY` is set. Or, modify `mcp_server_config.json` to point to a local LLM instead of an OpenAI endpoint.
+## Diagram: Backend HTTP Service Overview
 
-4. **Access the Service**  
-   Navigate to [http://localhost:8000](http://localhost:8000).
+Below is a simplified diagram illustrating how the **Open Swarm** HTTP service can function as a backend for any OpenAI API-compatible client or tool. The service lists configured **Blueprints** via `/v1/models` and performs inference through the `/v1/chat/completions` endpoint. Internally, it can call out to any configured **OpenAI-compatible LLM provider** (OpenAI, Grok, Ollama, etc.) and optionally run **GPT Actions** or **MCP servers** (like database, filesystem, or weather integrations).
+
+```
+ ┌─────────────────────────────────────────────────────────────────────┐
+ │        OpenAI-Compatible Client Tools (AnythingLLM, LibreChat)      │
+ │                           or Open-WebUI, etc.                       │
+ └────────────┬────────────────────────────────────────────────────────┘
+              |                             
+              |   (HTTP: /v1/chat/completions, /v1/models, etc.)
+              ▼                             
+ ┌─────────────────────────────────────────────────────────────────────┐
+ │                 Open Swarm REST API Service (Django)                │
+ │        (Exposes /v1/models, /v1/chat/completions, /admin)           │
+ └─────────────────────────────────────────────────────────────────────┘
+                   |                          |                
+       (Mandatory) |                          | MCP Servers    
+       GPT Actions |                          | (filesystem,    
+       or Python   |                          | database, etc.)           
+       Functions   ▼                          ▼                
+       ┌────────────────────────┐         ┌────────────────────────┐
+       │OpenAI-Compatible LLMs  │         │ External APIs/Services │
+       │ (OpenAI, Grok, Ollama) │         │ (Weather, Database, ..)│
+       └────────────────────────┘         └────────────────────────┘
+```
 
 ---
 
 ## Progress Tracker
 
-Below is the current development progress, reflecting professional stewardship of feature requests and deliverables:
-
-- [ ] **CLI Mode**
+- **CLI Mode**  
   - [x] Setup Wizard  
-  - [ ] Blueprint Runner  
+  - [x] Blueprint Runner  
 
-- [ ] **Django REST**
+- **REST Mode**  
   - [x] Inference via `/v1/chat/completions`  
   - [x] Blueprints listed via `/v1/models`  
   - [ ] Application management via `/admin`  
 
-- [ ] **Docker**
-  - [x] Dockerfile and docker-compose.yaml
-  - [ ] Publish to docker registry
+- **Multiple LLM Providers**  
+  - [x] Switch providers per environment  
+  - [ ] Assign different providers/models per agent in one blueprint  
 
-- [ ] **Standalone Example Blueprints**
-  - [x] Filesystem utility example  
-  - [x] Path-e-tech game example  
-  - [ ] University example  
+- **Docker**  
+  - [x] Dockerfile and docker-compose.yaml  
+  - [ ] Publish to Docker Registry  
 
-- [ ] **Example MCP Servers**
-  - [x] filesystem  
-  - [ ] web search  
-  - [ ] database  
+- **Example Blueprints**  
+  - [x] `echo`
+  - [x] `database_and_web` (SQLite & Brave Search)  
+  - [x] `filesystem`  
+  - [x] `university`  
+  - [x] `weather`  
 
 ---
 
 ## Further Documentation
 
-For more technical details on the design, including sequence diagrams and advanced usage, refer to the [DEVELOPMENT.md](./DEVELOPMENT.md) file in this repository.
+For advanced usage, sequence diagrams, or in-depth tooling examples, see [DEVELOPMENT.md](./DEVELOPMENT.md). Additional expansions and best practices for agent orchestration, LLM provider swapping, and more can be found in that document.
 
 ---
 
 ## License
 
-Open Swarm MCP is provided under the MIT License. Refer to the [LICENSE](LICENSE) file for full details.
-
----
-
-*(Developed with a focus on extensibility, professional agent orchestration, and user-friendly deployment. Feedback and contributions are always welcome.)*
+Open Swarm is provided under the MIT License. Refer to the [LICENSE](LICENSE) file for full details.

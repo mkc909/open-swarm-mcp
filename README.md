@@ -9,11 +9,6 @@
 ## Table of Contents
 - [Key Features](#key-features)
 - [Blueprints](#blueprints)
-  - [Echo Blueprint](#echo-blueprint)
-  - [Database and Web Blueprint](#database-and-web-blueprint)
-  - [Filesystem Blueprint](#filesystem-blueprint)
-  - [University Blueprint](#university-blueprint)
-  - [Weather Blueprint](#weather-blueprint)
 - [Operational Modes](#operational-modes)
 - [Configuration & Multiple LLM Providers](#configuration--multiple-llm-providers)
 - [Installation](#installation)
@@ -65,7 +60,7 @@
 A **Blueprint** is a Python module that wraps:
 
 - **Agent Logic**: Defines how each agent in the Swarm processes user messages, whether it calls tools, and how it decides to hand off to other agents.
-- **MCP Server Tools**: Specifies which external tool servers (e.g. a read-only SQLite database) the agents may invoke.
+- **Tools**: Specifies which agents have which tools (e.g. a read-only SQLite database) the agents may invoke.
 - **Environment & Configuration**: Ensures required environment variables and JSON configs are validated prior to agent execution.
 
 Once registered, a blueprint is discoverable at runtime, allowing the system to list and load agents on demand.
@@ -95,17 +90,12 @@ In practice, this blueprint:
 ### Other Examples
 Open Swarm showcases a growing library of **Blueprint** examples:
 
-#### Echo Blueprint
-A straightforward agent that simply echoes user inputs—ideal for testing or as a starter template.
-
-#### Database and Web Blueprint
-Demonstrates MCP-based integration with an SQLite database and Brave Search, illustrating how to combine data retrieval with real-time web queries.
-
-#### Filesystem Blueprint
-Provides agents that can interact with local file directories (read/write operations) through a **filesystem** MCP server.
-
-#### Weather Blueprint
-Fetches current weather and forecasts via external APIs (e.g., OpenWeatherMap), showing how environment variables and requests-based calls can be integrated.
+| Blueprint Name          | Description                                                                 |
+|-------------------------|-----------------------------------------------------------------------------|
+| **Echo Blueprint**      | A straightforward agent that simply echoes user inputs—ideal for testing or as a starter template. |
+| **Database and Web Blueprint** | Demonstrates MCP-based integration with an SQLite database and Brave Search, illustrating how to combine data retrieval with real-time web queries. |
+| **Filesystem Blueprint** | Provides agents that can interact with local file directories (read/write operations) through a **filesystem** MCP server. |
+| **Weather Blueprint**   | Fetches current weather and forecasts via external APIs (e.g., OpenWeatherMap), showing how environment variables and requests-based calls can be integrated. |
 
 ---
 
@@ -113,7 +103,7 @@ Fetches current weather and forecasts via external APIs (e.g., OpenWeatherMap), 
 
 1. **CLI Mode**  
    - Run `uv run src/swarm/main.py --wizard` to configure blueprints interactively.  
-   - Execute specific blueprint files (e.g., `uv run blueprints/echo/blueprint_default.py`).  
+   - Execute specific blueprint files (e.g., `uv run blueprints/university/blueprint_university.py`).  
    - Great for local testing, debugging, and iterative development.
 
 2. **REST Mode**  
@@ -131,15 +121,15 @@ Fetches current weather and forecasts via external APIs (e.g., OpenWeatherMap), 
 Open Swarm uses:
 - **`.env`** files for API keys or critical environment variables (e.g., `OPENAI_API_KEY`).  
 - **`mcp_server_config.json`** (or custom JSON) for advanced settings:
-  - **`llm_providers`**: Define multiple OpenAI-compatible endpoints (e.g., `echo`, `grok`, `ollama`).
-  - **`mcpServers`**: Tools/services that agents can call.
-  - **`gptActions`**: (TODO) More tools/services that agents can call.
+  - **`llm_providers`**: Define multiple OpenAI-compatible endpoints (e.g., `openai`, `grok`, `ollama`).
+  - **`mcp_servers`**: Tools/services that agents can call.
+  - **`gpt_actions`**: (TODO) More tools/services that agents can call.
 
 Different agents in a single blueprint can reference different LLM providers. For example:
 ```json
 {
   "llm_providers": {
-    "echo": {
+    "openai": {
       "provider": "openai",
       "model": "gpt-4",
       "base_url": "https://api.openai.com/v1",
@@ -213,15 +203,7 @@ curl -X POST http://localhost:8000/v1/chat/completions \
    ```
 2. **Configure `.env` & (Optional) `mcp_server_config.json`**  
    - Ensure `.env` has `OPENAI_API_KEY`.  
-   - Adjust `mcp_server_config.json` if you want to use local LLM endpoints or different providers. For example,
-   ```json
-           "ollama": {
-            "provider": "ollama",
-            "model": "llama3.2:latest",
-            "base_url": "http://localhost:11434/",
-            "api_key": "",
-            "temperature": 0.0
-        }
+   - Adjust `mcp_server_config.json` if you want to use local LLM endpoints or different providers. 
    ```
 
 3. **Start the Service**  
@@ -296,13 +278,15 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
   - [x] Dockerfile and docker-compose.yaml  
   - [ ] Publish to Docker Registry  
 
+- **PyPI Publishing**  
+  - [ ] Publish Python module to PyPI  
+
 - **Example Blueprints**  
   - [x] `echo`
   - [x] `database_and_web` (SQLite & Brave Search)  
   - [x] `filesystem`  
   - [x] `university`  
   - [x] `weather`  
-
 ---
 
 ## Further Documentation

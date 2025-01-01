@@ -63,8 +63,8 @@ sequenceDiagram
         BlueprintBase ->> MCPSessionManager: Initialize Session Manager
     end
     BlueprintBase ->> APIClient: Initialize HTTP Clients
-    Developer <- BlueprintBase: Blueprint Ready
-```
+    BlueprintBase -->> Developer: Blueprint Ready
+    ```
 
 ### 2. Agent Interaction Flow
 

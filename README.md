@@ -49,9 +49,9 @@
      - **Note:** Most OpenAI API-compatible applications will ignore the `sender` field by default and not display the agent name. Custom UI or logic is required to utilise and present this information.
 
 6. **Configurable LLM Providers**  
-   - Supports multiple OpenAI-compatible providers in a single environment (e.g., `echo`, `grok`, `ollama`).
+   - Supports multiple OpenAI-compatible providers in a single environment (e.g., `openai`, `grok`, `ollama`).
    - Allows specifying different models/providers for different agents—even within the same blueprint.
-   - Use environment variable to specify default llm model provider used by blueprints, `LLM=ollama`
+   - Use environment variable `LLM` to specify default llm model provider used by blueprints, ie `LLM=ollama`
 
 ---
 
@@ -204,7 +204,6 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 2. **Configure `.env` & (Optional) `mcp_server_config.json`**  
    - Ensure `.env` has `OPENAI_API_KEY`.  
    - Adjust `mcp_server_config.json` if you want to use local LLM endpoints or different providers. 
-   ```
 
 3. **Start the Service**  
    ```bash

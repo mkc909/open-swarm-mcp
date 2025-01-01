@@ -17,7 +17,7 @@
         },
         "ollama": {
             "provider": "ollama",
-            "model": "ollama-model",
+            "model": "llama3.2:latest",
             "base_url": "http://localhost:11434/",
             "api_key": "",
             "temperature": 0.0

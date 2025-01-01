@@ -287,6 +287,10 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
   - [x] `filesystem`  
   - [x] `university`  
   - [x] `weather`  
+
+- **Define all components under 'swarm'**  
+  - [ ] Refactor code
+
 ---
 
 ## Further Documentation

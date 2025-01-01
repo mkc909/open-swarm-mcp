@@ -170,7 +170,7 @@ def construct_openai_response(response: Any, openai_model: str) -> Dict[str, Any
     return {
         "id": response_id,
         "object": "chat.completion",
-        "created": get_file_modification_timestamp(openai_model),
+        "created": 0, # TODO get_file_modification_timestamp(openai_model)?
         "model": openai_model,  # Use the actual OpenAI model name from server config
         "choices": [
             {
@@ -201,56 +201,69 @@ async def run_swarm_sync(swarm_instance: Swarm, **params) -> Any:
     logger.debug("Running Swarm instance in executor.")
     return await loop.run_in_executor(None, lambda: swarm_instance.run(**params))
 
-
 @csrf_exempt
 def chat_completions(request):
     """
     Handles Chat Completion requests similar to OpenAI's /v1/chat/completions endpoint.
     """
     if request.method != 'POST':
+        logger.debug(f"Invalid request method: {request.method}")
         return JsonResponse({"error": "Method not allowed. Use POST."}, status=405)
-    
+
     try:
         body = json.loads(request.body)
-    except json.JSONDecodeError:
+        logger.debug(f"Parsed JSON body: {body}")
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON payload: {e}")
         return JsonResponse({"error": "Invalid JSON payload."}, status=400)
-    except Exception:
+    except Exception as e:
+        logger.error(f"Unexpected error parsing JSON: {e}", exc_info=True)
         return JsonResponse({"error": "Unexpected error parsing JSON."}, status=400)
-    
+
     model = body.get('model', 'default')  # Blueprint identifier
-    
+    logger.debug(f"Extracted model/blueprint: '{model}'")
+
     if 'messages' not in body or not body['messages']:
+        logger.error("Messages are required in the request body.")
         return JsonResponse({"error": "Messages are required."}, status=400)
-    
+
     messages = body['messages']
-    
+    logger.debug(f"Received messages: {messages}")
+
     if model not in blueprints_metadata:
+        logger.error(f"Model/blueprint '{model}' not found.")
         return JsonResponse({"error": f"Model '{model}' not found."}, status=404)
-    
+
     blueprint_meta = blueprints_metadata[model]
+    logger.debug(f"Blueprint metadata for '{model}': {blueprint_meta}")
     openai_model = blueprint_meta.get("openai_model", llm_model)
     llm_provider = blueprint_meta.get("llm_provider", 'openai')
-    
+    logger.debug(f"Selected LLM configuration: Provider='{llm_provider}', Model='{openai_model}'")
+
     blueprint_class = blueprint_meta.get("blueprint_class")
     if not blueprint_class:
+        logger.error(f"Blueprint class for model '{model}' is not defined.")
         return JsonResponse({"error": f"Blueprint class for model '{model}' is not defined."}, status=500)
-    
+
     try:
         # Override the model in the configuration by passing 'model_override'
         blueprint_instance = blueprint_class(config=config, model_override=openai_model)
+        logger.debug(f"Blueprint instance created for '{model}'.")
     except Exception as e:
         logger.error(f"Error instantiating blueprint for model '{model}': {e}")
         return JsonResponse({"error": f"Failed to initialize blueprint: {e}"}, status=500)
-    
+
     try:
         agent_map = blueprint_instance.get_agents()
         if not agent_map:
+            logger.error(f"No agents found for the specified model '{model}'.")
             return JsonResponse({"error": "No agents found for the specified model."}, status=500)
         starting_agent = list(agent_map.values())[0]
+        logger.debug(f"Retrieved starting agent: {starting_agent.name}")
     except Exception as e:
         logger.error(f"Error retrieving agents: {e}")
         return JsonResponse({"error": f"Error retrieving agents: {e}"}, status=500)
-    
+
     try:
         # Assuming you have a Swarm class that handles agent interactions
         swarm_instance = Swarm()
@@ -263,30 +276,17 @@ def chat_completions(request):
             "max_turns": 10,
             "execute_tools": True,
         }
-        
+        logger.debug(f"Running swarm with parameters: {params}")
+
         response = swarm_instance.run(**params)
-        
+        logger.debug(f"Swarm response: {response}")
+
         # Construct the response in OpenAI's format
-        openai_response = {
-            "id": str(uuid.uuid4()),
-            "object": "chat.completion",
-            "created": int(time.time()),
-            "model": openai_model,
-            "choices": [
-                {
-                    "index": 0,
-                    "message": {
-                        "role": "assistant",
-                        "content": response.get('message', 'No response provided.')
-                    },
-                    "finish_reason": "stop"
-                }
-            ]
-        }
+        openai_response = construct_openai_response(response, openai_model)
         logger.debug(f"Constructed OpenAI response: {openai_response}")
         return JsonResponse(openai_response, status=200)
     except Exception as e:
-        logger.error(f"Internal server error during Swarm execution: {e}")
+        logger.error(f"Internal server error during Swarm execution: {e}", exc_info=True)
         return JsonResponse({"error": f"Internal server error during Swarm execution: {e}"}, status=500)
 
 @csrf_exempt
@@ -318,7 +318,7 @@ async def list_models(request):
                 "description": description,
             })
             logger.debug(f"Added model '{folder_name}': Title='{title}', Description='{description}'")
-        
+
         logger.debug(f"Listing all models: {data}")
         return JsonResponse({"object": "list", "data": data}, status=200)
     except Exception as e:
@@ -345,6 +345,6 @@ def blueprint_webpage(request, blueprint_name):
             f"<h1>Blueprint '{blueprint_name}' not found.</h1><p>Available blueprints:</p><ul>{available_blueprints}</ul>",
             status=404,
         )
-    
+
     logger.debug(f"Rendering blueprint webpage for: '{blueprint_name}'")
     return render(request, "rest_mode/blueprint_page.html", {"blueprint_name": blueprint_name})

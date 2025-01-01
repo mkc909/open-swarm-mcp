@@ -1,3 +1,5 @@
+# src/open_swarm_mcp/rest_mode/views.py
+
 """
 REST Mode Views for Open Swarm MCP.
 
@@ -23,40 +25,71 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.shortcuts import render
 
-from .utils.logger import setup_logger
 from swarm import Agent, Swarm
 
 from open_swarm_mcp.config.blueprint_discovery import discover_blueprints
-from open_swarm_mcp.config.config_loader import load_server_config, validate_api_keys, are_required_mcp_servers_running
+from open_swarm_mcp.config.config_loader import (
+    load_server_config,
+    validate_api_keys,
+    get_llm_provider,
+    are_required_mcp_servers_running
+)
+
+from .utils.logger import setup_logger
 
 # Initialize logger for this module
 logger = setup_logger(__name__)
 
-# Load configuration
+# Load configuration from 'mcp_server_config.json'
 CONFIG_PATH = Path(settings.BASE_DIR) / "mcp_server_config.json"
-config = load_server_config(str(CONFIG_PATH))
-logger.debug(f"Loaded configuration in REST views: {config}")
-
-# Validate API keys
 try:
-    config = validate_api_keys(config)
+    config = load_server_config(str(CONFIG_PATH))
+    logger.debug(f"Loaded configuration from {CONFIG_PATH}: {config}")
+except Exception as e:
+    logger.critical(f"Failed to load configuration from {CONFIG_PATH}: {e}")
+    raise e
+
+# Determine the selected LLM profile from the 'LLM' environment variable
+selected_llm = os.getenv("LLM", "default")
+logger.debug(f"Selected LLM profile from environment: '{selected_llm}'")
+
+# Validate API keys with the selected LLM configuration
+try:
+    config = validate_api_keys(config, selected_llm)
+    logger.debug("API keys validated successfully with the selected LLM configuration.")
 except ValueError as ve:
-    logger.error(f"Configuration validation error: {ve}")
-    # Depending on your application structure, handle this appropriately
-    # For example, you might raise an exception or halt the server
+    logger.critical(f"Configuration validation error: {ve}")
     raise ve
 
-# Discover blueprints
+# Retrieve the LLM provider instance based on configuration
+try:
+    llm_provider_instance = get_llm_provider(config, selected_llm)
+    logger.debug(f"Initialized LLM Provider: {llm_provider_instance.__class__.__name__}")
+except Exception as e:
+    logger.critical(f"Failed to initialize LLM provider: {e}")
+    raise e
+
+# Discover blueprints located in the 'blueprints' directory
 BLUEPRINTS_DIR = (Path(settings.BASE_DIR) / "blueprints").resolve()
 logger.debug(f"Attempting to locate blueprints at: {BLUEPRINTS_DIR}")
-blueprints_metadata = discover_blueprints([str(BLUEPRINTS_DIR)])
+try:
+    blueprints_metadata = discover_blueprints([str(BLUEPRINTS_DIR)])
+    logger.debug(f"Discovered blueprints metadata: {blueprints_metadata}")
+except Exception as e:
+    logger.error(f"Error discovering blueprints: {e}", exc_info=True)
+    raise e
 
-# Inject 'openai_model' from server config into blueprints metadata
-llm_model = config['llm'].get('model', 'gpt-4o-mini')
+# Inject 'openai_model' and 'llm_provider' into blueprints metadata
+llm_model = config['llm_providers'][selected_llm].get('model', 'gpt-4')
+llm_provider = config['llm_providers'][selected_llm].get('provider', 'openai')
+
+logger.debug(f"Selected LLM configuration: Provider='{llm_provider}', Model='{llm_model}'")
+
 for blueprint in blueprints_metadata.values():
     blueprint['openai_model'] = llm_model
+    blueprint['llm_provider'] = llm_provider  # Inject provider info
 
-logger.debug(f"Loaded blueprints metadata for REST views: {blueprints_metadata}")
+logger.debug(f"Injected 'openai_model' and 'llm_provider' into blueprints metadata: {blueprints_metadata}")
 
 def get_file_modification_timestamp(file_path: str) -> int:
     """
@@ -69,22 +102,29 @@ def get_file_modification_timestamp(file_path: str) -> int:
         int: Timestamp of the last modification.
     """
     try:
-        return int(os.path.getmtime(file_path))
+        timestamp = int(os.path.getmtime(file_path))
+        logger.debug(f"Modification timestamp for '{file_path}': {timestamp}")
+        return timestamp
     except Exception as e:
-        logger.error(f"Error getting modification timestamp for {file_path}: {e}")
+        logger.error(f"Error getting modification timestamp for {file_path}: {e}", exc_info=True)
         return int(time.time())
 
 def construct_openai_response(response: Any, openai_model: str) -> Dict[str, Any]:
     """
     Constructs a response dictionary conforming to OpenAI's Chat Completion API format.
+
     Args:
         response (Any): The response from Swarm.run (can be a dictionary or an object with a 'messages' attribute).
         openai_model (str): The actual OpenAI model name used for the request.
+
     Returns:
         Dict[str, Any]: The formatted response dictionary.
+
     Raises:
         ValueError: If the response is invalid or missing required data.
     """
+    logger.debug("Constructing OpenAI-like response.")
+
     # Guard: Ensure response is not None
     if response is None:
         logger.error("Invalid response: response is None.")
@@ -109,6 +149,7 @@ def construct_openai_response(response: Any, openai_model: str) -> Dict[str, Any
 
     if not assistant_messages:
         assistant_messages = [{"content": "No response.", "role": "assistant", "sender": "Assistant"}]
+        logger.debug("No assistant messages found; defaulting to 'No response.'")
 
     # Use the last assistant message
     assistant_message = assistant_messages[-1]
@@ -116,6 +157,7 @@ def construct_openai_response(response: Any, openai_model: str) -> Dict[str, Any
 
     # Generate a unique response ID
     response_id = f"swarm-chat-completion-{uuid.uuid4()}"
+    logger.debug(f"Generated response ID: {response_id}")
 
     # Calculate token counts
     prompt_tokens = sum(len(msg['content'].split()) for msg in messages if msg['role'] in ['user', 'system'])
@@ -123,8 +165,7 @@ def construct_openai_response(response: Any, openai_model: str) -> Dict[str, Any
     total_tokens = prompt_tokens + completion_tokens
 
     logger.debug(
-        f"Constructed OpenAI-like response: response_id={response_id}, prompt_tokens={prompt_tokens}, "
-        f"completion_tokens={completion_tokens}, total_tokens={total_tokens}, assistant_message={assistant_message}"
+        f"Token counts - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens}"
     )
 
     # Return the formatted response
@@ -147,111 +188,117 @@ def construct_openai_response(response: Any, openai_model: str) -> Dict[str, Any
         }
     }
 
-async def run_swarm_sync(swarm_instance, **params):
+async def run_swarm_sync(swarm_instance: Swarm, **params) -> Any:
     """
     Wraps the synchronous `swarm_instance.run` method in an asynchronous context.
+
+    Args:
+        swarm_instance (Swarm): The Swarm instance to run.
+        **params: Parameters to pass to the Swarm.run method.
+
+    Returns:
+        Any: The response from Swarm.run.
     """
     loop = asyncio.get_event_loop()
+    logger.debug("Running Swarm instance in executor.")
     return await loop.run_in_executor(None, lambda: swarm_instance.run(**params))
 
 @csrf_exempt
-async def chat_completions(request):
+def chat_completions(request):
     """
     Handles Chat Completion requests similar to OpenAI's /v1/chat/completions endpoint.
     """
-    logger.debug("Received /v1/chat/completions request")
     if request.method != 'POST':
-        logger.warning(f"Invalid HTTP method: {request.method}")
         return JsonResponse({"error": "Method not allowed. Use POST."}, status=405)
     
     try:
         body = json.loads(request.body)
-        logger.debug(f"Request payload: {body}")
-        model = body.get('model', 'default')  # Blueprint identifier
-        
-        # Validate messages
-        if 'messages' not in body or not body['messages']:
-            logger.warning("Empty or missing messages in request")
-            return JsonResponse({"error": "Messages are required"}, status=400)
-        
-        messages = body['messages']
-        
-        # Validate model exists
-        if model not in blueprints_metadata:
-            logger.warning(f"Model '{model}' not found. Available models: {list(blueprints_metadata.keys())}")
-            return JsonResponse({"error": f"Model '{model}' not found."}, status=404)
-        
-        logger.debug(f"Model '{model}' found in metadata: {blueprints_metadata[model]}")
-        
-        # Retrieve the actual OpenAI model name
-        openai_model = blueprints_metadata[model].get("openai_model", llm_model)
-        logger.debug(f"Using OpenAI model '{openai_model}' for blueprint '{model}'")
-        
-        # Retrieve the blueprint class and agent
-        blueprint_class = blueprints_metadata[model].get("blueprint_class")
-        if not blueprint_class:
-            logger.error(f"Blueprint class for model '{model}' is not defined.")
-            return JsonResponse({"error": f"Blueprint class for model '{model}' is not defined."}, status=500)
-        
-        try:
-            logger.debug(f"Instantiating blueprint class for model '{model}'")
-            blueprint_instance = blueprint_class()
-        except Exception as e:
-            logger.error(f"Error instantiating blueprint for model '{model}': {e}", exc_info=True)
-            return JsonResponse({"error": f"Failed to initialize blueprint: {e}"}, status=500)
-        
-        try:
-            agent_map = blueprint_instance.get_agents()
-            if not agent_map:
-                logger.error(f"No agents found for blueprint model '{model}'.")
-                return JsonResponse({"error": "No agents found for model."}, status=500)
-            starting_agent = list(agent_map.values())[0]
-            logger.debug(f"Using starting agent: {starting_agent.name}")
-        except Exception as e:
-            logger.error(f"Error retrieving agents for model '{model}': {e}", exc_info=True)
-            return JsonResponse({"error": f"Error retrieving agents: {e}"}, status=500)
-        
-        # Initialize Swarm and execute
-        try:
-            logger.debug("Initializing Swarm instance")
-            swarm_instance = Swarm()
-            logger.debug(f"Swarm instance initialized. Running Swarm with starting agent '{starting_agent.name}'")
-            
-            # Prepare parameters for Swarm.run
-            params = {
-                "agent": starting_agent,
-                "messages": messages,
-                "context_variables": {},  # Extend as needed
-                "model_override": openai_model,  # Pass the actual OpenAI model
-                "debug": True,  # Enable debug logging
-                "max_turns": 10,  # Adjust as needed
-                "execute_tools": True,
-            }
-            logger.debug(f"Parameters for Swarm.run: {params}")
-            
-            # Use the helper function to run the Swarm synchronously
-            response = await run_swarm_sync(swarm_instance, **params)
-            
-            logger.debug(f"Swarm execution completed. Response: {response}")
-            openai_response = construct_openai_response(response, openai_model)  # Use openai_model here
-            return JsonResponse(openai_response, status=200)
-        except Exception as e:
-            logger.error(f"Error during Swarm execution for model '{model}': {e}", exc_info=True)
-            return JsonResponse({"error": f"Internal server error during Swarm execution: {e}"}, status=500)
-    
-    except json.JSONDecodeError as jde:
-        logger.error(f"JSON decode error: {jde}", exc_info=True)
+    except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+    except Exception:
+        return JsonResponse({"error": "Unexpected error parsing JSON."}, status=400)
+    
+    model = body.get('model', 'default')  # Blueprint identifier
+    
+    if 'messages' not in body or not body['messages']:
+        return JsonResponse({"error": "Messages are required."}, status=400)
+    
+    messages = body['messages']
+    
+    if model not in blueprints_metadata:
+        return JsonResponse({"error": f"Model '{model}' not found."}, status=404)
+    
+    blueprint_meta = blueprints_metadata[model]
+    openai_model = blueprint_meta.get("openai_model", llm_model)
+    llm_provider = blueprint_meta.get("llm_provider", 'openai')
+    
+    blueprint_class = blueprint_meta.get("blueprint_class")
+    if not blueprint_class:
+        return JsonResponse({"error": f"Blueprint class for model '{model}' is not defined."}, status=500)
+    
+    try:
+        # Override the model in the configuration by passing 'model_override'
+        blueprint_instance = blueprint_class(config=config, model_override=openai_model)
     except Exception as e:
-        logger.error(f"Error processing /v1/chat/completions request: {e}", exc_info=True)
-        return JsonResponse({"error": "Internal Server Error"}, status=500)
+        logger.error(f"Error instantiating blueprint for model '{model}': {e}")
+        return JsonResponse({"error": f"Failed to initialize blueprint: {e}"}, status=500)
+    
+    try:
+        agent_map = blueprint_instance.get_agents()
+        if not agent_map:
+            return JsonResponse({"error": "No agents found for the specified model."}, status=500)
+        starting_agent = list(agent_map.values())[0]
+    except Exception as e:
+        logger.error(f"Error retrieving agents: {e}")
+        return JsonResponse({"error": f"Error retrieving agents: {e}"}, status=500)
+    
+    try:
+        # Assuming you have a Swarm class that handles agent interactions
+        swarm_instance = Swarm()
+        params = {
+            "agent": starting_agent,
+            "messages": messages,
+            "context_variables": {},
+            "model_override": openai_model,
+            "debug": True,
+            "max_turns": 10,
+            "execute_tools": True,
+        }
+        
+        response = swarm_instance.run(**params)
+        
+        # Construct the response in OpenAI's format
+        openai_response = {
+            "id": str(uuid.uuid4()),
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": openai_model,
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": response.get('message', 'No response provided.')
+                    },
+                    "finish_reason": "stop"
+                }
+            ]
+        }
+        logger.debug(f"Constructed OpenAI response: {openai_response}")
+        return JsonResponse(openai_response, status=200)
+    except Exception as e:
+        logger.error(f"Internal server error during Swarm execution: {e}")
+        return JsonResponse({"error": f"Internal server error during Swarm execution: {e}"}, status=500)
+
 
 @csrf_exempt
 async def list_models(request):
     """
     Lists discovered blueprint folders as 'models' (like OpenAI's /v1/models).
     """
+    logger.debug("Received /v1/models request")
     if request.method != "GET":
+        logger.warning(f"Invalid HTTP method: {request.method}")
         return JsonResponse({"error": "Method not allowed. Use GET."}, status=405)
 
     try:
@@ -272,7 +319,9 @@ async def list_models(request):
                 "title": title,
                 "description": description,
             })
-
+            logger.debug(f"Added model '{folder_name}': Title='{title}', Description='{description}'")
+        
+        logger.debug(f"Listing all models: {data}")
         return JsonResponse({"object": "list", "data": data}, status=200)
     except Exception as e:
         logger.error(f"Error listing models: {e}", exc_info=True)
@@ -280,11 +329,24 @@ async def list_models(request):
 
 @csrf_exempt
 def blueprint_webpage(request, blueprint_name):
+    """
+    Serves a webpage for a specific blueprint.
+
+    Args:
+        request: The HTTP request object.
+        blueprint_name (str): The name of the blueprint.
+
+    Returns:
+        HttpResponse: The rendered blueprint webpage or a 404 error.
+    """
+    logger.debug(f"Received request for blueprint webpage: '{blueprint_name}'")
     if blueprint_name not in blueprints_metadata:
+        logger.warning(f"Blueprint '{blueprint_name}' not found.")
         available_blueprints = "".join(f"<li>{bp}</li>" for bp in blueprints_metadata)
         return HttpResponse(
             f"<h1>Blueprint '{blueprint_name}' not found.</h1><p>Available blueprints:</p><ul>{available_blueprints}</ul>",
             status=404,
         )
-
+    
+    logger.debug(f"Rendering blueprint webpage for: '{blueprint_name}'")
     return render(request, "rest_mode/blueprint_page.html", {"blueprint_name": blueprint_name})

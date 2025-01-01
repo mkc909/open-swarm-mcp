@@ -1,10 +1,14 @@
 import os
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 print(f"BASE_DIR resolved to: {BASE_DIR}")
+
+# Load environment variables from .env file
+load_dotenv(dotenv_path=BASE_DIR / '.env')
 
 # Define a logs directory within the base directory
 LOGS_DIR = BASE_DIR / 'logs'

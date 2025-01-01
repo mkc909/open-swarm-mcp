@@ -14,7 +14,6 @@ from dotenv import load_dotenv
 from typing import Any, Dict, List, Optional
 
 # Add the project root to sys.path
-# project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
@@ -34,6 +33,8 @@ try:
     from open_swarm_mcp.config.setup_wizard import run_setup_wizard
     from open_swarm_mcp.config.config_loader import (
         load_server_config,
+        validate_and_select_llm_provider,
+        inject_env_vars,
         validate_api_keys,
         are_required_mcp_servers_running,
     )
@@ -110,19 +111,20 @@ def parse_arguments() -> argparse.Namespace:
     )
     return parser.parse_args()
 
-def merge_llm_config(config: Dict[str, Any], args: argparse.Namespace) -> Dict[str, Any]:
+def merge_llm_config(config: Dict[str, Any], selected_llm: Dict[str, Any], args: argparse.Namespace) -> Dict[str, Any]:
     """
     Merge LLM configuration from command-line arguments into the existing config.
 
     Args:
         config (Dict[str, Any]): Existing configuration dictionary.
+        selected_llm (Dict[str, Any]): Selected LLM provider configuration.
         args (argparse.Namespace): Parsed command-line arguments.
 
     Returns:
         Dict[str, Any]: Updated configuration with overrides.
     """
     logger.debug("Merging LLM configuration from command-line arguments")
-    llm_config = config.get("llm", {})
+    llm_config = config.get("llm_providers", {}).get(selected_llm['profile'], {})
     if args.llm_provider:
         llm_config["provider"] = args.llm_provider
         logger.info(f"Overridden LLM provider: {args.llm_provider}")
@@ -133,7 +135,7 @@ def merge_llm_config(config: Dict[str, Any], args: argparse.Namespace) -> Dict[s
         llm_config["temperature"] = args.temperature
         logger.info(f"Overridden LLM temperature: {args.temperature}")
 
-    config["llm"] = llm_config
+    config["llm_providers"][selected_llm['profile']] = llm_config
     logger.debug(f"Final LLM configuration after merge: {llm_config}")
     return config
 
@@ -223,15 +225,16 @@ def save_configuration(config_path: str, config: Dict[str, Any]):
     try:
         safe_config = config.copy()
         # Remove LLM API Key from config
-        if 'api_key' in safe_config.get('llm', {}):
-            safe_config['llm']['api_key'] = ""
-            logger.debug("Removed LLM API key from configuration for security")
+        for profile in safe_config.get('llm_providers', {}):
+            if 'api_key' in safe_config['llm_providers'][profile]:
+                safe_config['llm_providers'][profile]['api_key'] = ""
+                logger.debug(f"Removed LLM API key from profile '{profile}' in configuration for security")
         # Remove MCP server API keys from env
         for srv in safe_config.get('mcpServers', {}):
             if 'env' in safe_config['mcpServers'][srv]:
                 for env_var in safe_config['mcpServers'][srv]['env']:
                     safe_config['mcpServers'][srv]['env'][env_var] = ""
-                    logger.debug(f"Removed MCP server environment variable '{env_var}' from configuration for security")
+                    logger.debug(f"Removed MCP server environment variable '{env_var}' from server '{srv}' in configuration for security")
         with open(config_path, "w") as f:
             json.dump(safe_config, f, indent=4)
         print(color_text("\nConfiguration has been saved successfully! Remember to set your API keys in the .env file.\n", "green"))
@@ -344,45 +347,27 @@ async def main():
             logger.warning(f"Configuration issue ({e}). Launching setup wizard.")
             config = run_setup_wizard(args.config, blueprints_metadata)
         else:
-            config = merge_llm_config(config, args)
-            logger.debug(f"Configuration after merging LLM overrides: {config}")
-            try:
-                config = validate_api_keys(config)
-                logger.info("Configuration validated with API keys.")
-            except Exception as e:
-                logger.warning(f"Configuration incomplete ({e}). Launching setup wizard.")
-                config = run_setup_wizard(args.config, blueprints_metadata)
+            selected_llm = validate_and_select_llm_provider(config)
+            config = inject_env_vars(config)
+            config = validate_api_keys(config, selected_llm)
+            logger.debug(f"Configuration after LLM provider selection and validation: {config}")
 
     # Handle LLM API key setup
-    llm_config = config.get("llm", {})
+    llm_config = config.get("llm_providers", {}).get(os.getenv("LLM", "default"), {})
     llm_provider = llm_config.get("provider", "openai")
     expected_api_key_env_var = LLM_PROVIDER_API_KEY_MAP.get(llm_provider, "LLM_API_KEY")
     logger.debug(f"LLM provider: {llm_provider}")
-    llm_api_key = os.getenv(expected_api_key_env_var)
-    logger.debug(f"LLM API Key from environment: {'set' if llm_api_key else 'not set'}")
+    llm_api_key = llm_config.get("api_key", "")
+    logger.debug(f"LLM API Key from config: {'set' if llm_api_key else 'not set'}")
 
     if llm_api_key:
-        config['llm']['api_key'] = llm_api_key  # Temporarily set it for runtime use
-        logger.info(f"LLM API Key loaded from environment variable '{expected_api_key_env_var}'.")
+        logger.info(f"LLM API Key loaded from configuration for provider '{llm_provider}'.")
     else:
         print(color_text(
-            f"LLM API Key is missing. Please set the '{expected_api_key_env_var}' environment variable.", 
+            f"LLM API Key is missing for provider '{llm_provider}'. Please set the '{expected_api_key_env_var}' environment variable.", 
             "yellow"
         ))
-        logger.warning(f"LLM API Key is missing. Please set the '{expected_api_key_env_var}' environment variable.")
-
-    # Reload configuration after potential updates
-    try:
-        config = load_server_config(args.config)
-        logger.debug(f"Reloaded configuration: {config}")
-        config = merge_llm_config(config, args)
-        logger.debug(f"Configuration after merging LLM overrides: {config}")
-        config = validate_api_keys(config)
-        logger.info("Configuration validated after reloading.")
-    except Exception as e:
-        logger.error(f"Failed to load configuration after setup: {e}")
-        print(color_text(f"Failed to load configuration: {e}", "red"))
-        return
+        logger.warning(f"LLM API Key is missing for provider '{llm_provider}'. Please set the '{expected_api_key_env_var}' environment variable.")
 
     # Determine which blueprints to load
     if args.blueprint:

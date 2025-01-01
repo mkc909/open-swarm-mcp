@@ -1,107 +1,146 @@
-# src/open_swarm_mcp/config/config_loader.py
-
-import json
 import os
+import json
 import logging
-from typing import Any, Dict, Tuple, List
+import re
 
-from open_swarm_mcp.utils.logger import setup_logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
-logger = setup_logger(__name__)
-
-# Mapping of LLM providers to their respective API key environment variables
-LLM_PROVIDER_API_KEY_MAP = {
-    "openai": "OPENAI_API_KEY",
-    "ollama": "OLLAMA_API_KEY",
-    # Add other providers and their API key environment variables here
-}
-
-def load_server_config(config_path: str) -> Dict[str, Any]:
+def resolve_placeholders(value):
     """
-    Load the MCP server configuration from a JSON file.
+    Resolves placeholders in the form of ${VAR_NAME} with the actual environment variable values.
+    Raises a ValueError if the environment variable is not set.
+    """
+    if isinstance(value, str):
+        pattern = re.compile(r'\$\{(\w+)\}')
+        matches = pattern.findall(value)
+        for var in matches:
+            env_value = os.getenv(var)
+            if env_value is None:
+                logger.error(f"Environment variable '{var}' is not set but is required.")
+                raise ValueError(f"Environment variable '{var}' is not set but is required.")
+            value = value.replace(f"${{{var}}}", env_value)
+    return value
 
+def load_server_config(config_path):
+    """
+    Loads the server configuration from a JSON file and resolves placeholders.
+    
     Args:
-        config_path (str): Path to the configuration file.
-
+        config_path (str): Path to the JSON configuration file.
+    
     Returns:
-        Dict[str, Any]: Configuration dictionary.
-
-    Raises:
-        FileNotFoundError: If the configuration file does not exist.
-        json.JSONDecodeError: If the configuration file is not valid JSON.
+        dict: Processed configuration with placeholders resolved.
     """
-    logger.debug(f"Attempting to load server configuration from '{config_path}'")
     if not os.path.exists(config_path):
-        logger.error(f"Configuration file not found at {config_path}.")
-        raise FileNotFoundError(f"Configuration file not found at {config_path}.")
-
+        logger.error(f'Configuration file not found at {config_path}')
+        raise FileNotFoundError(f'Configuration file not found at {config_path}')
+    
     with open(config_path, 'r') as f:
-        config = json.load(f)
-
-    logger.info(f"Configuration loaded from {config_path}.")
-    logger.debug(f"Loaded configuration: {config}")
+        try:
+            config = json.load(f)
+            logger.debug(f'Configuration loaded: {config}')
+        except json.JSONDecodeError as e:
+            logger.error(f'Invalid JSON in configuration file: {e}')
+            raise
+    
+    # Resolve placeholders in llm_providers
+    for profile, details in config.get('llm_providers', {}).items():
+        api_key = details.get('api_key', '')
+        resolved_api_key = resolve_placeholders(api_key)
+        config['llm_providers'][profile]['api_key'] = resolved_api_key
+    
+    # Resolve placeholders in mcpServers' env variables
+    for server, details in config.get('mcpServers', {}).items():
+        env_vars = details.get('env', {})
+        for var, value in env_vars.items():
+            resolved_value = resolve_placeholders(value)
+            config['mcpServers'][server]['env'][var] = resolved_value
+    
     return config
 
-def validate_api_keys(config: Dict[str, Any]) -> Dict[str, Any]:
+def validate_api_keys(config, selected_llm):
     """
-    Validate that all required API keys are present in environment variables.
-
+    Validates that all required API keys are present based on the selected LLM provider.
+    
     Args:
-        config (Dict[str, Any]): Configuration dictionary.
-
-    Returns:
-        Dict[str, Any]: Updated configuration dictionary with API keys injected from environment variables.
-
+        config (dict): The loaded and processed configuration.
+        selected_llm (str): The selected LLM profile.
+    
     Raises:
         ValueError: If any required API key is missing.
+    
+    Returns:
+        dict: Configuration is assumed to be valid at this point.
     """
-    logger.debug("Validating API keys in configuration")
-    llm_config = config.get('llm', {})
-    llm_provider = llm_config.get('provider', 'openai')
-    expected_api_key_env_var = LLM_PROVIDER_API_KEY_MAP.get(llm_provider, "LLM_API_KEY")
-
-    llm_api_key = os.getenv(expected_api_key_env_var)
-    if not llm_api_key:
-        logger.error(f"LLM API Key is missing for provider '{llm_provider}'. Please set the '{expected_api_key_env_var}' environment variable.")
-        raise ValueError(f"LLM API Key is missing. Please set the '{expected_api_key_env_var}' environment variable in your .env file.")
-    config['llm']['api_key'] = llm_api_key
-    logger.info(f"LLM API Key loaded from environment variable '{expected_api_key_env_var}'.")
-
-    # Validate MCP server API keys
-    mcp_servers = config.get('mcpServers', {})
-    for server, details in mcp_servers.items():
+    llm_details = config['llm_providers'].get(selected_llm)
+    if not llm_details:
+        logger.error(f"Selected LLM profile '{selected_llm}' not found in configuration.")
+        raise ValueError(f"Selected LLM profile '{selected_llm}' not found in configuration.")
+    
+    provider = llm_details.get('provider')
+    api_key = llm_details.get('api_key', '')
+    
+    if provider != 'mock' and not api_key:
+        logger.error(f"API key for provider '{provider}' in LLM profile '{selected_llm}' is missing.")
+        raise ValueError(f"API key for provider '{provider}' in LLM profile '{selected_llm}' is missing.")
+    
+    # Validate MCP servers' environment variables are already resolved
+    for server, details in config.get('mcpServers', {}).items():
         env_vars = details.get('env', {})
-        for env_var, value in env_vars.items():
-            if not value:
-                env_value = os.getenv(env_var)
-                if not env_value:
-                    logger.error(f"Environment variable '{env_var}' for server '{server}' is missing.")
-                    raise ValueError(f"Environment variable '{env_var}' for server '{server}' is missing. Please set it in the .env file.")
-                config['mcpServers'][server]['env'][env_var] = env_value
-                logger.info(f"Environment variable '{env_var}' for server '{server}' loaded from environment variables.")
-
-    logger.info("All required API keys are present.")
+        for var, value in env_vars.items():
+            if var.endswith('_API_KEY') and not value:
+                logger.error(f"Environment variable '{var}' for server '{server}' is missing.")
+                raise ValueError(f"Environment variable '{var}' for server '{server}' is missing.")
+    
+    logger.debug("All required API keys are present.")
     return config
 
-def are_required_mcp_servers_running(required_servers: List[str], config: Dict[str, Any]) -> Tuple[bool, List[str]]:
+def get_llm_provider(config, selected_llm):
     """
-    Check if all required MCP servers are configured.
-
+    Returns an instance of the selected LLM provider.
+    
     Args:
-        required_servers (List[str]): List of required MCP server names.
-        config (Dict[str, Any]): Configuration dictionary.
-
+        config (dict): The loaded and processed configuration.
+        selected_llm (str): The selected LLM profile.
+    
     Returns:
-        Tuple[bool, List[str]]: A tuple containing a boolean indicating if all servers are configured,
-                                and a list of missing servers.
+        LLMProvider: An instance of the selected LLM provider.
     """
-    logger.debug(f"Checking if required MCP servers are running: {required_servers}")
-    mcp_servers = config.get('mcpServers', {})
-    missing_servers = [server for server in required_servers if server not in mcp_servers or not mcp_servers[server]]
-
-    if missing_servers:
-        logger.warning(f"Missing MCP servers: {', '.join(missing_servers)}")
-        return False, missing_servers
+    provider = config['llm_providers'][selected_llm]['provider']
+    model = config['llm_providers'][selected_llm]['model']
+    api_key = config['llm_providers'][selected_llm]['api_key']
+    
+    if provider == 'openai':
+        from open_swarm_mcp.llm_providers.openai_llm import OpenAILLMProvider
+        return OpenAILLMProvider(model=model, api_key=api_key)
+    elif provider == 'grok':
+        from open_swarm_mcp.llm_providers.grok_llm import GrokLLMProvider
+        return GrokLLMProvider(model=model, api_key=api_key)
+    elif provider == 'ollama':
+        from open_swarm_mcp.llm_providers.ollama_llm import OllamaLLMProvider
+        return OllamaLLMProvider(model=model)
+    elif provider == 'mock':
+        from open_swarm_mcp.llm_providers.mock_llm import MockLLMProvider
+        return MockLLMProvider(model=model)
     else:
-        logger.info("All required MCP servers are configured.")
-        return True, []
+        logger.error(f"Unsupported LLM provider: {provider}")
+        raise ValueError(f"Unsupported LLM provider: {provider}")
+
+def are_required_mcp_servers_running(required_servers, config):
+    """
+    Checks if all required MCP servers are configured.
+    
+    Args:
+        required_servers (list): List of required server names.
+        config (dict): The loaded and processed configuration.
+    
+    Returns:
+        tuple: (bool, list) where bool indicates all servers are running, and list contains missing servers.
+    """
+    configured_servers = config.get('mcpServers', {}).keys()
+    missing_servers = [server for server in required_servers if server not in configured_servers]
+    if missing_servers:
+        logger.warning(f"Missing MCP servers: {missing_servers}")
+        return False, missing_servers
+    return True, []

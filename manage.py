@@ -2,8 +2,16 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from pathlib import Path
+from dotenv import load_dotenv
 
 def main():
+    # Define the base directory
+    BASE_DIR = Path(__file__).resolve().parent
+
+    # Load environment variables from .env file
+    load_dotenv(dotenv_path=BASE_DIR / '.env')
+
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'open_swarm_mcp.settings')
     try:

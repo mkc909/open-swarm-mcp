@@ -32,7 +32,7 @@ class WeatherBlueprint(BlueprintBase):
         self._metadata = {
             "title": "Weather Team",
             "description": "Provides weather-related information.",
-            "required_mcp_servers": ["weather"],
+            "required_mcp_servers": [],
             "env_vars": ["WEATHER_API_KEY"]
         }
         super().__init__()  # Initialize BlueprintBase to load config and validate metadata

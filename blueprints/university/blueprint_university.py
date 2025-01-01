@@ -42,7 +42,17 @@ class UniversitySupportBlueprint(BlueprintBase):
     University Support System Blueprint with multi-agent orchestration and handoffs.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, config: Optional[Dict[str, Any]] = None, **kwargs) -> None:
+        """
+        Initialize the UniversitySupportBlueprint.
+
+        Args:
+            config (Optional[Dict[str, Any]]): Configuration dictionary.
+            **kwargs: Additional keyword arguments (e.g., model_override).
+        """
+        logger.debug("Initializing UniversitySupportBlueprint.")
+        super().__init__(config=config, **kwargs)  # Pass config and any overrides to superclass
+
         self._metadata = {
             "title": "University Support System Blueprint",
             "description": (
@@ -52,7 +62,7 @@ class UniversitySupportBlueprint(BlueprintBase):
             "required_mcp_servers": ["sqlite"],
             "env_vars": ["SQLITE_DB_PATH"],
         }
-        logger.debug("Initializing Swarm client.")
+        logger.debug("Swarm client initialized.")
         self.client = Swarm()
         logger.debug("Creating agents.")
         self.agents = self.create_agents()
@@ -436,8 +446,3 @@ class UniversitySupportBlueprint(BlueprintBase):
             logger.debug("Exited interactive mode successfully.")
         except Exception as e:
             logger.exception(f"Error during interactive mode: {e}")
-
-# Entry point if run standalone
-if __name__ == "__main__":
-    blueprint = UniversitySupportBlueprint()
-    blueprint.interactive_mode()

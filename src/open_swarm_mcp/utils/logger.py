@@ -1,37 +1,32 @@
 # src/open_swarm_mcp/utils/logger.py
 
 import logging
-from typing import Optional
+import sys
 
-def setup_logger(name: str, log_file: Optional[str] = None, level: int = logging.DEBUG) -> logging.Logger:
+def setup_logger(name: str) -> logging.Logger:
     """
-    Set up a logger with the specified name, log file, and level.
+    Sets up and returns a logger with the specified name.
+    Configures the logger to output to stdout with a specific format.
 
     Args:
         name (str): Name of the logger.
-        log_file (Optional[str]): Path to the log file. If None, logs to console only.
-        level (int): Logging level.
 
     Returns:
         logging.Logger: Configured logger instance.
     """
     logger = logging.getLogger(name)
-    logger.setLevel(level)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger.setLevel(logging.DEBUG)  # Set to DEBUG for detailed logs
 
-    # Avoid adding multiple handlers to the logger
     if not logger.handlers:
-        # Console handler
-        ch = logging.StreamHandler()
-        ch.setLevel(level)
-        ch.setFormatter(formatter)
-        logger.addHandler(ch)
+        # Create console handler
+        ch = logging.StreamHandler(sys.stdout)
+        ch.setLevel(logging.DEBUG)
 
-        # File handler
-        if log_file:
-            fh = logging.FileHandler(log_file)
-            fh.setLevel(level)
-            fh.setFormatter(formatter)
-            logger.addHandler(fh)
+        # Create formatter and add it to the handler
+        formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(name)s - %(message)s")
+        ch.setFormatter(formatter)
+
+        # Add handler to the logger
+        logger.addHandler(ch)
 
     return logger

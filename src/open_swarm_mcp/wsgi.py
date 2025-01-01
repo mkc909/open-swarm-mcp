@@ -1,14 +1,15 @@
-"""
-WSGI config for open_swarm_mcp project.
-
-It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/4.2/howto/deployment/wsgi/
-"""
+# src/open_swarm_mcp/wsgi.py
 
 import os
+from pathlib import Path
+from dotenv import load_dotenv
 from django.core.wsgi import get_wsgi_application
+
+# Define the base directory
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env file
+load_dotenv(dotenv_path=BASE_DIR / '.env')
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'open_swarm_mcp.settings')
 

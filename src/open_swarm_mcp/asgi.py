@@ -1,14 +1,15 @@
-"""
-ASGI config for open_swarm_mcp project.
-
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/4.2/howto/deployment/asgi/
-"""
+# src/open_swarm_mcp/asgi.py
 
 import os
+from pathlib import Path
+from dotenv import load_dotenv
 from django.core.asgi import get_asgi_application
+
+# Define the base directory
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env file
+load_dotenv(dotenv_path=BASE_DIR / '.env')
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'open_swarm_mcp.settings')
 

@@ -18,7 +18,7 @@ LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Add the project root and the app directory to the system path
 sys.path.append(str(BASE_DIR))  # Add the project root
-sys.path.append(str(BASE_DIR / 'src/swarm')) 
+sys.path.append(str(BASE_DIR / 'src/swarm'))
 print(f"System path updated: {sys.path}")
 
 # SECURITY WARNING: keep the secret key used in production secret!
@@ -108,6 +108,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'  # Define a root directory for collectstatic
+STATICFILES_DIRS = [
+    BASE_DIR / "static"
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

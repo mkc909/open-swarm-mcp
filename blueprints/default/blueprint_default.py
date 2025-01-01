@@ -19,7 +19,8 @@ class DefaultBlueprint(BlueprintBase):
     Default Simple Agent Blueprint Implementation.
     """
 
-    def __init__(self):
+    def __init__(self, config=None, **kwargs):
+        super().__init__(config=config, **kwargs)
         self._metadata = {
             "title": "Default Simple Agent",
             "description": "A simple agent that echoes user inputs.",

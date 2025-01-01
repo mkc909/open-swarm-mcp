@@ -29,6 +29,7 @@ def discover_blueprints(blueprints_paths: List[str]) -> Dict[str, Dict[str, Any]
         # Iterate over blueprint directories
         for blueprint_dir in os.listdir(blueprints_path):
             full_dir_path = os.path.join(blueprints_path, blueprint_dir)
+            logger.debug(f"Inspecting '{full_dir_path}'")
             if os.path.isdir(full_dir_path):
                 blueprint_module_filename = f"blueprint_{blueprint_dir}.py"
                 blueprint_module_path = os.path.join(full_dir_path, blueprint_module_filename)
@@ -38,10 +39,12 @@ def discover_blueprints(blueprints_paths: List[str]) -> Dict[str, Dict[str, Any]
                     try:
                         # Dynamically load the blueprint module
                         module_name = f"blueprints.{blueprint_dir}.blueprint_{blueprint_dir}"
+                        logger.debug(f"Attempting to load module '{module_name}' from '{blueprint_module_path}'")
                         spec = importlib.util.spec_from_file_location(module_name, blueprint_module_path)
                         if spec and spec.loader:
                             module = importlib.util.module_from_spec(spec)
                             spec.loader.exec_module(module)
+                            logger.debug(f"Module '{module_name}' loaded successfully")
 
                             # Find classes inheriting from BlueprintBase
                             blueprint_class = None
@@ -49,6 +52,7 @@ def discover_blueprints(blueprints_paths: List[str]) -> Dict[str, Dict[str, Any]
                                 attr = getattr(module, attr_name)
                                 if isinstance(attr, type) and issubclass(attr, BlueprintBase) and attr is not BlueprintBase:
                                     blueprint_class = attr
+                                    logger.debug(f"Found BlueprintBase subclass: {attr_name}")
                                     break
 
                             if blueprint_class is None:
@@ -57,6 +61,7 @@ def discover_blueprints(blueprints_paths: List[str]) -> Dict[str, Dict[str, Any]
 
                             # Get the modification time of the blueprint file
                             modification_timestamp = int(os.path.getmtime(blueprint_module_path))
+                            logger.debug(f"Modification timestamp for {blueprint_module_path}: {modification_timestamp}")
 
                             # Instantiate the blueprint class
                             blueprint_instance = blueprint_class()
@@ -69,7 +74,7 @@ def discover_blueprints(blueprints_paths: List[str]) -> Dict[str, Dict[str, Any]
                                 blueprints_metadata[blueprint_dir] = metadata
                                 logger.info(f"Discovered blueprint '{blueprint_dir}': {metadata}")
                             else:
-                                logger.warning(f"metadata property in {blueprint_module_path} is not a dictionary. Skipping blueprint.")
+                                logger.warning(f"Metadata property in {blueprint_module_path} is not a dictionary. Skipping blueprint.")
                         else:
                             logger.warning(f"Could not load module spec for {blueprint_module_path}")
                     except Exception as e:

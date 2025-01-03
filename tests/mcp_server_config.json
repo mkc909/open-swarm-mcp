@@ -32,25 +32,57 @@
     },
 
     "mcpServers": {
+
         "brave-search": {
             "command": "npx",
             "args": ["-y", "@modelcontextprotocol/server-brave-search"],
             "env": {
-                "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+              "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+            }
+          },
+
+        "sqlite": {
+            "command": "/usr/local/bin/npx",
+            "args": ["-y", "mcp-server-sqlite-npx", "${SQLITE_DB_PATH}"],
+            "env": {
+              "npm_config_registry": "https://registry.npmjs.org",
+              "SQLITE_DB_PATH": "${SQLITE_DB_PATH}"
             }
         },
 
-        "sqlite": {
-            "command": "uvx",
-            "args": ["mcp-server-sqlite", "--db-path", "test.db"],
-            "env": {}
+	"sqlite-uvx": {
+		"command": "uvx",
+		"args": ["mcp-server-sqlite", "--db-path", "/tmp/test.db"]
+	},
+
+	"everything": {
+		"command": "npx",
+		"args": ["-y", "@modelcontextprotocol/server-everything"],
+		"env": {}
+	},
+
+	"debug-sqlite": {
+		"command": "python",
+		"args": ["./mcp_debug_proxy.py", "127.0.0.1:9999", "npx", "mcp-server-sqlite-npx", "/tmp/test.db"],
+		"env": {}
+	},
+
+        "duckdb": {
+            "command": "/home/chatgpt/.local/bin/uvx",
+            "args": [
+                "mcp-server-duckdb",
+                "--db-path",
+                "{$DUCKDB_DB_PATH}"
+            ],
+            "DUCKDB_DB_PATH": "${DUCKDB_DB_PATH}"
         },
 
         "filesystem": {
-            "command": "bash",
+            "command": "npx",
             "args": [
-                "-c",
-                "command -v mcp-filesystem-server >/dev/null 2>&1 || go install github.com/mark3labs/mcp-filesystem-server@latest && ~/go/bin/mcp-filesystem-server $(echo $ALLOWED_PATHS | tr ',' ' ')"
+              "-y",
+              "@modelcontextprotocol/server-filesystem",
+              "$ALLOWED_PATHS"
             ],
             "env": {
                 "ALLOWED_PATHS": "${ALLOWED_PATHS}"

@@ -42,7 +42,7 @@
           },
 
         "sqlite": {
-            "command": "/usr/local/bin/npx",
+            "command": "npx",
             "args": ["-y", "mcp-server-sqlite-npx", "${SQLITE_DB_PATH}"],
             "env": {
               "npm_config_registry": "https://registry.npmjs.org",
@@ -50,31 +50,15 @@
             }
         },
 
-	"sqlite-uvx": {
-		"command": "uvx",
-		"args": ["mcp-server-sqlite", "--db-path", "/tmp/test.db"]
-	},
+        "sqlite-uvx": {
+            "command": "uvx",
+            "args": ["mcp-server-sqlite", "--db-path", "/tmp/test.db"]
+        },
 
-	"everything": {
-		"command": "npx",
-		"args": ["-y", "@modelcontextprotocol/server-everything"],
-		"env": {}
-	},
-
-	"debug-sqlite": {
-		"command": "python",
-		"args": ["./mcp_debug_proxy.py", "127.0.0.1:9999", "npx", "mcp-server-sqlite-npx", "/tmp/test.db"],
-		"env": {}
-	},
-
-        "duckdb": {
-            "command": "/home/chatgpt/.local/bin/uvx",
-            "args": [
-                "mcp-server-duckdb",
-                "--db-path",
-                "{$DUCKDB_DB_PATH}"
-            ],
-            "DUCKDB_DB_PATH": "${DUCKDB_DB_PATH}"
+        "everything": {
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-everything"],
+            "env": {}
         },
 
         "filesystem": {

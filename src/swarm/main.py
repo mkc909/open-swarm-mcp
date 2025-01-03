@@ -40,9 +40,9 @@ try:
     )
     from swarm.extensions.blueprint import discover_blueprints
     from swarm.extensions.blueprint import prompt_user_to_select_blueprint
-    from swarm.modes.cli_mode import run_cli_mode
-    from swarm.modes.rest_mode import run_rest_mode
-    # from swarm.modes.mcp_host_mode import run_mcp_host_mode  # Uncomment when implemented
+    from swarm.extensions.blueprint.modes.cli_mode import run_cli_mode
+    from swarm.extensions.blueprint.modes.rest_mode import run_rest_mode
+    # from swarm.extensions.blueprint.modes.mcp_host_mode import run_mcp_host_mode  # Uncomment when implemented
     from swarm.agent.agent_builder import build_agent_with_mcp_tools
     from swarm.utils.color_utils import color_text, initialize_colorama
     logging.debug("Successfully imported custom modules")

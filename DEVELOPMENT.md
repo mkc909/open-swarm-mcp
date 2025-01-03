@@ -22,24 +22,16 @@ This document provides an in-depth look at the **Swarm Framework**’s internal 
 Below is a simplified **Swarm Framework** architecture diagram illustrating the primary components and data flow:
 
 ```mermaid
-flowchart LR
-    A[User / External Client] -->|CLI / HTTP| B[Main Application]
-    B --> C[Swarm Agent]
-    B --> H[Configuration / .env]
-    C --> D[Tools & Blueprints]
-    C --> E(MCP Servers)
-    E --> C
-    B --> F[Logging / Utils]
-    C --> G[Inference Engine]
-
-    style A fill:#f3f3f3,stroke:#999,stroke-width:1px
-    style B fill:#fefae0,stroke:#999,stroke-width:1px
-    style C fill:#fefae0,stroke:#999,stroke-width:1px
-    style D fill:#ffffff,stroke:#999,stroke-width:1px,stroke-dasharray: 5,5
-    style E fill:#ffffff,stroke:#999,stroke-width:1px,stroke-dasharray: 5,5
-    style F fill:#ffffff,stroke:#999,stroke-width:1px,stroke-dasharray: 5,5
-    style G fill:#ffffff,stroke:#999,stroke-width:1px,stroke-dasharray: 5,5
-    style H fill:#ffffff,stroke:#999,stroke-width:1px,stroke-dasharray: 5,5
+flowchart TB
+    A[BlueprintBase / DatabaseAndWebBlueprint] --> B[Swarm creation]
+    B --> C{Check if Agents define servers?}
+    C -- yes --> D[Initialize MCPSessionManager]
+    D --> E[Start each server (npx, uvx, etc.)]
+    E --> F[Return sessions to Swarm]
+    C -- no --> F
+    F --> G[Swarm injects discovered tools into Agents]
+    G --> H[Run conversation]
+    H --> [END]
 ```
 
 ---

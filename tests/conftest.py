@@ -11,10 +11,10 @@ def pytest_configure():
     """
     Pytest configuration hook to set up the testing environment.
     """
-    # Copy mcp_server_config.json to the temporary testing directory
-    config_file = Path(__file__).parent.parent / "mcp_server_config.json"
+    # Copy swarm_config.json to the temporary testing directory
+    config_file = Path(__file__).parent.parent / "swarm_config.json"
     if config_file.exists():
-        test_config_path = Path(__file__).parent / "mcp_server_config.json"
+        test_config_path = Path(__file__).parent / "swarm_config.json"
         shutil.copy(config_file, test_config_path)
         print(f"Copied {config_file} to {test_config_path}")
         # Debug: Verify the file exists in the test directory

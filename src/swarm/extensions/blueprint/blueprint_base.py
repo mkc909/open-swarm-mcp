@@ -34,7 +34,7 @@ class BlueprintBase(ABC):
 
         Args:
             config_path (Optional[str]): Path to config file or directory.
-                                         Defaults to 'mcp_server_config.json' in the current working directory.
+                                         Defaults to 'swarm_config.json' in the current working directory.
             **kwargs: Additional params for future extensibility.
         """
         logger.debug(f"Initializing BlueprintBase with config_path='{config_path}', kwargs={kwargs}")

@@ -110,7 +110,7 @@ def run_setup_wizard(
 
 
 def _load_mcp_server_config():
-    """Load MCP server configuration from mcp_server_config.json."""
-    with open("mcp_server_config.json", "r") as file:
+    """Load MCP server configuration from swarm_config.json."""
+    with open("swarm_config.json", "r") as file:
         config = json.load(file)
     return resolve_placeholders(config)

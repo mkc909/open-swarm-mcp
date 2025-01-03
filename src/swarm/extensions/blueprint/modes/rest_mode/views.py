@@ -38,8 +38,8 @@ from .utils.logger import setup_logger
 # Initialize logger for this module
 logger = setup_logger(__name__)
 
-# Load configuration from 'mcp_server_config.json'
-CONFIG_PATH = Path(settings.BASE_DIR) / "mcp_server_config.json"
+# Load configuration from 'swarm_config.json'
+CONFIG_PATH = Path(settings.BASE_DIR) / "swarm_config.json"
 try:
     config = load_server_config(str(CONFIG_PATH))
     logger.debug(f"Loaded configuration from {CONFIG_PATH}: {config}")

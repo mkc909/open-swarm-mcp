@@ -79,7 +79,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--config",
         type=str,
-        default=os.path.join(project_root, "mcp_server_config.json"),
+        default=os.path.join(project_root, "swarm_config.json"),
         help="Path to the MCP server configuration file."
     )
     parser.add_argument(

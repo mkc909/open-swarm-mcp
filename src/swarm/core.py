@@ -83,10 +83,10 @@ class Swarm:
 
     def _get_default_config_path(self) -> str:
         """
-        Return the default config file path 'mcp_server_config.json' in the current working directory.
+        Return the default config file path 'swarm_config.json' in the current working directory.
         """
         from pathlib import Path
-        default_path = str(Path.cwd() / "mcp_server_config.json")
+        default_path = str(Path.cwd() / "swarm_config.json")
         logger.debug(f"Default configuration path: {default_path}")
         return default_path
 

@@ -28,7 +28,7 @@ def run_setup_wizard(
     """
     initialize_colorama()
 
-    print(color_text("\n=== Open Swarm MCP Setup Wizard ===\n", "cyan"))
+    print(color_text("\n=== Open Swarm Setup Wizard ===\n", "cyan"))
 
     # Load existing configuration or initialize a new one
     if os.path.exists(config_path):
@@ -45,7 +45,7 @@ def run_setup_wizard(
     print("Configuring LLM settings:")
 
     # Load LLM providers from MCP server config
-    llm_providers = _load_mcp_server_config()["llm_providers"]
+    llm_providers = _load_swarm_config()["llm"]
     provider_names = list(llm_providers.keys())
     default_provider = llm.get("provider", provider_names[0])
     llm_provider = input(f"Select LLM Provider [{default_provider}]: ").strip() or default_provider
@@ -108,9 +108,23 @@ def run_setup_wizard(
 
     return config
 
-
-def _load_mcp_server_config():
-    """Load MCP server configuration from swarm_config.json."""
-    with open("swarm_config.json", "r") as file:
-        config = json.load(file)
-    return resolve_placeholders(config)
+def _load_swarm_config() -> Dict[str, Any]:
+    """Load the swarm configuration from the default path."""
+    config_path = "mcp_server_config.json"
+    try:
+        with open(config_path, "r") as file:
+            config = json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        # Return a default configuration if the file is missing or invalid
+        config = {
+            "llm": {
+                "ollama": {
+                    "provider": "openai",
+                    "model": "llama3.2:latest",
+                    "base_url": "http://localhost:11434/",
+                    "api_key": "",
+                    "temperature": 0.0
+                }
+            }
+        }
+    return config

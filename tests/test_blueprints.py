@@ -16,8 +16,7 @@ Dependencies:
 
 import pytest
 from unittest.mock import patch
-from swarm.config.blueprint_discovery import discover_blueprints
-from swarm.config.blueprint_selection import prompt_user_to_select_blueprint
+from swarm.extensions.blueprint import discover_blueprints, prompt_user_to_select_blueprint
 
 
 @pytest.fixture
@@ -38,7 +37,7 @@ def setup_blueprints(tmp_path):
     valid_bp_dir.mkdir()
     valid_bp_file = valid_bp_dir / f"blueprint_{valid_bp_name}.py"
     valid_bp_file.write_text("""
-from swarm.blueprint_base import BlueprintBase
+from swarm.extensions.blueprint import BlueprintBase
 
 class ValidBlueprint(BlueprintBase):
     \"\"\"
@@ -54,8 +53,8 @@ class ValidBlueprint(BlueprintBase):
             "env_vars": ["ENV_VAR1", "ENV_VAR2"]
         }
 
-    def get_agents(self):
-        return {}
+    def create_agents(self):
+        pass
 """)
 
     # 2. Blueprint with Missing Metadata
@@ -64,15 +63,15 @@ class ValidBlueprint(BlueprintBase):
     missing_metadata_bp_dir.mkdir()
     missing_metadata_bp_file = missing_metadata_bp_dir / f"blueprint_{missing_metadata_bp_name}.py"
     missing_metadata_bp_file.write_text("""
-from swarm.blueprint_base import BlueprintBase
+from swarm.extensions.blueprint import BlueprintBase
 
 class MissingMetadataBlueprint(BlueprintBase):
     \"\"\"
     A blueprint with no metadata property.
     \"\"\"
 
-    def get_agents(self):
-        return {}
+    def create_agents(self):
+        pass
 """)
 
     return blueprints_dir

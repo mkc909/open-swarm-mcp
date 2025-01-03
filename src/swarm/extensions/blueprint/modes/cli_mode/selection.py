@@ -1,51 +1,42 @@
-# src/swarm/config/modes.cli_mode.selection.py
-
-import logging
-from typing import Dict, Any, Optional
-
+from typing import Dict, Optional
 from swarm.utils.color_utils import color_text
+import logging
 
+# Configure logger
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 def prompt_user_to_select_blueprint(blueprints_metadata: Dict[str, Dict[str, Any]]) -> Optional[str]:
     """
-    Prompt the user to select a blueprint from the available blueprints.
+    Allow the user to select a blueprint from available options.
 
     Args:
-        blueprints_metadata (Dict[str, Dict[str, Any]]): Metadata of all discovered blueprints.
+        blueprints_metadata (Dict[str, Dict[str, Any]]): Metadata of available blueprints.
 
     Returns:
-        Optional[str]: Selected blueprint name or None if no selection is made.
+        Optional[str]: Selected blueprint name, or None if no selection is made.
     """
-    available_blueprints = list(blueprints_metadata.keys())
-    if not available_blueprints:
-        logger.warning("No blueprints available. Using default blueprint.")
-        print(color_text("No blueprints available. Using default blueprint.", "yellow"))
-        return "basic.default"
+    if not blueprints_metadata:
+        logger.warning("No blueprints available.")
+        print(color_text("No blueprints available.", "yellow"))
+        return None
 
-    print("Available Blueprints:")
-    for idx, bp in enumerate(available_blueprints, start=1):
-        metadata = blueprints_metadata[bp]
-        title = metadata.get('title', 'No Title')
-        description = metadata.get('description', 'No Description')
-        print(f"{idx}. {bp}: {title} - {description}")
-        logger.debug(f"Listed blueprint {idx}: {bp} - {title}")
+    print("\nAvailable Blueprints:")
+    for idx, (key, metadata) in enumerate(blueprints_metadata.items(), start=1):
+        print(f"{idx}. {metadata.get('title', key)} - {metadata.get('description', 'No description available')}")
 
     while True:
         try:
-            bp_choice_input = input("\nEnter the number of the blueprint you want to use (0 to use default): ")
-            logger.debug(f"User input for blueprint selection: '{bp_choice_input}'")
-            bp_choice = int(bp_choice_input)
-            if bp_choice == 0:
-                logger.info("User chose to use default blueprint 'basic.default'")
-                return "basic.default"  # Use the default blueprint
-            elif 1 <= bp_choice <= len(available_blueprints):
-                blueprint = available_blueprints[bp_choice - 1]
-                logger.info(f"User selected blueprint: '{blueprint}'")
-                return blueprint
+            choice = int(input("\nEnter the number of the blueprint you want to run (0 to cancel): "))
+            if choice == 0:
+                logger.info("User chose to cancel blueprint selection.")
+                return None
+            elif 1 <= choice <= len(blueprints_metadata):
+                selected_key = list(blueprints_metadata.keys())[choice - 1]
+                logger.info(f"User selected blueprint: '{selected_key}'")
+                return selected_key
             else:
-                print(f"Please enter a number between 0 and {len(available_blueprints)}.")
-                logger.warning(f"User entered invalid blueprint number: {bp_choice}")
+                print(f"Please enter a number between 0 and {len(blueprints_metadata)}.")
         except ValueError:
             print("Invalid input. Please enter a valid number.")
-            logger.warning("User entered non-integer value for blueprint selection")

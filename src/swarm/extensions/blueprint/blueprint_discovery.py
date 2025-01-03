@@ -5,7 +5,7 @@ This module dynamically discovers and imports blueprints from specified director
 It identifies classes derived from BlueprintBase as valid blueprints and extracts their metadata.
 """
 
-import importlib
+import importlib.util
 import inspect
 import logging
 from pathlib import Path
@@ -14,12 +14,12 @@ from typing import Dict, List, Any
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+# Import BlueprintBase with proper error handling
 try:
     from .blueprint_base import BlueprintBase
 except ImportError as e:
     logger.critical(f"Failed to import BlueprintBase: {e}")
     raise
-
 
 def discover_blueprints(directories: List[str]) -> Dict[str, Dict[str, Any]]:
     """
@@ -60,38 +60,39 @@ def discover_blueprints(directories: List[str]) -> Dict[str, Dict[str, Any]]:
 
                 # Identify classes inheriting from BlueprintBase
                 for name, obj in inspect.getmembers(module, inspect.isclass):
-                    if issubclass(obj, BlueprintBase) and obj is not BlueprintBase:
-                        logger.debug(f"Discovered blueprint class: {name}")
+                    if not issubclass(obj, BlueprintBase) or obj is BlueprintBase:
+                        continue
 
-                        # Instantiate the blueprint to access metadata
-                        blueprint_instance = obj()
+                    logger.debug(f"Discovered blueprint class: {name}")
 
-                        # Retrieve metadata
-                        try:
-                            metadata = blueprint_instance.metadata
-                            # Access the property if callable
-                            if isinstance(metadata, property):
-                                metadata = metadata.fget(blueprint_instance)
-                            elif callable(metadata):
-                                metadata = metadata()
+                    # Retrieve metadata without instantiating the class
+                    try:
+                        metadata = obj.metadata
+                        if callable(metadata):
+                            metadata = metadata()
+                        elif isinstance(metadata, property):
+                            metadata = metadata.fget(obj)
 
-                            if not isinstance(metadata, dict):
-                                raise TypeError(f"Expected metadata to be a dictionary, got {type(metadata)} instead.")
-
-                        except Exception as e:
-                            logger.error(f"Error retrieving metadata for blueprint '{blueprint_name}': {e}")
+                        if not isinstance(metadata, dict):
+                            logger.error(f"Metadata for blueprint '{blueprint_name}' is not a dictionary.")
                             raise ValueError(f"Metadata for blueprint '{blueprint_name}' is invalid or inaccessible.")
 
                         # Ensure required metadata fields are present
-                        metadata.setdefault("title", blueprint_name.capitalize())
-                        metadata.setdefault("description", f"Blueprint for {blueprint_name}")
+                        if "title" not in metadata or "description" not in metadata:
+                            logger.error(f"Required metadata fields (title, description) are missing for blueprint '{blueprint_name}'.")
+                            raise ValueError(f"Metadata for blueprint '{blueprint_name}' is invalid or inaccessible.")
 
-                        blueprints[blueprint_name] = {
-                            "blueprint_class": obj,
-                            "title": metadata["title"],
-                            "description": metadata["description"],
-                        }
-                        logger.debug(f"Added blueprint '{blueprint_name}' with metadata: {metadata}")
+                    except Exception as e:
+                        logger.error(f"Error retrieving metadata for blueprint '{blueprint_name}': {e}")
+                        continue
+
+                    # Add blueprint with metadata
+                    blueprints[blueprint_name] = {
+                        "blueprint_class": obj,
+                        "title": metadata["title"],
+                        "description": metadata["description"],
+                    }
+                    logger.debug(f"Added blueprint '{blueprint_name}' with metadata: {metadata}")
             except ImportError as e:
                 logger.error(f"Failed to import module '{module_name}': {e}")
             except Exception as e:

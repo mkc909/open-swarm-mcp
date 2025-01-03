@@ -1,9 +1,6 @@
-# src/swarm/blueprint_base.py
-
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, List, Callable
-
+from typing import Any, Dict, Optional, List
 from swarm import Swarm  # Ensure correct import path
 from swarm.types import Agent
 
@@ -38,6 +35,10 @@ class BlueprintBase(ABC):
             **kwargs: Additional params for future extensibility.
         """
         logger.debug(f"Initializing BlueprintBase with config_path='{config_path}', kwargs={kwargs}")
+
+        # Validate metadata
+        if not self.metadata or not isinstance(self.metadata, dict):
+            raise AssertionError("Blueprint metadata must be defined and must be a dictionary.")
 
         # Load environment variables from .env
         from dotenv import load_dotenv

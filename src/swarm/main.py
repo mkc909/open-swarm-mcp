@@ -38,8 +38,8 @@ try:
         validate_api_keys,
         are_required_mcp_servers_running,
     )
-    from swarm.config.blueprint_discovery import discover_blueprints
-    from swarm.config.blueprint_selection import prompt_user_to_select_blueprint
+    from swarm.extensions.blueprint import discover_blueprints
+    from swarm.extensions.blueprint import prompt_user_to_select_blueprint
     from swarm.modes.cli_mode import run_cli_mode
     from swarm.modes.rest_mode import run_rest_mode
     # from swarm.modes.mcp_host_mode import run_mcp_host_mode  # Uncomment when implemented

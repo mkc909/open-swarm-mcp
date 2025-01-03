@@ -147,13 +147,13 @@ def get_llm_provider(config: Dict[str, Any], selected_llm: str) -> Any:
     try:
         provider_name = config['llm_providers'][selected_llm]['provider']
         if provider_name == 'openai':
-            from swarm.llm_providers.openai_provider import OpenAIProvider
+            from swarm.extensions.llm.openai_provider import OpenAIProvider
             return OpenAIProvider(config['llm_providers'][selected_llm])
         elif provider_name == 'ollama':
-            from swarm.llm_providers.ollama_provider import OllamaProvider
+            from swarm.extensions.llm.ollama_provider import OllamaProvider
             return OllamaProvider(config['llm_providers'][selected_llm])
         elif provider_name == 'mock':
-            from swarm.llm_providers.mock_provider import MockProvider
+            from swarm.extensions.llm.mock_provider import MockProvider
             return MockProvider(config['llm_providers'][selected_llm])
         else:
             logger.error(f"Unsupported LLM provider: {provider_name}")

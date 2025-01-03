@@ -16,7 +16,8 @@ Dependencies:
 
 import pytest
 from unittest.mock import patch
-from swarm.extensions.blueprint import discover_blueprints, prompt_user_to_select_blueprint
+from swarm.extensions.blueprint import discover_blueprints
+from swarm.extensions.blueprint.modes.cli_mode.selection import prompt_user_to_select_blueprint
 
 
 @pytest.fixture

@@ -8,7 +8,6 @@ from .blueprint_runner import (
     main
 )
 from .blueprint_discovery import discover_blueprints
-from .modes.cli_mode.selection import prompt_user_to_select_blueprint
 
 __all__ = [
     "BlueprintBase",

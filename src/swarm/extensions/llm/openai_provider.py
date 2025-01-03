@@ -39,17 +39,20 @@ class OpenAIProvider:
             str: The generated response.
         """
         endpoint = f"{self.base_url}/chat/completions"
-        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
         payload = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": self.temperature,
         }
+
         try:
             response = requests.post(endpoint, headers=headers, json=payload)
             response.raise_for_status()
             data = response.json()
-            return data["choices"][0]["message"]["content"].strip()
-        except requests.RequestException as e:
-            logger.error(f"OpenAI API request failed: {e}")
+            return data["choices"][0]["message"]["content"]
+        except Exception as e:
             raise RuntimeError(f"Failed to generate response: {e}")

@@ -1,50 +1,46 @@
-# Updated tests/test_config_loader.py
-
 import pytest
-from swarm.extensions.config.config_loader import validate_api_keys
+from unittest.mock import patch, mock_open
+from swarm.extensions.config.config_loader import (
+    resolve_placeholders,
+    load_server_config,
+    validate_api_keys,
+    are_required_mcp_servers_running,
+)
 
-def test_validate_api_keys_missing_server_key():
-    """
-    Test validate_api_keys for missing server key scenarios.
-    """
-    config = {
-        "llm_providers": {
-            "grok": {
-                "provider": "openai",
-                "model": "grok-2-1212",
-                "base_url": "https://api.x.ai/v1",
-                "api_key": "dummy_xai_key",
-                "temperature": 0.0,
-            }
-        },
-        "mcpServers": {
-            "brave-search": {
-                "command": "npx",
-                "args": ["-y", "@modelcontextprotocol/server-brave-search"],
-                "env": {"BRAVE_API_KEY": ""},
-            },
-            "sqlite": {
-                "command": "uvx",
-                "args": ["mcp-server-sqlite", "--db-path", "test.db"],
-                "env": {},
-            },
-            "filesystem": {
-                "command": "bash",
-                "args": [
-                    "-c",
-                    "command -v mcp-filesystem-server >/dev/null 2>&1 || go install github.com/mark3labs/mcp-filesystem-server@latest && ~/go/bin/mcp-filesystem-server $(echo $ALLOWED_PATHS | tr ',' ' ')",
-                ],
-                "env": {"ALLOWED_PATHS": "/path/to/allowed1,/path/to/allowed2"},
-            },
-        },
-    }
+def test_resolve_placeholders_simple(mock_env):
+    """Test resolving placeholders in strings."""
+    assert resolve_placeholders("${TEST_VAR}") == "test_value"
 
-    expected_error_msg = (
-        "Environment variable 'BRAVE_API_KEY' for server 'brave-search' is set to an empty value."
-    )
 
-    with pytest.raises(ValueError) as exc_info:
-        validate_api_keys(config, selected_llm="grok")
+def test_resolve_placeholders_missing():
+    """Test missing environment variable raises ValueError."""
+    with pytest.raises(ValueError, match="Environment variable 'MISSING_VAR' is not set but is required."):
+        resolve_placeholders("${MISSING_VAR}")
 
-    # Updated to match the actual error message
-    assert expected_error_msg in str(exc_info.value), "Error message does not match expected"
+
+def test_load_server_config_valid(mock_env):
+    """Test loading a valid server config."""
+    mock_data = '{"llm_providers": {"default": {"provider": "mock", "api_key": "${TEST_VAR}"}}}'
+    with patch("builtins.open", mock_open(read_data=mock_data)) as mocked_file, \
+         patch("os.path.exists", return_value=True):  # Mock os.path.exists to return True
+        config = load_server_config("test.json")
+        mocked_file.assert_called_once_with("test.json", "r")  # Confirm file open call
+        assert config["llm_providers"]["default"]["api_key"] == "test_value"
+
+
+def test_validate_api_keys(valid_config, mock_env):
+    """Test validate_api_keys with valid configuration."""
+    assert validate_api_keys(valid_config) == valid_config
+
+
+def test_validate_api_keys_missing_key(valid_config, mock_env):
+    """Test missing API key raises ValueError."""
+    valid_config["llm_providers"]["default"]["api_key"] = ""
+    with pytest.raises(ValueError, match="API key for provider 'mock' in LLM profile 'default' is missing."):
+        validate_api_keys(valid_config)
+
+
+def test_are_required_mcp_servers_running(valid_config):
+    """Test required MCP servers validation."""
+    assert are_required_mcp_servers_running(["example"], valid_config) == (True, [])
+    assert are_required_mcp_servers_running(["nonexistent"], valid_config) == (False, ["nonexistent"])

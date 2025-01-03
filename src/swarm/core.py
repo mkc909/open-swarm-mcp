@@ -117,7 +117,7 @@ class Swarm:
         Validate the API keys for the chosen LLM profile from the config.
         Raises ValueError if missing/invalid keys.
         """
-        from swarm.config.config_loader import validate_api_keys  # Import within method to avoid unnecessary imports
+        from swarm.extensions.config.config_loader import validate_api_keys  # Import within method to avoid unnecessary imports
 
         selected_llm = self.config.get("selectedLLM", "default")
         debug_print(True, f"Validating API keys for LLM profile '{selected_llm}'.")

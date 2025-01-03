@@ -26,7 +26,7 @@ from django.shortcuts import render
 from swarm import Agent, Swarm
 
 from swarm.extensions.blueprint import discover_blueprints
-from swarm.config.config_loader import (
+from swarm.extensions.config.config_loader import (
     load_server_config,
     validate_api_keys,
     get_llm_provider,

@@ -30,8 +30,8 @@ else:
 # Import custom modules with corrected paths
 try:
     from swarm.utils.logger import setup_logger
-    from swarm.config.setup_wizard import run_setup_wizard
-    from swarm.config.config_loader import (
+    from swarm.extensions.config.setup_wizard import run_setup_wizard
+    from swarm.extensions.config.config_loader import (
         load_server_config,
         validate_and_select_llm_provider,
         inject_env_vars,

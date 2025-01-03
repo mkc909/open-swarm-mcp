@@ -1,5 +1,6 @@
 import pytest
 import asyncio
+import os
 from swarm.extensions.mcp_client import MCPClientManager
 
 @pytest.fixture

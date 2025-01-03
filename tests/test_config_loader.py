@@ -1,8 +1,7 @@
 # Updated tests/test_config_loader.py
 
 import pytest
-import os
-from swarm.config.config_loader import validate_api_keys
+from swarm.extensions.config.config_loader import validate_api_keys
 
 def test_validate_api_keys_missing_server_key():
     """

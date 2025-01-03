@@ -29,7 +29,7 @@ from .types import (
     Response,
     Result,
 )
-from .extensions.mcp_client import MCPClientManager  # Updated MCP Client Import
+from .extensions.mcp.mcp_client import MCPClientManager
 
 # Configure logger
 import logging

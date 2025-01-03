@@ -43,7 +43,7 @@ class FilesystemBlueprint(BlueprintBase):
         return {
             "title": "Filesystem Integration Blueprint",
             "description": "Enables interaction with the filesystem via MCP server tools and includes a triage agent.",
-            "required_mcp_servers": ["npx-filesystem"],
+            "required_mcp_servers": ["filesystem"],
             "env_vars": ["ALLOWED_PATHS"],
         }
 
@@ -73,7 +73,7 @@ class FilesystemBlueprint(BlueprintBase):
                 "You are the FilesystemAgent. Manage and interact with the filesystem within the allowed paths. "
                 "Use the available functions to read, write, or modify files and directories."
             ),
-            mcp_servers=["npx-filesystem"],
+            mcp_servers=["filesystem"],
             env_vars={"ALLOWED_PATHS": allowed_paths},
             functions=[],
         )

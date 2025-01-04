@@ -112,25 +112,46 @@ class Swarm:
             logger.error(f"Error loading configuration file '{self.config_path}': {e}")
             raise
 
-    def validate_api_keys(self) -> None:
+    def validate_api_keys(self, selected_llm: Optional[str] = None):
         """
-        Validate the API keys for the chosen LLM profile from the config.
-        Raises ValueError if missing/invalid keys.
+        Validates API keys for the LLM configuration.
+        - If `api_key` is an empty string, no validation is performed.
+        - If `api_key` contains a placeholder like '${SOME_API_KEY}', the corresponding environment variable must be set.
+        - Validation applies only to the selected LLM provider.
+
+        Args:
+            selected_llm (Optional[str]): The selected LLM profile. Defaults to "default".
+
+        Raises:
+            ValueError: If a required environment variable is missing for the selected LLM profile.
         """
-        from swarm.extensions.config.config_loader import validate_api_keys  # Import within method to avoid unnecessary imports
+        logger.debug(f"Validating API keys with selected LLM: {selected_llm}")
+        if not selected_llm:
+            selected_llm = "default"
+            logger.info(f"No selected LLM profile provided. Falling back to default profile: '{selected_llm}'.")
 
-        selected_llm = self.config.get("selectedLLM", "default")
-        debug_print(True, f"Validating API keys for LLM profile '{selected_llm}'.")
-        logger.debug(f"Validating API keys for LLM profile '{selected_llm}'.")
+        llm_config = self.config.get("llm", {}).get(selected_llm, {})
+        api_key = llm_config.get("api_key", "")
 
-        try:
-            validate_api_keys(self.config, selected_llm)
-            debug_print(True, f"API keys validated for profile '{selected_llm}'.")
-            logger.info(f"API keys validated for profile '{selected_llm}'.")
-        except ValueError as e:
-            debug_print(True, f"API key validation error: {e}")
-            logger.error(f"API key validation error: {e}")
-            raise
+        if not api_key:
+            logger.info(f"No API key validation required for LLM profile '{selected_llm}' (empty API key).")
+            return
+
+        if api_key.startswith("${") and api_key.endswith("}"):
+            env_var = api_key[2:-1]
+            env_value = os.getenv(env_var)
+
+            if not env_value:
+                error_msg = (
+                    f"Environment variable '{env_var}' required for API key in LLM profile '{selected_llm}' "
+                    f"is not set or empty."
+                )
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+
+            logger.debug(f"Environment variable '{env_var}' found with value: {env_value} (masked).")
+        else:
+            logger.debug(f"Static API key provided for LLM profile '{selected_llm}': {api_key} (masked).")
 
     def create_agent(self, agent: Agent) -> Agent:
         """

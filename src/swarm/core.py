@@ -28,6 +28,7 @@ from .types import (
     Function,
     Response,
     Result,
+    Tool,  # Added Tool import
 )
 from .extensions.mcp.mcp_client import MCPClientManager
 
@@ -56,6 +57,10 @@ class Swarm:
         """
         Initialize the Swarm with an optional custom OpenAI client.
         If no client is provided, a default is created.
+
+        Args:
+            client: Custom OpenAI client instance.
+            config_path (Optional[str]): Path to the configuration file.
         """
         logger.debug("Initializing Swarm instance.")
         if not client:
@@ -85,6 +90,9 @@ class Swarm:
     def _get_default_config_path(self) -> str:
         """
         Return the default config file path 'swarm_config.json' in the current working directory.
+
+        Returns:
+            str: The default configuration file path.
         """
         from pathlib import Path
 
@@ -95,6 +103,9 @@ class Swarm:
     def load_configuration(self) -> dict:
         """
         Load configuration from the given path or use a default empty config.
+
+        Returns:
+            dict: The loaded configuration.
         """
         logger.debug(f"Loading configuration from: {self.config_path}")
         if not os.path.exists(self.config_path):
@@ -123,6 +134,7 @@ class Swarm:
 
         Args:
             selected_llm (Optional[str]): The selected LLM profile.
+
         Raises:
             ValueError: If a required environment variable is missing for the selected LLM profile.
         """
@@ -158,6 +170,12 @@ class Swarm:
     def create_agent(self, agent: Agent) -> Agent:
         """
         Extend the agent with dynamic tools from MCP servers and attach environment variables.
+
+        Args:
+            agent (Agent): The agent to be created.
+
+        Returns:
+            Agent: The created agent with attached tools.
         """
         debug_print(True, f"Swarm: Creating agent '{agent.name}' with MCP servers {agent.mcp_servers} and env_vars {agent.env_vars}")
         logger.debug(f"Swarm: Creating agent '{agent.name}' with MCP servers {agent.mcp_servers} and env_vars {agent.env_vars}")
@@ -188,6 +206,13 @@ class Swarm:
     def initialize_mcp_sessions(self, required_servers: set) -> None:
         """
         Initialize the MCP Client Managers and connect to required MCP servers.
+
+        Args:
+            required_servers (set): A set of MCP server names to initialize.
+
+        Raises:
+            ValueError: If MCP server configuration is missing.
+            RuntimeError: If MCP server fails to initialize or list tools.
         """
         logger.debug("Initializing MCP sessions.")
         logger.debug(f"Required MCP servers to initialize: {required_servers}")
@@ -219,18 +244,11 @@ class Swarm:
 
             # Initialize the MCP server and list tools
             try:
-                responses = asyncio.run(mcp_client.initialize_and_list_tools())
-                logger.debug(f"Received responses from '{server_name}': {responses}")
-
-                # Parse the 'tools/list' response to ensure tools are available
-                tools_response = next((resp for resp in responses if resp.get("id") == 2), None)
-                if not tools_response or "result" not in tools_response:
-                    error_msg = f"Failed to list tools from MCP server '{server_name}'."
-                    debug_print(True, error_msg)
-                    logger.error(error_msg)
-                    raise RuntimeError(error_msg)
-
-                logger.info(f"MCP server '{server_name}' initialized and tools listed successfully.")
+                tools = asyncio.run(mcp_client.discover_tools())
+                if tools:
+                    logger.info(f"MCP server '{server_name}' initialized and {len(tools)} tools discovered successfully.")
+                else:
+                    logger.warning(f"MCP server '{server_name}' initialized but no tools were discovered.")
             except Exception as e:
                 error_msg = f"Failed to initialize MCP server '{server_name}': {e}"
                 debug_print(True, error_msg)
@@ -242,101 +260,50 @@ class Swarm:
 
     def _load_tools_for_agent(self, agent: Agent):
         """
-        Discover tools from MCP servers and attach them as functions to the agent.
+        Attach discovered tools to the agent.
+
+        Args:
+            agent (Agent): The agent to which tools will be attached.
         """
-        debug_print(True, f"Swarm: Discovering tools for agent '{agent.name}' from MCP servers.")
-        logger.debug(f"Swarm: Discovering tools for agent '{agent.name}' from MCP servers.")
+        debug_print(True, f"Swarm: Loading tools for agent '{agent.name}'.")
+        logger.debug(f"Swarm: Loading tools for agent '{agent.name}'.")
 
         for server_name in agent.mcp_servers:
             mcp_client = self.mcp_clients.get(server_name)
             if not mcp_client:
-                debug_print(True, f"No MCP client available for server '{server_name}'. Skipping tool discovery.")
-                logger.warning(f"No MCP client available for server '{server_name}'. Skipping tool discovery.")
+                debug_print(True, f"No MCP client available for server '{server_name}'. Skipping tool loading.")
+                logger.warning(f"No MCP client available for server '{server_name}'. Skipping tool loading.")
                 continue
 
             try:
-                responses = asyncio.run(mcp_client.initialize_and_list_tools())
-                logger.debug(f"Received responses from '{server_name}': {responses}")
-
-                # Extract tools from the 'tools/list' response (assumed to be with id=2)
-                tools_response = next((resp for resp in responses if resp.get("id") == 2), None)
-                if not tools_response or "result" not in tools_response:
-                    logger.warning(f"No tools listed by MCP server '{server_name}'.")
-                    continue
-
-                tools = tools_response["result"].get("tools", [])
+                tools = asyncio.run(mcp_client.discover_tools())
                 debug_print(True, f"Discovered {len(tools)} tools from '{server_name}' for agent '{agent.name}'.")
                 logger.info(f"Discovered {len(tools)} tools from '{server_name}' for agent '{agent.name}'.")
 
-                for tool_def in tools:
-                    tool_name = tool_def.get("name")
-                    if not tool_name:
-                        debug_print(True, f"Skipping tool with no name in {tool_def}")
-                        logger.warning(f"Skipping tool with no name in {tool_def}")
-                        continue
-                    desc = tool_def.get("description", "")
-                    wrapped_func = self._wrap_mcp_tool(server_name, tool_name, desc)
-                    agent.functions.append(wrapped_func)
-                    logger.debug(f"Attached tool '{tool_name}' from '{server_name}' to agent '{agent.name}'.")
+                for tool in tools:
+                    # Attach the tool's callable to the agent's functions
+                    agent.functions.append(tool.func)
+                    logger.debug(f"Attached tool '{tool.name}' from '{server_name}' to agent '{agent.name}'.")
             except Exception as e:
-                debug_print(True, f"Failed to list tools from '{server_name}': {e}")
-                logger.error(f"Failed to list tools from '{server_name}': {e}")
+                debug_print(True, f"Failed to load tools from '{server_name}': {e}")
+                logger.error(f"Failed to load tools from '{server_name}': {e}")
 
     def _wrap_mcp_tool(self, server_name: str, tool_name: str, desc: str) -> Callable:
         """
-        Convert an MCP server tool into a synchronous function the agent can call.
+        Deprecated. Use MCPClientManager's discover_tools method to obtain Tool instances.
         """
-        logger.debug(f"Wrapping MCP tool '{tool_name}' from server '{server_name}' with description: {desc}")
-
-        mcp_client = self.mcp_clients.get(server_name)
-        if not mcp_client:
-            error_msg = f"MCP client for server '{server_name}' not found."
-            debug_print(True, error_msg)
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-
-        async def async_tool_fn(**kwargs):
-            logger.debug(f"Executing async_tool_fn for tool '{tool_name}' with args: {kwargs}")
-            try:
-                response = await mcp_client.call_tool(tool_name, kwargs)
-                logger.debug(f"Received response from tool '{tool_name}': {response}")
-                if response and "result" in response and "content" in response["result"]:
-                    return response["result"]["content"][0]["text"]
-                return "No content returned."
-            except Exception as e:
-                logger.error(f"Error calling '{tool_name}': {e}")
-                return f"Error calling '{tool_name}': {e}"
-
-        def sync_tool_fn(**kwargs):
-            logger.debug(f"Executing sync_tool_fn for tool '{tool_name}' with args: {kwargs}")
-            try:
-                try:
-                    loop = asyncio.get_running_loop()
-                except RuntimeError:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                if loop.is_running():
-                    logger.debug(f"Async loop is running. Scheduling '{tool_name}' coroutine.")
-                    fut = asyncio.run_coroutine_threadsafe(async_tool_fn(**kwargs), loop)
-                    result = fut.result()
-                else:
-                    logger.debug(f"Async loop is not running. Running '{tool_name}' coroutine.")
-                    result = loop.run_until_complete(async_tool_fn(**kwargs))
-                logger.debug(f"Tool '{tool_name}' executed with result: {result}")
-                return result
-            except Exception as e:
-                logger.error(f"Error calling '{tool_name}': {e}")
-                return f"Error calling '{tool_name}': {e}"
-
-        # Ensure the function has the correct name and docstring
-        sync_tool_fn.__name__ = tool_name
-        sync_tool_fn.__doc__ = desc
-        logger.debug(f"Wrapped tool function '{tool_name}' created successfully.")
-        return sync_tool_fn
+        # This method can be removed if not used elsewhere.
+        pass
 
     def _handle_env_vars(self, agent: Agent):
         """
         Ensure that all required environment variables are set for the agent.
+
+        Args:
+            agent (Agent): The agent for which to handle environment variables.
+
+        Raises:
+            EnvironmentError: If any required environment variable is missing.
         """
         missing_vars = [var for var in agent.env_vars.keys() if not os.getenv(var)]
         if missing_vars:
@@ -355,9 +322,20 @@ class Swarm:
         model_override: Optional[str],
         stream: bool,
         debug: bool,
-    ) -> ChatCompletionMessage:
+    ) -> Any:
         """
-        Get chat completion from the OpenAI client.
+        Get chat completion from the LLM provider.
+
+        Args:
+            agent (Agent): The active agent.
+            history (List): Conversation history.
+            context_variables (dict): Context variables for the conversation.
+            model_override (Optional[str]): Model override if any.
+            stream (bool): Whether to stream the response.
+            debug (bool): Debug flag for verbose output.
+
+        Returns:
+            Any: The chat completion response from the LLM provider.
         """
         context_variables = defaultdict(str, context_variables)
         instructions = (
@@ -369,19 +347,21 @@ class Swarm:
         debug_print(debug, "Getting chat completion for...", messages)
         logger.debug(f"Getting chat completion for {agent.name}: {messages}")
 
-        # Convert agent.functions to 'tools' for OpenAI
+        # Convert agent.functions to 'tools' for LLM provider
         tools = [function_to_json(f) for f in agent.functions]
         logger.debug(f"Converted agent functions to tools: {tools}")
 
-        # Remove context_variables from function schema
+        # Remove context_variables from tool schema
         for tool in tools:
-            params = tool["function"]["parameters"]
+            function_def = tool.get("function", {})
+            tool_name = function_def.get("name", "unknown")
+            params = function_def.get("parameters", {})
             if __CTX_VARS_NAME__ in params:
                 params.pop(__CTX_VARS_NAME__, None)
-                logger.debug(f"Removed '{__CTX_VARS_NAME__}' from tool parameters for tool '{tool['name']}'")
+                logger.debug(f"Removed '{__CTX_VARS_NAME__}' from tool parameters for tool '{tool_name}'")
             if "required" in params and __CTX_VARS_NAME__ in params["required"]:
                 params["required"].remove(__CTX_VARS_NAME__)
-                logger.debug(f"Removed '{__CTX_VARS_NAME__}' from required parameters for tool '{tool['name']}'")
+                logger.debug(f"Removed '{__CTX_VARS_NAME__}' from required parameters for tool '{tool_name}'")
 
         create_params = {
             "model": model_override or agent.model,
@@ -400,6 +380,16 @@ class Swarm:
     def handle_function_result(self, result, debug) -> Result:
         """
         Process the result returned by an agent function.
+
+        Args:
+            result: The raw result returned by the agent function.
+            debug (bool): Debug flag for verbose output.
+
+        Returns:
+            Result: The processed result object.
+
+        Raises:
+            TypeError: If the result cannot be cast to a string or Result object.
         """
         logger.debug(f"Handling function result: {result}")
         match result:
@@ -431,6 +421,15 @@ class Swarm:
     ) -> Response:
         """
         Execute tool calls and collect responses.
+
+        Args:
+            tool_calls (List[ChatCompletionMessageToolCall]): List of tool calls to execute.
+            functions (List[AgentFunction]): List of agent functions.
+            context_variables (dict): Current context variables.
+            debug (bool): Debug flag for verbose output.
+
+        Returns:
+            Response: The aggregated response from all tool calls.
         """
         function_map = {f.__name__: f for f in functions}
         partial_response = Response(messages=[], agent=None, context_variables={})
@@ -529,6 +528,18 @@ class Swarm:
         """
         Run the conversation with streaming responses.
         Yields chunks of responses as they are received.
+
+        Args:
+            agent (Agent): The agent to run.
+            messages (List): Initial messages in the conversation.
+            context_variables (dict, optional): Context variables for the conversation.
+            model_override (Optional[str], optional): Model override if any.
+            debug (bool, optional): Debug flag for verbose output.
+            max_turns (int, optional): Maximum number of turns to execute.
+            execute_tools (bool, optional): Whether to execute tools.
+
+        Yields:
+            dict: Chunks of the response.
         """
         active_agent = agent
         context_variables = copy.deepcopy(context_variables)
@@ -536,19 +547,12 @@ class Swarm:
         init_len = len(messages)
 
         while len(history) - init_len < max_turns:
-
             message = {
                 "content": "",
                 "sender": active_agent.name,
                 "role": "assistant",
                 "function_call": None,
-                "tool_calls": defaultdict(
-                    lambda: {
-                        "function": {"arguments": "", "name": ""},
-                        "id": "",
-                        "type": "",
-                    }
-                ),
+                "tool_calls": [],
             }
 
             # Get completion with current history and agent
@@ -577,10 +581,8 @@ class Swarm:
                 merge_chunk(message, delta)
             yield {"delim": "end"}
 
-            message["tool_calls"] = list(
-                message.get("tool_calls", {}).values())
-            if not message["tool_calls"]:
-                message["tool_calls"] = None
+            # Convert tool_calls to a list if not already
+            message["tool_calls"] = list(message.get("tool_calls", {}))
             debug_print(debug, "Received completion:", message)
             logger.debug(f"Received completion: {message}")
             history.append(message)
@@ -633,6 +635,19 @@ class Swarm:
         """
         The main run loop. If streaming is enabled, it returns a generator.
         Otherwise, it returns a full Response.
+
+        Args:
+            agent (Agent): The agent to run.
+            messages (List): Initial messages in the conversation.
+            context_variables (dict, optional): Context variables for the conversation.
+            model_override (Optional[str], optional): Model override if any.
+            stream (bool, optional): Whether to stream the response.
+            debug (bool, optional): Debug flag for verbose output.
+            max_turns (int, optional): Maximum number of turns to execute.
+            execute_tools (bool, optional): Whether to execute tools.
+
+        Returns:
+            Union[Response, Any]: The conversation response or a generator if streaming.
         """
         # Extend the agent with dynamic tools and handle env_vars
         self.create_agent(agent)
@@ -654,7 +669,6 @@ class Swarm:
         init_len = len(messages)
 
         while len(history) - init_len < max_turns and active_agent:
-
             # Get completion with current history and agent
             completion = self.get_chat_completion(
                 agent=active_agent,

@@ -15,7 +15,7 @@ import re
 import logging
 from typing import Any, Dict, List, Tuple, Union, Optional
 from dotenv import load_dotenv
-from swarm.utils.redact import redact_sensitive_data  # Correct import
+from swarm.utils.redact import redact_sensitive_data
 
 # Initialize logger for this module
 logger = logging.getLogger(__name__)
@@ -123,6 +123,30 @@ def validate_mcp_server_env(mcp_servers: Dict[str, Any]) -> None:
                 raise ValueError(f"Environment variable '{env_key}' for MCP server '{server_name}' is not set.")
             logger.info(f"Environment variable '{env_key}' for server '{server_name}' is set.")
 
+def get_default_llm_config(config: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Retrieves the LLM configuration based on the `LLM` environment variable.
+
+    Args:
+        config (Dict[str, Any]): The configuration dictionary.
+
+    Returns:
+        Dict[str, Any]: The selected LLM configuration.
+
+    Raises:
+        ValueError: If the `LLM` environment variable is not set or the selected LLM profile is not found.
+    """
+    selected_llm = os.getenv("LLM", "default")
+    logger.debug(f"Selected LLM profile from environment variable: '{selected_llm}'")
+
+    llm_config = config.get("llm", {}).get(selected_llm)
+    if not llm_config:
+        logger.error(f"LLM profile '{selected_llm}' not found in configuration.")
+        raise ValueError(f"LLM profile '{selected_llm}' not found in configuration.")
+
+    logger.info(f"Using LLM profile: '{selected_llm}'")
+    return llm_config
+
 def validate_api_keys(config: Dict[str, Any], selected_llm: str = "default") -> Dict[str, Any]:
     """
     Validates the presence of API keys for the selected LLM profile.
@@ -179,3 +203,34 @@ def are_required_mcp_servers_configured(
 
     logger.info("All required MCP servers are configured.")
     return True, []
+
+def load_llm_config(config: Dict[str, Any], llm_name: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Load the configuration for a specific LLM.
+
+    Args:
+        config (Dict[str, Any]): The full configuration dictionary.
+        llm_name (Optional[str]): The name of the LLM to load. Defaults to None.
+
+    Returns:
+        Dict[str, Any]: The configuration dictionary for the specified LLM.
+
+    Raises:
+        ValueError: If the LLM configuration cannot be found or is invalid.
+    """
+    logger.debug(f"Attempting to load LLM configuration for: {llm_name or 'unspecified'}")
+
+    # Determine LLM name
+    if not llm_name:
+        llm_name = os.getenv("DEFAULT_LLM", "default")
+        logger.debug(f"No LLM name provided, using DEFAULT_LLM or fallback to 'default': {llm_name}")
+
+    # Load the specific LLM configuration
+    llm_config = config.get("llm", {}).get(llm_name)
+    if not llm_config:
+        error_message = f"LLM configuration for '{llm_name}' not found in the config."
+        logger.error(error_message)
+        raise ValueError(error_message)
+
+    logger.info(f"Loaded LLM configuration for '{llm_name}': {redact_sensitive_data(llm_config)}")
+    return llm_config

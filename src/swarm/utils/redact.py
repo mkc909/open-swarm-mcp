@@ -13,7 +13,7 @@ def redact_sensitive_data(data: Any, sensitive_keys: List[str] = None, mask: str
 
     Args:
         data (Any): The data to process (dictionary, list, or other types).
-        sensitive_keys (List[str]): List of keys to redact. Defaults to common keys like 'api_key'.
+        sensitive_keys (List[str]): List of keys to redact. Defaults to case-insensitive "api_key" and "token".
         mask (str): Mask to replace the middle part with.
         reveal_chars (int): Number of characters to reveal at the start and end of sensitive values.
 
@@ -21,7 +21,7 @@ def redact_sensitive_data(data: Any, sensitive_keys: List[str] = None, mask: str
         Any: Data with sensitive keys redacted with partial reveal.
     """
     if sensitive_keys is None:
-        sensitive_keys = ["api_key", "OPENAI_API_KEY", "XAI_API_KEY", "BRAVE_API_KEY"]
+        sensitive_keys = ["api_key", "token"]
 
     def partially_redact(value: str) -> str:
         """Helper function to partially redact sensitive strings."""
@@ -29,18 +29,19 @@ def redact_sensitive_data(data: Any, sensitive_keys: List[str] = None, mask: str
             return mask
         return f"{value[:reveal_chars]}{mask}{value[-reveal_chars:]}"
 
+    def is_sensitive_key(key: str) -> bool:
+        """Helper function to check if a key is sensitive (case-insensitive)."""
+        return any(sensitive_key.lower() == key.lower() for sensitive_key in sensitive_keys)
+
     if isinstance(data, dict):
         return {
-            key: (partially_redact(value) if key in sensitive_keys and isinstance(value, str)
+            key: (partially_redact(value) if is_sensitive_key(key) and isinstance(value, str)
                   else redact_sensitive_data(value, sensitive_keys, mask, reveal_chars))
             for key, value in data.items()
         }
     elif isinstance(data, list):
         return [redact_sensitive_data(item, sensitive_keys, mask, reveal_chars) for item in data]
-    elif isinstance(data, str) and any(key in data for key in sensitive_keys):
+    elif isinstance(data, str):
+        # Always redact strings if they are sensitive (e.g., API keys)
         return partially_redact(data)
     return data
-
-
-# Alias for compatibility with older code
-redact_sensitive_values = redact_sensitive_data

@@ -5,6 +5,7 @@ from swarm.extensions.config.config_loader import (
     load_server_config,
     validate_api_keys,
     are_required_mcp_servers_configured,
+    load_llm_config,
 )
 
 @pytest.fixture
@@ -72,3 +73,26 @@ def test_load_server_config_default_path(mock_getcwd):
     config = load_server_config()
     assert config["key"] == "value"
     mock_getcwd.assert_called_once()
+
+def test_load_llm_config_specific_llm(valid_config):
+    """Test loading a specified LLM configuration."""
+    config = {
+        "llm": {
+            "openai": {"provider": "openai", "api_key": "mock_key"},
+            "default": {"provider": "mock", "api_key": "test_value"}
+        }
+    }
+    llm_config = load_llm_config(config, llm_name="openai")
+    assert llm_config == {"provider": "openai", "api_key": "mock_key"}
+
+@patch.dict("os.environ", {"DEFAULT_LLM": "openai"})
+def test_load_llm_config_envvar_fallback(valid_config):
+    """Test loading LLM configuration using DEFAULT_LLM environment variable."""
+    config = {
+        "llm": {
+            "openai": {"provider": "openai", "api_key": "mock_key"},
+            "default": {"provider": "mock", "api_key": "test_value"}
+        }
+    }
+    llm_config = load_llm_config(config)
+    assert llm_config == {"provider": "openai", "api_key": "mock_key"}

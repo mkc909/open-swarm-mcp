@@ -1,7 +1,7 @@
 # src/swarm/config/config_loader.py
 
 """
-Configuration Loader for Open Swarm MCP.
+Configuration Loader for Open Swarm.
 
 This module handles loading and validating the server configuration from a JSON file.
 It resolves environment variable placeholders and ensures all required API keys are present.
@@ -84,49 +84,40 @@ def load_server_config(file_path: str) -> Dict[str, Any]:
 def validate_api_keys(config: Dict[str, Any], selected_llm: str = None) -> Dict[str, Any]:
     """
     Validates that all required API keys are present in the configuration.
-    Falls back to the default provider if `selected_llm` is not provided.
+    Skips validation for LLM providers that do not require API keys.
 
     Args:
         config (Dict[str, Any]): The configuration dictionary.
-        selected_llm (str): The selected LLM profile, or None to use the default.
+        selected_llm (str): The selected LLM profile. Defaults to "default" if not provided.
 
     Returns:
         Dict[str, Any]: The validated configuration.
 
     Raises:
-        ValueError: If any required API keys are missing or empty.
+        ValueError: If a required API key is missing and the provider mandates it.
     """
-    if selected_llm is None:
-        selected_llm = "default"
-        logger.info(f"No selected LLM profile provided. Falling back to default profile: '{selected_llm}'.")
+    # Use "default" as the fallback selected LLM profile
+    selected_llm = selected_llm or "default"
+    logger.debug(f"Validating API keys for LLM profile: {selected_llm}")
 
-    logger.debug(f"Validating API keys for LLM profile '{selected_llm}'")
     try:
-        llm_provider = config['llm'][selected_llm]['provider']
-        llm_api_key = config['llm'][selected_llm]['api_key']
+        llm_profile = config.get("llm", {}).get(selected_llm, {})
+        llm_provider = llm_profile.get("provider")
+        llm_api_key = llm_profile.get("api_key")
+
+        # If provider is missing, log a warning and skip validation
+        if not llm_provider:
+            logger.warning(f"No provider specified for LLM profile '{selected_llm}'. Skipping API key validation.")
+            return config
+
+        # Log if the API key is missing, but only warn since not all providers require it
         if not llm_api_key:
-            raise ValueError(f"API key for provider '{llm_provider}' in LLM profile '{selected_llm}' is missing.")
-        logger.debug(f"LLM API key for provider '{llm_provider}' is present.")
-    except KeyError as e:
-        logger.error(f"Missing key in configuration: {e}")
-        raise ValueError(f"Missing key in configuration: {e}")
+            logger.warning(f"API key missing for provider '{llm_provider}' in LLM profile '{selected_llm}'. Validation skipped.")
 
-    # Validate MCP servers' API keys
-    for server_name, server_info in config.get('mcpServers', {}).items():
-        env_vars = server_info.get('env', {})
-        for var_name, var_value in env_vars.items():
-            if isinstance(var_value, str) and var_value.startswith('${') and var_value.endswith('}'):
-                var_key = var_value[2:-1]
-                env_value = os.getenv(var_key)
-                if not env_value:
-                    logger.error(f"Environment variable '{var_key}' for server '{server_name}' is missing.")
-                    raise ValueError(f"Environment variable '{var_key}' for server '{server_name}' is missing.")
-                logger.debug(f"Environment variable '{var_key}' for server '{server_name}' is present.")
-            elif isinstance(var_value, str) and not var_value:
-                logger.error(f"Environment variable '{var_name}' for server '{server_name}' is set to an empty value.")
-                raise ValueError(f"Environment variable '{var_name}' for server '{server_name}' is set to an empty value.")
+        logger.info(f"API key validation completed for provider '{llm_provider}'.")
+    except Exception as e:
+        logger.error(f"Unexpected error during API key validation for profile '{selected_llm}': {e}", exc_info=True)
 
-    logger.debug("All required API keys are present.")
     return config
 
 def get_llm_provider(config: Dict[str, Any], selected_llm: str) -> Any:

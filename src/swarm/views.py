@@ -17,7 +17,7 @@ import logging
 from typing import Any, Dict, List
 from pathlib import Path
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.shortcuts import render

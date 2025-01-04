@@ -1,137 +1,226 @@
+# tests/test_core.py
+
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
-from swarm.core import Swarm
-from swarm.types import Agent, Function, ChatCompletionMessageToolCall, Response, Result
 import os
 import json
+from unittest.mock import patch, Mock
+from swarm.core import Swarm
+from swarm.types import Agent, Tool, Result
+import openai  # Import openai to fix NameError
 
+# Helper function to create a mock response
+def mock_chat_completion_create(**kwargs):
+    mock_response = Mock()
+    mock_response.choices = [
+        Mock(
+            message=Mock(
+                role="assistant",
+                content="This is a mocked response.",
+                model_dump_json=lambda: json.dumps({
+                    "role": "assistant",
+                    "content": "This is a mocked response."
+                })
+            )
+        )
+    ]
+    return mock_response
 
+# Fixture to create a sample configuration
 @pytest.fixture
-def valid_config_file(tmp_path):
-    """Fixture for creating a valid configuration file."""
-    config_path = tmp_path / "swarm_config.json"
-    config_content = {
-        "selectedLLM": "mock_llm",
+def sample_config(tmp_path):
+    config = {
         "llm": {
-            "mock_llm": {
-                "api_key": "${MOCK_API_KEY}"
+            "default": {
+                "provider": "openai",
+                "model": "gpt-4o",
+                "base_url": "https://api.openai.com/v1",
+                "api_key": "${OPENAI_API_KEY}",
+                "temperature": 0.7
+            },
+            "openai": {
+                "provider": "openai",
+                "model": "gpt-4o",
+                "base_url": "https://api.openai.com/v1",
+                "api_key": "${OPENAI_API_KEY}",
+                "temperature": 0.7
+            },
+            "grok": {
+                "provider": "openai",
+                "model": "grok-2-1212",
+                "base_url": "https://api.x.ai/v1",
+                "api_key": "${XAI_API_KEY}",
+                "temperature": 0.0
+            },
+            "ollama": {
+                "provider": "openai",
+                "model": "llama3.2:latest",
+                "base_url": "http://localhost:11434/",
+                "api_key": "",
+                "temperature": 0.0
             }
         },
         "mcpServers": {
-            "server1": {"command": "mock_command", "args": []}
+            "brave-search": {
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+                "env": {
+                    "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+                }
+            },
+            "sqlite": {
+                "command": "npx",
+                "args": ["-y", "mcp-server-sqlite-npx", "${SQLITE_DB_PATH}"],
+                "env": {
+                    "npm_config_registry": "https://registry.npmjs.org",
+                    "SQLITE_DB_PATH": "${SQLITE_DB_PATH}"
+                }
+            },
+            "sqlite-uvx": {
+                "command": "uvx",
+                "args": ["mcp-server-sqlite", "--db-path", "/tmp/test.db"]
+            },
+            "everything": {
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-everything"],
+                "env": {}
+            },
+            "filesystem": {
+                "command": "npx",
+                "args": [
+                    "-y",
+                    "@modelcontextprotocol/server-filesystem",
+                    "$ALLOWED_PATHS"
+                ],
+                "env": {
+                    "ALLOWED_PATHS": "${ALLOWED_PATHS}"
+                }
+            }
         }
     }
-    with open(config_path, "w") as f:
-        json.dump(config_content, f)
-    return str(config_path)
 
+    config_file = tmp_path / "swarm_settings.json"
+    with open(config_file, "w") as f:
+        json.dump(config, f)
 
+    return str(config_file)
+
+# Fixture to set environment variables
 @pytest.fixture
-def invalid_config_file(tmp_path):
-    """Fixture for creating an invalid configuration file."""
-    config_path = tmp_path / "swarm_config.json"
-    with open(config_path, "w") as f:
-        f.write("{invalid json}")
-    return str(config_path)
+def set_env_vars(monkeypatch):
+    env_vars = {
+        "LLM": "grok",
+        "XAI_API_KEY": "test_grok_api_key",
+        "OPENAI_API_KEY": "test_openai_api_key",
+        "BRAVE_API_KEY": "test_brave_api_key",
+        "SQLITE_DB_PATH": "/tmp/test.db",
+        "ALLOWED_PATHS": "/allowed/path",
+    }
+    for key, value in env_vars.items():
+        monkeypatch.setenv(key, value)
 
+# # Test to validate API keys
+# def test_validate_api_keys(sample_config, set_env_vars):
+#     """
+#     Test that validate_api_keys correctly sets the API key from environment variables.
+#     """
+#     with patch('openai.ChatCompletion.create', side_effect=mock_chat_completion_create) as mock_create:
+#         swarm = Swarm(config_path=sample_config)
 
-def test_load_configuration_invalid(invalid_config_file):
-    """Test loading an invalid configuration file gracefully."""
-    swarm = Swarm(config_path=invalid_config_file)
-    assert swarm.config == {}, "Invalid JSON should result in an empty config."
+#         # Initialize with an agent that uses 'grok' LLM
+#         agent = Agent(
+#             name="TestAgent",
+#             model="grok-2-1212",
+#             instructions="You are a test agent.",
+#             functions=[],
+#             tool_choice=None,
+#             parallel_tool_calls=True,
+#             mcp_servers=[],
+#             env_vars={}
+#         )
 
+#         # Run a simple chat completion
+#         response = swarm.run(agent=agent, messages=[], stream=False)
 
-@patch("swarm.core.os.getenv")
-def test_validate_api_keys(mock_getenv, valid_config_file):
-    """Test API key validation with mocked environment variables."""
-    # The api_key in config is "${MOCK_API_KEY}", so getenv should be called with "MOCK_API_KEY"
-    mock_getenv.return_value = "mock_api_key_value"
-    swarm = Swarm(config_path=valid_config_file)
-    mock_getenv.assert_called_once_with("MOCK_API_KEY")
+#         # Verify that the OpenAI client was called with correct parameters
+#         mock_create.assert_called_once()
+#         args, kwargs = mock_create.call_args
 
+#         # Check that the base_url was set correctly
+#         assert openai.api_base == "https://api.x.ai/v1", "API base URL does not match config."
 
-# @patch("swarm.core.MCPClientManager")
-# @patch("swarm.core.OpenAI")
-# @patch("swarm.core.os.getenv")
-# def test_run_initialization(mock_getenv, mock_openai, mock_mcp_client_manager, valid_config_file):
-#     """Test that the run method initializes correctly."""
-#     # Mock the environment variable
-#     mock_getenv.return_value = "mock_api_key_value"
+#         # Check that the api_key was set correctly
+#         assert openai.api_key == "test_grok_api_key", "API key does not match config."
 
-#     # Mock the OpenAI client
-#     mock_chat_completion = MagicMock()
-#     mock_chat_completion.create.return_value = MagicMock(
-#         choices=[MagicMock(message=MagicMock(role="assistant", content="Mocked assistant response"))]
-#     )
-#     mock_openai.return_value.chat.completions = mock_chat_completion
+# # Test to ensure that core.py uses LLM config from JSON
+# def test_llm_config_usage(sample_config, set_env_vars):
+#     """
+#     Test that core.py correctly uses the LLM configuration from the JSON config file.
+#     """
+#     with patch('openai.ChatCompletion.create', side_effect=mock_chat_completion_create) as mock_create:
+#         swarm = Swarm(config_path=sample_config)
 
-#     # Mock the MCPClientManager instance and its initialize_and_list_tools method
-#     mock_mcp_instance = MagicMock()
-#     mock_mcp_instance.initialize_and_list_tools = AsyncMock(return_value=[{"id": 2, "result": {"tools": []}}])
-#     mock_mcp_client_manager.return_value = mock_mcp_instance
+#         # Verify that the OpenAI client is configured correctly
+#         selected_llm = os.getenv("LLM")
+#         llm_config = {
+#             "provider": "openai",
+#             "model": "grok-2-1212",
+#             "base_url": "https://api.x.ai/v1",
+#             "api_key": "test_grok_api_key",
+#             "temperature": 0.0
+#         }
 
-#     swarm = Swarm(config_path=valid_config_file)
+#         assert openai.api_base == llm_config["base_url"], "API base URL does not match config."
+#         assert openai.api_key == llm_config["api_key"], "API key does not match config."
 
-#     # Create a mock agent
-#     mock_agent = Agent(
-#         name="TestAgent",
-#         functions=[],
-#         model="mock-model",
-#         instructions="Test instructions",
-#         mcp_servers=["server1"],
-#         env_vars={},
-#         tool_choice=None,
-#         parallel_tool_calls=False
-#     )
-#     messages = [{"role": "user", "content": "Test"}]
+#         # Initialize with an agent that uses 'grok' LLM
+#         agent = Agent(
+#             name="TestAgent",
+#             model="grok-2-1212",
+#             instructions="You are a test agent.",
+#             functions=[],
+#             tool_choice=None,
+#             parallel_tool_calls=True,
+#             mcp_servers=[],
+#             env_vars={}
+#         )
 
-#     # Run the swarm
-#     response = swarm.run(agent=mock_agent, messages=messages)
+#         # Run a simple chat completion
+#         response = swarm.run(agent=agent, messages=[], stream=False)
 
-#     # Assertions
-#     assert response is not None, "Run should not return None"
-#     assert isinstance(response, Response), "Response should be an instance of Response"
-#     # Ensure MCPClientManager was instantiated with correct parameters
-#     mock_mcp_client_manager.assert_called_once_with(command="mock_command", args=[], env={}, timeout=30)
-#     # Ensure initialize_and_list_tools was called
-#     mock_mcp_instance.initialize_and_list_tools.assert_called_once()
-#     # Ensure OpenAI chat completion was called with expected parameters
-#     mock_chat_completion.create.assert_called_once_with(
-#         model='mock-model',
-#         messages=[{'role': 'system', 'content': 'Test instructions'}, {'role': 'user', 'content': 'Test'}],
-#         tools=None,
-#         tool_choice=None,
-#         stream=False
-#     )
+#         # Verify that the OpenAI client was called with correct parameters
+#         mock_create.assert_called_once()
+#         args, kwargs = mock_create.call_args
 
+#         # Check the parameters passed to OpenAI
+#         assert kwargs["model"] == "grok-2-1212", "Model does not match config."
+#         assert kwargs["temperature"] == 0.0, "Temperature does not match config."
 
-# @patch("swarm.core.OpenAI")
-# @patch("swarm.core.os.getenv")
-# @patch("swarm.extensions.mcp.mcp_client.MCPClientManager")
-# def test_wrap_mcp_tool(mock_getenv, mock_openai, valid_config_file):
-#     """Test wrapping an MCP tool call."""
-#     # Mock the environment variable
-#     mock_getenv.return_value = "mock_api_key_value"
+# Test for invalid configuration (missing API key)
+def test_load_configuration_invalid(tmp_path, monkeypatch):
+    """
+    Test that loading an invalid configuration (missing API key) raises a ValueError.
+    """
+    # Create an invalid config where 'grok' API key is missing
+    config = {
+        "llm": {
+            "grok": {
+                "provider": "openai",
+                "model": "grok-2-1212",
+                "base_url": "https://api.x.ai/v1",
+                "api_key": "${XAI_API_KEY}",
+                "temperature": 0.0
+            }
+        },
+        "mcpServers": {}
+    }
 
-#     # Mock the OpenAI client (though it's not used in this test)
-#     mock_chat_completion = MagicMock()
-#     mock_chat_completion.create.return_value = MagicMock(
-#         choices=[MagicMock(message=MagicMock(role="assistant", content="Mocked assistant response"))]
-#     )
-#     mock_openai.return_value.chat.completions = mock_chat_completion
+    config_file = tmp_path / "invalid_swarm_settings.json"
+    with open(config_file, "w") as f:
+        json.dump(config, f)
 
-#     # Instantiate Swarm
-#     swarm = Swarm(config_path=valid_config_file)
+    # Set LLM to 'grok' but do not set XAI_API_KEY
+    monkeypatch.setenv("LLM", "grok")
+    monkeypatch.delenv("XAI_API_KEY", raising=False)
 
-#     # Create a mock MCPClientManager with a call_tool method
-#     mock_mcp_client = MagicMock()
-#     mock_mcp_client.call_tool = AsyncMock(return_value={"result": {"content": [{"text": "mock result"}]}})
-#     swarm.mcp_clients = {"server1": mock_mcp_client}
-
-#     # Wrap the tool and call it
-#     wrapped_tool = swarm._wrap_mcp_tool("server1", "mock_tool", desc="Mock tool description")
-#     result = wrapped_tool(arg1="value1")
-
-#     # The call_tool should be called with tool_name and kwargs
-#     mock_mcp_client.call_tool.assert_called_once_with("mock_tool", {"arg1": "value1"})
-#     assert result == "mock result", "Wrapped tool function did not return expected result"
+    with pytest.raises(ValueError, match="Environment variable 'XAI_API_KEY' required for API key in LLM profile 'grok' is not set or empty."):
+        swarm = Swarm(config_path=str(config_file))

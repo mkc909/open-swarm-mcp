@@ -16,19 +16,18 @@ from typing import List, Callable, Union, Optional, Dict, Any
 
 # Third-party imports
 import asyncio
-from openai import OpenAI
+import openai  # Corrected import
 
 # Local imports
 from .util import function_to_json, debug_print, merge_chunk
 from .types import (
     Agent,
-    AgentFunction,
+    Tool,  # Removed AgentFunction import
     ChatCompletionMessage,
     ChatCompletionMessageToolCall,
     Function,
     Response,
     Result,
-    Tool,  # Added Tool import
 )
 from .extensions.mcp.mcp_client import MCPClientManager
 
@@ -63,10 +62,39 @@ class Swarm:
             config_path (Optional[str]): Path to the configuration file.
         """
         logger.debug("Initializing Swarm instance.")
+        
+        # Load configuration first to determine selected LLM
+        self.config_path = config_path or self._get_default_config_path()
+        logger.debug(f"Config path set to: {self.config_path}")
+        self.config = self.load_configuration()
+        
+        # Determine the selected LLM
+        selected_llm = os.getenv("LLM") or self.config.get("selectedLLM", "default")
+        logger.debug(f"Selected LLM: {selected_llm}")
+        self.validate_api_keys(selected_llm)
+
+        # Retrieve selected LLM configuration
+        llm_config = self.config.get("llm", {}).get(selected_llm, {})
+        api_key = llm_config.get("api_key", "")
+        base_url = llm_config.get("base_url", "https://api.openai.com/v1")
+        model = llm_config.get("model", "gpt-4o")
+        temperature = llm_config.get("temperature", 0.7)
+
+        # Set OpenAI client configurations
+        openai.api_key = api_key
+        openai.api_base = base_url
+        openai.api_type = llm_config.get("provider", "openai")
+        openai.api_version = "2023-05-15"  # Adjust based on provider requirements
+
+        logger.debug(f"Configured OpenAI client with model {model}, base_url {base_url}, temperature {temperature}")
+
+        # Assign the openai module to self.client
         if not client:
-            client = OpenAI()
-            logger.debug("No OpenAI client provided. Created default client.")
-        self.client = client
+            self.client = openai
+            logger.debug("Assigned OpenAI module to self.client.")
+        else:
+            self.client = client
+            logger.debug("Assigned custom client to self.client.")
 
         # Initialize MCP Client Managers
         self.mcp_clients: Dict[str, MCPClientManager] = {}
@@ -74,13 +102,6 @@ class Swarm:
 
         # Initialize agents
         self.agents: Dict[str, Agent] = {}
-
-        # Load configuration and validate API keys
-        self.config_path = config_path or self._get_default_config_path()
-        logger.debug(f"Config path set to: {self.config_path}")
-        self.config = self.load_configuration()
-        selected_llm = self.config.get("selectedLLM")
-        self.validate_api_keys(selected_llm)
 
         # Flag to indicate whether MCP sessions have been initialized
         self.mcp_initialized = False
@@ -164,6 +185,8 @@ class Swarm:
                 raise ValueError(error_msg)
 
             logger.debug(f"Environment variable '{env_var}' found with value: {env_value} (masked).")
+            # Replace the placeholder with the actual API key
+            self.config["llm"][selected_llm]["api_key"] = env_value
         else:
             logger.debug(f"Static API key provided for LLM profile '{selected_llm}': {api_key} (masked).")
 
@@ -238,7 +261,11 @@ class Swarm:
             args = server_config.get("args", [])
             env = server_config.get("env", {})
 
-            mcp_client = MCPClientManager(command=command, args=args, env=env, timeout=30)
+            # Replace environment variable placeholders in 'env'
+            resolved_env = {k: v.format(**os.environ) for k, v in env.items()}
+            logger.debug(f"Resolved environment variables for MCP server '{server_name}': {resolved_env}")
+
+            mcp_client = MCPClientManager(command=command, args=args, env=resolved_env, timeout=30)
             self.mcp_clients[server_name] = mcp_client
             logger.debug(f"MCP ClientManager for server '{server_name}' initialized.")
 
@@ -347,35 +374,37 @@ class Swarm:
         debug_print(debug, "Getting chat completion for...", messages)
         logger.debug(f"Getting chat completion for {agent.name}: {messages}")
 
-        # Convert agent.functions to 'tools' for LLM provider
-        tools = [function_to_json(f) for f in agent.functions]
-        logger.debug(f"Converted agent functions to tools: {tools}")
+        # Convert agent.functions to 'functions' for OpenAI provider
+        functions = [function_to_json(f) for f in agent.functions]
+        logger.debug(f"Converted agent functions to functions: {functions}")
 
-        # Remove context_variables from tool schema
-        for tool in tools:
-            function_def = tool.get("function", {})
-            tool_name = function_def.get("name", "unknown")
-            params = function_def.get("parameters", {})
-            if __CTX_VARS_NAME__ in params:
-                params.pop(__CTX_VARS_NAME__, None)
-                logger.debug(f"Removed '{__CTX_VARS_NAME__}' from tool parameters for tool '{tool_name}'")
-            if "required" in params and __CTX_VARS_NAME__ in params["required"]:
-                params["required"].remove(__CTX_VARS_NAME__)
-                logger.debug(f"Removed '{__CTX_VARS_NAME__}' from required parameters for tool '{tool_name}'")
+        # Remove context_variables from function schema
+        for function in functions:
+            function_def = function.get("function", {})
+            function_name = function_def.get("name", "unknown")
+            parameters = function_def.get("parameters", {})
+            if __CTX_VARS_NAME__ in parameters:
+                parameters.pop(__CTX_VARS_NAME__, None)
+                logger.debug(f"Removed '{__CTX_VARS_NAME__}' from function parameters for function '{function_name}'")
+            if "required" in parameters and __CTX_VARS_NAME__ in parameters["required"]:
+                parameters["required"].remove(__CTX_VARS_NAME__)
+                logger.debug(f"Removed '{__CTX_VARS_NAME__}' from required parameters for function '{function_name}'")
 
         create_params = {
             "model": model_override or agent.model,
             "messages": messages,
-            "tools": tools or None,
-            "tool_choice": agent.tool_choice,
+            "temperature": self.config.get("llm", {}).get(agent.model, {}).get("temperature", 0.7),
             "stream": stream,
         }
 
-        if tools:
+        if functions:
+            create_params["functions"] = functions
+            create_params["tool"] = agent.tool_choice
             create_params["parallel_tool_calls"] = agent.parallel_tool_calls
 
         logger.debug(f"Chat completion parameters: {create_params}")
-        return self.client.chat.completions.create(**create_params)
+
+        return self.client.ChatCompletion.create(**create_params)
 
     def handle_function_result(self, result, debug) -> Result:
         """
@@ -415,7 +444,7 @@ class Swarm:
     def handle_tool_calls(
         self,
         tool_calls: List[ChatCompletionMessageToolCall],
-        functions: List[AgentFunction],
+        functions: List[Tool],
         context_variables: dict,
         debug: bool,
     ) -> Response:
@@ -424,14 +453,14 @@ class Swarm:
 
         Args:
             tool_calls (List[ChatCompletionMessageToolCall]): List of tool calls to execute.
-            functions (List[AgentFunction]): List of agent functions.
+            functions (List[Tool]): List of agent functions.
             context_variables (dict): Current context variables.
             debug (bool): Debug flag for verbose output.
 
         Returns:
             Response: The aggregated response from all tool calls.
         """
-        function_map = {f.__name__: f for f in functions}
+        function_map = {f.name: f for f in functions}
         partial_response = Response(messages=[], agent=None, context_variables={})
 
         logger.debug(f"Function map: {list(function_map.keys())}")
@@ -473,7 +502,7 @@ class Swarm:
             debug_print(debug, f"Processing tool call: {name} with arguments {args}")
             logger.debug(f"Executing tool '{name}' with arguments: {args}")
 
-            func = function_map[name]
+            func = function_map[name].func
             # Pass context_variables to agent functions if they expect it
             if __CTX_VARS_NAME__ in func.__code__.co_varnames:
                 args[__CTX_VARS_NAME__] = context_variables

@@ -1,5 +1,11 @@
 import logging
-from django.conf import settings
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+
+# Fallback for when Django settings are not configured
+DEFAULT_LOGS_DIR = Path.cwd() / "logs"
+DEFAULT_LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
 
 def setup_logger(name: str) -> logging.Logger:
     """
@@ -18,16 +24,30 @@ def setup_logger(name: str) -> logging.Logger:
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
 
+    # Determine log file path
+    try:
+        from django.conf import settings
+        from django.core.exceptions import ImproperlyConfigured
+
+        try:
+            log_dir = getattr(settings, "LOGS_DIR", DEFAULT_LOGS_DIR)
+        except ImproperlyConfigured:
+            log_dir = DEFAULT_LOGS_DIR
+    except ImportError:
+        log_dir = DEFAULT_LOGS_DIR
+
+    log_file = log_dir / f"{name}.log"
+
     # Create file handler with rotation
-    fh = logging.handlers.RotatingFileHandler(
-        filename='rest_mode.log',
-        maxBytes=5*1024*1024,  # 5 MB
-        backupCount=5
+    fh = RotatingFileHandler(
+        filename=log_file,
+        maxBytes=5 * 1024 * 1024,  # 5 MB
+        backupCount=5,
     )
     fh.setLevel(logging.DEBUG)
 
     # Create formatter and add it to the handlers
-    formatter = logging.Formatter('[%(asctime)s] %(levelname)s %(name)s: %(message)s')
+    formatter = logging.Formatter("[%(asctime)s] %(levelname)s %(name)s: %(message)s")
     ch.setFormatter(formatter)
     fh.setFormatter(formatter)
 

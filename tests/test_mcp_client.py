@@ -14,10 +14,6 @@ def cleanup_database():
         os.remove(DB_PATH)
 
 @pytest.fixture
-@pytest.mark.skipif(
-    os.getenv("CI", "").lower() in ["true", "1"],
-    reason="Skipping test in CI environment due to potential environment variable interference."
-)
 def mcp_client_manager():
     """Fixture to provide an instance of MCPClientManager."""
     return MCPClientManager(
@@ -28,10 +24,6 @@ def mcp_client_manager():
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("cleanup_database")
-@pytest.mark.skipif(
-    os.getenv("CI", "").lower() in ["true", "1"],
-    reason="Skipping test in CI environment due to potential environment variable interference."
-)
 async def test_initialize_and_list_tools(mcp_client_manager):
     """Test initialization and listing tools."""
     responses = await mcp_client_manager.initialize_and_list_tools()
@@ -40,10 +32,6 @@ async def test_initialize_and_list_tools(mcp_client_manager):
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("cleanup_database")
-@pytest.mark.skipif(
-    os.getenv("CI", "").lower() in ["true", "1"],
-    reason="Skipping test in CI environment due to potential environment variable interference."
-)
 async def test_call_tool_read_query(mcp_client_manager):
     """Test calling a tool to execute a SELECT query."""
     await mcp_client_manager.initialize_and_list_tools()

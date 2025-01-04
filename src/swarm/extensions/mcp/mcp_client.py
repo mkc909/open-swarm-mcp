@@ -13,10 +13,13 @@ TODO:
 - [ ] Replace raw JSON-RPC calls with the official MCP library when stable.
 """
 
+
 import asyncio
 import json
 import logging
 import os
+from typing import List, Callable, Dict, Any
+from pydantic import BaseModel
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -26,12 +29,6 @@ logger = logging.getLogger(__name__)
 class MCPClientManager:
     """
     A class for interacting with MCP servers using raw JSON-RPC requests.
-
-    Attributes:
-        command (str): The command to run the MCP server.
-        args (list): Arguments for the MCP server command.
-        env (dict): Environment variables for the MCP server.
-        timeout (int): Timeout for reading responses.
     """
     def __init__(self, command="npx", args=None, env=None, timeout=30):
         self.command = command
@@ -52,6 +49,22 @@ class MCPClientManager:
         logger.debug(f"Sending request: {request}")
         process.stdin.write(request_str.encode())
         await process.stdin.drain()
+
+    async def _read_stream(self, stream, callback):
+        """
+        Reads lines from a given stream and processes them with a callback.
+
+        Args:
+            stream (asyncio.StreamReader): The stream to read from.
+            callback (Callable): The function to process each line.
+        """
+        while True:
+            line = await stream.readline()
+            if not line:
+                break
+            decoded = line.decode().strip()
+            if decoded:
+                callback(decoded)
 
     async def _read_responses(self, process, count):
         """
@@ -107,6 +120,9 @@ class MCPClientManager:
         logger.debug(f"Started process: {self.command} {' '.join(self.args)}")
 
         try:
+            # Start reading stderr in the background to prevent blocking
+            asyncio.create_task(self._read_stream(process.stderr, lambda line: logger.debug(f"MCP Server stderr: {line}")))
+
             for request in requests:
                 await self._send_request(process, request)
 
@@ -158,21 +174,9 @@ class MCPClientManager:
         Returns:
             list: JSON-RPC responses.
         """
-        initialize_request = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "initialize",
-            "params": {
-                "server_name": "example-client",
-                "protocolVersion": "1.0",
-                "capabilities": {},
-                "clientInfo": {"name": "test-client", "version": "0.1"}
-            }
-        }
-
         call_tool_request = {
             "jsonrpc": "2.0",
-            "id": 2,
+            "id": 3,
             "method": "tools/call",
             "params": {
                 "name": tool_name,
@@ -180,11 +184,10 @@ class MCPClientManager:
             }
         }
 
-        responses = await self._run_with_process([initialize_request, call_tool_request])
+        responses = await self._run_with_process([call_tool_request])
         return responses
 
 
-# Example usage
 async def test_methods(client):
     responses = await client.initialize_and_list_tools()
     logger.info(f"Initialization and List Tools Responses: {responses}")
@@ -198,7 +201,7 @@ async def test_methods(client):
 
 
 async def main():
-    client = RawMCPClient(
+    client = MCPClientManager(
         command="npx",
         args=["-y", "mcp-server-sqlite-npx", "./artificial_university.db"]
     )

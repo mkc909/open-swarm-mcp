@@ -4,6 +4,7 @@ import requests
 from typing import Dict, Any, Callable, List
 from swarm import Agent
 from swarm.utils.logger import setup_logger
+from swarm.types import AgentFunction  # Import AgentFunction
 
 logger = setup_logger(__name__)
 
@@ -49,7 +50,7 @@ def build_agent_with_mcp_tools(config: Dict[str, Any]) -> Agent:
         mcp_servers = config.get("mcpServers", {})
         
         # Collect all tool functions
-        tool_functions: List[Callable[..., Any]] = []
+        tool_functions: List[AgentFunction] = []  # Change to AgentFunction
         
         for server_name, server_config in mcp_servers.items():
             tools = server_config.get("tools", [])
@@ -68,14 +69,22 @@ def build_agent_with_mcp_tools(config: Dict[str, Any]) -> Agent:
                 # Create the tool function
                 tool_function = create_tool_function(tool_name, tool_description, mcp_endpoint)
                 
-                tool_functions.append(tool_function)
+                # Wrap the tool function into an AgentFunction instance
+                agent_function = AgentFunction(
+                    name=tool_name,
+                    description=tool_description,
+                    func=tool_function,
+                    input_schema=tool.get("inputSchema", {})
+                )
+                
+                tool_functions.append(agent_function)
                 logger.info(f"Registered tool '{tool_name}' for MCP server '{server_name}'.")
         
         # Initialize the Agent with the collected tool functions
         agent = Agent(
             name=agent_name,
             instructions=instructions,
-            functions=tool_functions  # Pass tools directly here
+            functions=tool_functions  # Pass AgentFunction instances here
         )
         
         logger.info(f"Agent '{agent_name}' built successfully with {len(tool_functions)} MCP tools.")

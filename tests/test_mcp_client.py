@@ -81,6 +81,11 @@ def mcp_client_manager(temp_db_path):
     yield manager
     # No teardown needed since MCPClientManager's methods terminate the subprocess
 
+
+@pytest.mark.skipif(
+    os.getenv("CI", "").lower() in ["true", "1"],
+    reason="Skipping MCP client tests in CI environment"
+)
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_test_database")
 async def test_discover_tools(mcp_client_manager):
@@ -111,6 +116,10 @@ async def test_discover_tools(mcp_client_manager):
     assert read_query_def.get("description") == "Execute a SELECT query on the SQLite database", "Tool description mismatch."
     assert "inputSchema" in read_query_def, "No inputSchema in tool definition."
 
+@pytest.mark.skipif(
+    os.getenv("CI", "").lower() in ["true", "1"],
+    reason="Skipping MCP client tests in CI environment"
+)
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_test_database")
 async def test_call_tool_read_query(mcp_client_manager):

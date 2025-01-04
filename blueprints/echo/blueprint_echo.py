@@ -1,124 +1,119 @@
-# Updated default blueprint for standard alignment.
+# blueprints/echo/blueprint_echo.py
 
-from swarm.blueprint_base import BlueprintBase
-from typing import Dict, Any, Optional
-from swarm import Agent, Swarm
-from swarm.repl import run_demo_loop
+"""
+EchoBlueprint Class for Open Swarm.
+
+This blueprint defines a single agent that echoes user inputs.
+It leverages the BlueprintBase to handle all configuration and MCP session management.
+"""
+
 import logging
+from typing import Dict, Any, Callable
+
+from swarm.extensions.blueprint import BlueprintBase
+from swarm.types import Agent, AgentFunctionDefinition  # Updated import
 
 # Configure logger
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-stream_handler = logging.StreamHandler()
-formatter = logging.Formatter("[%(levelname)s] %(message)s")
-stream_handler.setFormatter(formatter)
-logger.addHandler(stream_handler)
+logger.setLevel(logging.DEBUG)
 
-class DefaultBlueprint(BlueprintBase):
+# Prevent adding multiple handlers if they already exist
+if not logger.handlers:
+    stream_handler = logging.StreamHandler()
+    formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(name)s - %(message)s")
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+
+
+class EchoBlueprint(BlueprintBase):
     """
-    Default Simple Agent Blueprint Implementation.
+    A blueprint that defines a single agent which echoes user inputs.
     """
-
-    def __init__(self, config: Optional[Dict[str, Any]] = None, **kwargs):
-        """
-        Initialize the DefaultBlueprint.
-
-        Args:
-            config (Optional[Dict[str, Any]]): Configuration dictionary.
-        """
-        super().__init__(config=config, **kwargs)
-        self.client = Swarm()
-        logger.info("Initialized Swarm 🐝")
 
     @property
-    def metadata(self):
-        return {
-            "title": "Default Blueprint",
-            "description": "A basic blueprint for demonstration purposes.",
-            "required_mcp_servers": [],
-            "env_vars": [],
-        }
-
-    def validate_env_vars(self) -> None:
+    def metadata(self) -> Dict[str, Any]:
         """
-        Validate that required environment variables are set.
-        """
-        # No environment variables needed for DefaultBlueprint.
-        pass
-
-    def create_agent(self) -> Agent:
-        """
-        Create and configure the default agent.
+        Metadata for the EchoBlueprint.
 
         Returns:
-            Agent: A configured Agent instance.
+            Dict[str, Any]: Dictionary containing title, description, required MCP servers, and environment variables.
         """
-        agent = Agent(
-            name="DefaultAgent",
-            instructions="""You are a simple agent that echoes user inputs.
-Please repeat back what the user says.""",
-            functions=[self.echo_function],
-            parallel_tool_calls=True
+        return {
+            "title": "Echo Integration Blueprint",
+            "description": "A basic blueprint that defines an agent capable of echoing user inputs.",
+            "required_mcp_servers": [],  # No MCP servers required
+            "env_vars": [],              # No environment variables required
+        }
+
+    def create_agents(self) -> None:
+        """
+        Create agents for this blueprint by defining their instructions
+        and associated functions.
+        """
+        logger.debug("Creating agents for EchoBlueprint.")
+
+        # Define the echo function with required attributes
+        def echo_function(content: str) -> str:
+            """
+            Echoes the user input.
+
+            Args:
+                content (str): The user's input.
+
+            Returns:
+                str: The echoed content.
+            """
+            logger.info(f"Echoing content: {content}")
+            return content
+
+        # Wrap the function using the AgentFunctionDefinition class
+        echo_func = AgentFunctionDefinition(
+            name="echo_function",
+            description="Echoes the user's input.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "content": {
+                        "type": "string",
+                        "description": "The user's input to be echoed."
+                    }
+                },
+                "required": ["content"]
+            },
+            func=echo_function
         )
-        logger.info("Created DefaultAgent with echo function.")
-        return agent
 
-    def get_agents(self) -> Dict[str, Agent]:
-        """
-        Retrieve the dictionary of agents.
+        # Create Echo Agent
+        echo_agent = Agent(
+            name="EchoAgent",
+            instructions=(
+                "You are the EchoAgent. Your sole purpose is to echo back any input provided by the user."
+            ),
+            mcp_servers=[],  # No MCP servers required
+            env_vars={},     # No environment variables required
+            functions=[echo_func],
+            parallel_tool_calls=False  # Set based on your framework's requirements
+        )
 
-        Returns:
-            Dict[str, Agent]: A dictionary containing all created agents.
-        """
-        return {"DefaultAgent": self.create_agent()}
+        # Assign the agent to an instance variable for later use
+        self.echo_agent = echo_agent
+        logger.info("EchoAgent has been created.")
 
-    def execute(self, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """
-        Execute the blueprint in framework integration mode.
 
-        Args:
-            config (Optional[Dict[str, Any]]): Configuration dictionary from the framework.
-
-        Returns:
-            Dict[str, Any]: Execution results containing status, messages, and metadata.
-        """
-        self.validate_env_vars()
-
-        agent = self.create_agent()
-        default_message = {"role": "user", "content": "Hello, how are you?"}
-        messages = config.get('messages', [default_message]) if config else [default_message]
-
-        response = self.client.run(agent=agent, messages=messages)
-        return {
-            "status": "success",
-            "messages": response.messages,
-            "metadata": self.metadata
-        }
-
-    def interactive_mode(self) -> None:
-        """
-        Use Swarm's REPL loop, starting with the default agent.
-        """
-        logger.info("Launching interactive mode with DefaultAgent.")
-        run_demo_loop(starting_agent=self.create_agent())
-
-    def echo_function(self, content: str) -> str:
-        """
-        Echoes the user input.
-
-        Args:
-            content (str): The user's input.
-
-        Returns:
-            str: The echoed content.
-        """
-        logger.info(f"Echoing content: {content}")
-        return content
-
-# Entry point for standalone execution
 if __name__ == "__main__":
-    blueprint = DefaultBlueprint()
-    try:
-        blueprint.interactive_mode()
-    except Exception as e:
-        print(f"Error running Default Blueprint: {e}")
+    import argparse
+
+    # Parse command-line arguments for streaming mode
+    parser = argparse.ArgumentParser(description="Run EchoBlueprint REPL.")
+    parser.add_argument(
+        "--stream",
+        action="store_true",
+        help="Enable streaming mode for responses."
+    )
+    args = parser.parse_args()
+
+    # Instantiate the blueprint
+    blueprint = EchoBlueprint()
+
+    # Run the blueprint's interactive REPL loop with the EchoAgent
+    blueprint.interactive_mode(starting_agent=blueprint.echo_agent, stream=args.stream)

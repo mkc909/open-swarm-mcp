@@ -146,7 +146,7 @@ def set_env_vars(monkeypatch):
 #         args, kwargs = mock_create.call_args
 
 #         # Check that the base_url was set correctly
-#         assert openai.api_base == "https://api.x.ai/v1", "API base URL does not match config."
+#         assert openai.base_url == "https://api.x.ai/v1", "API base URL does not match config."
 
 #         # Check that the api_key was set correctly
 #         assert openai.api_key == "test_grok_api_key", "API key does not match config."
@@ -169,7 +169,7 @@ def set_env_vars(monkeypatch):
 #             "temperature": 0.0
 #         }
 
-#         assert openai.api_base == llm_config["base_url"], "API base URL does not match config."
+#         assert openai.base_url == llm_config["base_url"], "API base URL does not match config."
 #         assert openai.api_key == llm_config["api_key"], "API key does not match config."
 
 #         # Initialize with an agent that uses 'grok' LLM

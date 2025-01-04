@@ -3,6 +3,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any
 from swarm.extensions.config.config_loader import load_server_config
+from swarm.repl import run_demo_loop
 from dotenv import load_dotenv
 import argparse
 
@@ -91,12 +92,26 @@ class BlueprintBase(ABC):
         logger.debug(f"Setting starting agent to: {agent.name}")
         self.starting_agent = agent
 
-    def interactive_mode(self) -> None:
+    def interactive_mode(self, stream: bool = False) -> None:
         """
-        Run an interactive mode (CLI-based) for the blueprint.
+        Blocking interactive usage with REPL loop using run_demo_loop.
+
+        Args:
+            stream (bool): Whether to enable streaming mode.
         """
         logger.info("Starting interactive_mode.")
-        self.swarm.run(agent=self.starting_agent, messages=[])
+        if not self.starting_agent:
+            logger.error("Starting agent is not set. Ensure `set_starting_agent` is called.")
+            raise ValueError("Starting agent is not set.")
+        try:
+            run_demo_loop(
+                starting_agent=self.starting_agent,
+                context_variables={},  # Add context variables if needed
+                stream=stream,
+                debug=False,
+            )
+        except Exception as e:
+            logger.error(f"Interactive mode failed: {e}")
 
 
     @classmethod

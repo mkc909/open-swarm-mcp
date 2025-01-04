@@ -1,12 +1,18 @@
+
 import logging
+import asyncio
+import json
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, List
+
 from swarm import Swarm  # Ensure correct import path
-from swarm.types import Agent
+from swarm.types import Agent, AgentFunctionDefinition  # Updated import
 
 # Configure logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+# Prevent adding multiple handlers if they already exist
 if not logger.handlers:
     stream_handler = logging.StreamHandler()
     formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(name)s - %(message)s")
@@ -37,7 +43,7 @@ class BlueprintBase(ABC):
         logger.debug(f"Initializing BlueprintBase with config_path='{config_path}', kwargs={kwargs}")
 
         # Validate metadata
-        if not self.metadata or not isinstance(self.metadata, dict):
+        if not hasattr(self, 'metadata') or not isinstance(self.metadata, dict):
             raise AssertionError("Blueprint metadata must be defined and must be a dictionary.")
 
         # Load environment variables from .env
@@ -79,57 +85,168 @@ class BlueprintBase(ABC):
         pass
 
     # --------------------------
-    # Interactive Mode
+    # REPL Helper Functions
+    # --------------------------
+
+    def process_and_print_streaming_response(self, response):
+        """
+        Processes and prints streaming responses.
+
+        Args:
+            response: An asynchronous generator yielding response chunks.
+        """
+        content = ""
+        last_sender = ""
+
+        async def process():
+            nonlocal content, last_sender
+            async for chunk in response:
+                if "sender" in chunk:
+                    last_sender = chunk["sender"]
+
+                if "content" in chunk and chunk["content"] is not None:
+                    if not content and last_sender:
+                        print(f"\033[94m{last_sender}:\033[0m", end=" ", flush=True)
+                        last_sender = ""
+                    print(chunk["content"], end="", flush=True)
+                    content += chunk["content"]
+
+                if "tool_calls" in chunk and chunk["tool_calls"] is not None:
+                    for tool_call in chunk["tool_calls"]:
+                        f = tool_call["function"]
+                        name = f.get("name")
+                        if not name:
+                            continue
+                        print(f"\033[94m{last_sender}: \033[95m{name}\033[0m()", flush=True)
+
+                if "delim" in chunk and chunk["delim"] == "end" and content:
+                    print()  # End of response message
+                    content = ""
+
+                if "response" in chunk:
+                    return chunk["response"]
+
+        asyncio.run(process())
+
+    def pretty_print_messages(self, messages) -> None:
+        """
+        Pretty prints non-streaming messages.
+
+        Args:
+            messages: List of message dictionaries.
+        """
+        for message in messages:
+            if message["role"] != "assistant":
+                continue
+
+            # Print agent name in blue
+            sender = message.get("sender", "Assistant")
+            print(f"\033[94m{sender}\033[0m:", end=" ")
+
+            # Print response, if any
+            if message["content"]:
+                print(message["content"])
+
+            # Print tool calls in purple, if any
+            tool_calls = message.get("tool_calls") or []
+            if len(tool_calls) > 1:
+                print()
+            for tool_call in tool_calls:
+                f = tool_call["function"]
+                name, args = f.get("name"), f.get("arguments")
+                if not name:
+                    continue
+                arg_str = json.dumps(json.loads(args)).replace(":", "=")
+                print(f"\033[95m{name}\033[0m({arg_str[1:-1]})")
+
+    # --------------------------
+    # Interactive Mode (REPL)
     # --------------------------
 
     async def cleanup_mcp(self) -> None:
         """
-        Clean up the MCP sessions once done.
+        Asynchronously cleans up the MCP sessions once done.
         """
-        await self.swarm.cleanup()
+        logger.info("Cleaning up MCP sessions.")
+        await self.swarm.cleanup_async()
 
-    async def interactive_mode_async(self, initial_messages: Optional[List[Dict[str, str]]] = None) -> None:
+    async def interactive_mode_async(self, starting_agent: Optional[Agent] = None, stream: bool = False) -> None:
         """
         Asynchronous entry for interactive usage:
          - Run the agents
-         - Possibly keep a loop or do further instructions
-         - Cleanup
+         - Keep a REPL loop for user interaction
+         - Handle agent transfers based on function calls
+         - Cleanup MCP sessions upon exit
+
+        Args:
+            starting_agent (Optional[Agent]): The agent to start the conversation with.
+            stream (bool): Whether to enable streaming mode.
         """
         logger.info("Launching interactive_mode_async.")
         try:
-            initial_messages = initial_messages or []
-            # Assuming there's a designated primary agent
-            primary_agent = self.swarm.agents.get("PrimaryAgent")
-            if not primary_agent:
-                logger.error("No 'PrimaryAgent' defined in agents.")
+            current_agent = starting_agent or next(iter(getattr(self, 'agents', {}).values()), None)
+            if not current_agent:
+                logger.error("No agents are defined in the blueprint.")
                 return
-            response = self.swarm.run(
-                agent=primary_agent,
-                messages=initial_messages,
-            )
-            logger.info("Run completed. Final response:")
-            logger.info(response.messages[-1]["content"])
+
+            logger.info(f"Using initial agent: {current_agent.name}")
+
+            messages = []
+
+            while True:
+                user_input = input("\033[90mUser\033[0m: ")
+                if user_input.lower() in {"exit", "quit"}:
+                    logger.info("Exiting interactive mode.")
+                    break
+
+                messages.append({"role": "user", "content": user_input})
+
+                try:
+                    response = await self.swarm.run_async(
+                        agent=current_agent,
+                        messages=messages,
+                        context_variables={},  # Add context variables if needed
+                        stream=stream,
+                        debug=False,
+                        max_turns=1,
+                        execute_tools=True,
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to run agent '{current_agent.name}': {e}")
+                    continue
+
+                # Display the response
+                if stream:
+                    self.process_and_print_streaming_response(response)
+                else:
+                    self.pretty_print_messages(response.messages)
+
+                # Handle agent transfers if any
+                if response.agent and response.agent != current_agent:
+                    logger.info(f"Switching to agent: {response.agent.name}")
+                    current_agent = response.agent
+
+                # Update conversation history
+                messages.extend(response.messages)
+
+        except KeyboardInterrupt:
+            logger.info("Interrupted by user. Exiting interactive mode.")
         except Exception as e:
             logger.error(f"Error in interactive_mode_async: {e}")
         finally:
             await self.cleanup_mcp()
 
-    def get_agents(self) -> Dict[str, Agent]:
+    def interactive_mode(self, starting_agent: Optional[Agent] = None, stream: bool = False) -> None:
         """
-        Return the agents managed by this blueprint's Swarm instance.
-        """
-        if not self.swarm:
-            raise RuntimeError("Swarm instance is not initialized.")
-        return self.swarm.agents
+        Blocking interactive usage with REPL loop.
 
-    def interactive_mode(self, initial_messages: Optional[List[Dict[str, str]]] = None) -> None:
-        """
-        Blocking interactive usage.
+        Args:
+            starting_agent (Optional[Agent]): The agent to start the conversation with.
+            stream (bool): Whether to enable streaming mode.
         """
         logger.info("Starting interactive_mode.")
         try:
-            import asyncio
-            asyncio.run(self.interactive_mode_async(initial_messages))
+            asyncio.run(self.interactive_mode_async(starting_agent, stream))
         except Exception as e:
             logger.error(f"Interactive mode failed: {e}")
 
@@ -137,10 +254,13 @@ class BlueprintBase(ABC):
     # Main
     # --------------------------
     @classmethod
-    def main(cls):
+    def main(cls, stream: bool = False):
         """
         For direct usage: python <blueprint>.py
+
+        Args:
+            stream (bool): Whether to enable streaming mode.
         """
         logger.info(f"Running blueprint '{cls.__name__}' as script.")
         blueprint = cls()
-        blueprint.interactive_mode()
+        blueprint.interactive_mode(stream=stream)

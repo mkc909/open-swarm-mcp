@@ -16,13 +16,13 @@ from typing import List, Callable, Union, Optional, Dict, Any
 
 # Third-party imports
 import asyncio
-import openai  # Corrected import
+import openai
 
 # Local imports
 from .util import function_to_json, debug_print, merge_chunk
 from .types import (
     Agent,
-    Tool,  # Removed AgentFunction import
+    Tool,
     ChatCompletionMessage,
     ChatCompletionMessageToolCall,
     Function,
@@ -62,12 +62,12 @@ class Swarm:
             config_path (Optional[str]): Path to the configuration file.
         """
         logger.debug("Initializing Swarm instance.")
-        
+
         # Load configuration first to determine selected LLM
         self.config_path = config_path or self._get_default_config_path()
         logger.debug(f"Config path set to: {self.config_path}")
         self.config = self.load_configuration()
-        
+
         # Determine the selected LLM
         selected_llm = os.getenv("LLM") or self.config.get("selectedLLM", "default")
         logger.debug(f"Selected LLM: {selected_llm}")
@@ -76,13 +76,18 @@ class Swarm:
         # Retrieve selected LLM configuration
         llm_config = self.config.get("llm", {}).get(selected_llm, {})
         api_key = llm_config.get("api_key", "")
-        base_url = llm_config.get("base_url", "https://api.openai.com/v1")
+        base_url = llm_config.get("base_url", "https://api.openai.com/v1/")
         model = llm_config.get("model", "gpt-4o")
         temperature = llm_config.get("temperature", 0.7)
 
+        # Ensure base_url ends with a slash
+        if not base_url.endswith('/'):
+            base_url += '/'
+            logger.debug(f"Appended trailing slash to base_url: {base_url}")
+
         # Set OpenAI client configurations
         openai.api_key = api_key
-        openai.api_base = base_url
+        openai.api_base = base_url  # Correct attribute name
         openai.api_type = llm_config.get("provider", "openai")
         openai.api_version = "2023-05-15"  # Adjust based on provider requirements
 
@@ -190,9 +195,9 @@ class Swarm:
         else:
             logger.debug(f"Static API key provided for LLM profile '{selected_llm}': {api_key} (masked).")
 
-    def create_agent(self, agent: Agent) -> Agent:
+    async def create_agent_async(self, agent: Agent) -> Agent:
         """
-        Extend the agent with dynamic tools from MCP servers and attach environment variables.
+        Asynchronously create and register an agent with dynamic tools and environment variables.
 
         Args:
             agent (Agent): The agent to be created.
@@ -207,18 +212,18 @@ class Swarm:
         self.agents[agent.name] = agent
         logger.info(f"Agent '{agent.name}' registered with Swarm.")
         logger.debug(f"Registered agents: {list(self.agents.keys())}")
-        logger.debug(f"Agent '{agent.name}' functions: {[f.__name__ for f in agent.functions]}")
+        logger.debug(f"Agent '{agent.name}' functions: {[f.__name__ for f in agent.functions if callable(f)]}")
 
         # Collect required MCP servers
         required_servers = set(agent.mcp_servers) if agent.mcp_servers else set()
 
         # Initialize MCP sessions if not already done and there are required servers
         if not self.mcp_initialized and required_servers:
-            self.initialize_mcp_sessions(required_servers)
+            await self.initialize_mcp_sessions_async(required_servers)
 
         # Dynamically load tools if mcp_servers are specified and sessions are initialized
         if agent.mcp_servers and self.mcp_initialized:
-            self._load_tools_for_agent(agent)
+            await self._load_tools_for_agent_async(agent)
 
         # Handle environment variables if specified
         if agent.env_vars:
@@ -226,9 +231,9 @@ class Swarm:
 
         return agent
 
-    def initialize_mcp_sessions(self, required_servers: set) -> None:
+    async def initialize_mcp_sessions_async(self, required_servers: set) -> None:
         """
-        Initialize the MCP Client Managers and connect to required MCP servers.
+        Asynchronously initialize the MCP Client Managers and connect to required MCP servers.
 
         Args:
             required_servers (set): A set of MCP server names to initialize.
@@ -271,7 +276,7 @@ class Swarm:
 
             # Initialize the MCP server and list tools
             try:
-                tools = asyncio.run(mcp_client.discover_tools())
+                tools = await mcp_client.discover_tools()
                 if tools:
                     logger.info(f"MCP server '{server_name}' initialized and {len(tools)} tools discovered successfully.")
                 else:
@@ -285,9 +290,9 @@ class Swarm:
         self.mcp_initialized = True
         logger.debug("All MCP sessions initialized successfully.")
 
-    def _load_tools_for_agent(self, agent: Agent):
+    async def _load_tools_for_agent_async(self, agent: Agent):
         """
-        Attach discovered tools to the agent.
+        Asynchronously attach discovered tools to the agent.
 
         Args:
             agent (Agent): The agent to which tools will be attached.
@@ -303,7 +308,7 @@ class Swarm:
                 continue
 
             try:
-                tools = asyncio.run(mcp_client.discover_tools())
+                tools = await mcp_client.discover_tools()
                 debug_print(True, f"Discovered {len(tools)} tools from '{server_name}' for agent '{agent.name}'.")
                 logger.info(f"Discovered {len(tools)} tools from '{server_name}' for agent '{agent.name}'.")
 
@@ -314,13 +319,6 @@ class Swarm:
             except Exception as e:
                 debug_print(True, f"Failed to load tools from '{server_name}': {e}")
                 logger.error(f"Failed to load tools from '{server_name}': {e}")
-
-    def _wrap_mcp_tool(self, server_name: str, tool_name: str, desc: str) -> Callable:
-        """
-        Deprecated. Use MCPClientManager's discover_tools method to obtain Tool instances.
-        """
-        # This method can be removed if not used elsewhere.
-        pass
 
     def _handle_env_vars(self, agent: Agent):
         """
@@ -341,7 +339,7 @@ class Swarm:
         debug_print(True, f"Swarm: All required environment variables for agent '{agent.name}' are set.")
         logger.info(f"Swarm: All required environment variables for agent '{agent.name}' are set.")
 
-    def get_chat_completion(
+    async def get_chat_completion(
         self,
         agent: Agent,
         history: List,
@@ -375,20 +373,20 @@ class Swarm:
         logger.debug(f"Getting chat completion for {agent.name}: {messages}")
 
         # Convert agent.functions to 'functions' for OpenAI provider
-        functions = [function_to_json(f) for f in agent.functions]
+        functions = [function_to_json(f) for f in agent.functions if isinstance(f, Callable)]
         logger.debug(f"Converted agent functions to functions: {functions}")
 
         # Remove context_variables from function schema
         for function in functions:
-            function_def = function.get("function", {})
-            function_name = function_def.get("name", "unknown")
-            parameters = function_def.get("parameters", {})
+            # Since function_to_json no longer nests 'function' and 'type', adjust accordingly
+            # Each function dict now has 'name', 'description', 'parameters'
+            parameters = function.get("parameters", {})
             if __CTX_VARS_NAME__ in parameters:
                 parameters.pop(__CTX_VARS_NAME__, None)
-                logger.debug(f"Removed '{__CTX_VARS_NAME__}' from function parameters for function '{function_name}'")
+                logger.debug(f"Removed '{__CTX_VARS_NAME__}' from function parameters for function '{function.get('name', 'unknown')}'")
             if "required" in parameters and __CTX_VARS_NAME__ in parameters["required"]:
                 parameters["required"].remove(__CTX_VARS_NAME__)
-                logger.debug(f"Removed '{__CTX_VARS_NAME__}' from required parameters for function '{function_name}'")
+                logger.debug(f"Removed '{__CTX_VARS_NAME__}' from required parameters for function '{function.get('name', 'unknown')}'")
 
         create_params = {
             "model": model_override or agent.model,
@@ -399,12 +397,15 @@ class Swarm:
 
         if functions:
             create_params["functions"] = functions
-            create_params["tool"] = agent.tool_choice
-            create_params["parallel_tool_calls"] = agent.parallel_tool_calls
+            # Assuming `tool_choice` is a string defining how tools are chosen, e.g., "sequential" or "parallel"
+            if hasattr(agent, "tool_choice") and agent.tool_choice:
+                create_params["tool_choice"] = agent.tool_choice
+            if hasattr(agent, "parallel_tool_calls"):
+                create_params["parallel_tool_calls"] = agent.parallel_tool_calls
 
         logger.debug(f"Chat completion parameters: {create_params}")
 
-        return self.client.ChatCompletion.create(**create_params)
+        return self.client.chat.completions.create(**create_params)
 
     def handle_function_result(self, result, debug) -> Result:
         """
@@ -544,7 +545,7 @@ class Swarm:
         logger.debug(f"Partial response after handling tool calls: {partial_response}")
         return partial_response
 
-    def run_and_stream(
+    async def run_and_stream_async(
         self,
         agent: Agent,
         messages: List,
@@ -555,7 +556,7 @@ class Swarm:
         execute_tools: bool = True,
     ):
         """
-        Run the conversation with streaming responses.
+        Run the conversation with streaming responses asynchronously.
         Yields chunks of responses as they are received.
 
         Args:
@@ -585,7 +586,7 @@ class Swarm:
             }
 
             # Get completion with current history and agent
-            completion = self.get_chat_completion(
+            completion = await self.get_chat_completion(
                 agent=active_agent,
                 history=history,
                 context_variables=context_variables,
@@ -595,7 +596,7 @@ class Swarm:
             )
 
             yield {"delim": "start"}
-            for chunk in completion:
+            async for chunk in completion:
                 try:
                     delta = json.loads(chunk.choices[0].delta.json())
                 except json.JSONDecodeError as e:
@@ -650,7 +651,7 @@ class Swarm:
             )
         }
 
-    def run(
+    async def run_async(
         self,
         agent: Agent,
         messages: List,
@@ -662,7 +663,8 @@ class Swarm:
         execute_tools: bool = True,
     ) -> Union[Response, Any]:
         """
-        The main run loop. If streaming is enabled, it returns a generator.
+        The main run loop. Asynchronous version.
+        If streaming is enabled, it returns a generator.
         Otherwise, it returns a full Response.
 
         Args:
@@ -679,10 +681,10 @@ class Swarm:
             Union[Response, Any]: The conversation response or a generator if streaming.
         """
         # Extend the agent with dynamic tools and handle env_vars
-        self.create_agent(agent)
+        await self.create_agent_async(agent)
 
         if stream:
-            return self.run_and_stream(
+            return self.run_and_stream_async(
                 agent=agent,
                 messages=messages,
                 context_variables=context_variables,
@@ -699,7 +701,7 @@ class Swarm:
 
         while len(history) - init_len < max_turns and active_agent:
             # Get completion with current history and agent
-            completion = self.get_chat_completion(
+            completion = await self.get_chat_completion(
                 agent=active_agent,
                 history=history,
                 context_variables=context_variables,
@@ -746,3 +748,25 @@ class Swarm:
             agent=active_agent,
             context_variables=context_variables,
         )
+
+    async def cleanup_async(self):
+        """
+        Asynchronously cleans up all MCP server processes.
+        """
+        logger.info("Starting Swarm cleanup.")
+        tasks = []
+        for server, mcp_manager in self.mcp_clients.items():
+            tasks.append(asyncio.create_task(mcp_manager.terminate_process_async()))
+            logger.info(f"Terminated MCP server for '{server}'.")
+        await asyncio.gather(*tasks, return_exceptions=True)
+        logger.info("Swarm cleanup completed.")
+
+    def cleanup(self):
+        """
+        Synchronously cleans up all MCP server processes.
+        """
+        logger.info("Starting Swarm cleanup.")
+        for server, mcp_manager in self.mcp_clients.items():
+            mcp_manager.terminate_process()
+            logger.info(f"Terminated MCP server for '{server}'.")
+        logger.info("Swarm cleanup completed.")

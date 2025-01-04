@@ -69,7 +69,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'swarm.wsgi.application'
-ASGI_APPLICATION = 'swarm.asgi.application'
+# ASGI_APPLICATION = 'swarm.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
@@ -134,21 +134,26 @@ LOGGING = {
         'file_rest_mode': {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'rest_mode.log',  # Logs specific to rest_mode
-            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'filename': LOGS_DIR / 'rest_mode.log',
+            'maxBytes': 5 * 1024 * 1024,
             'backupCount': 5,
             'formatter': 'verbose',
         },
         'file_default': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'open_swarm.log',  # Default log file
-            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'filename': LOGS_DIR / 'open_swarm.log',
+            'maxBytes': 5 * 1024 * 1024,
             'backupCount': 5,
             'formatter': 'verbose',
         },
     },
     'loggers': {
+        'django': {  # Add this logger
+            'handlers': ['console', 'file_default'],
+            'level': 'INFO',
+            'propagate': True,
+        },
         'rest_mode': {
             'handlers': ['console', 'file_rest_mode'],
             'level': 'DEBUG',

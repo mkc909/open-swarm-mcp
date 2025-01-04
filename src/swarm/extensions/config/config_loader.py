@@ -12,7 +12,7 @@ import json
 import re
 import logging
 from typing import Any, Dict, List, Tuple, Union, Optional
-from dotenv import load_dotenv  # Import python-dotenv
+from dotenv import load_dotenv
 
 # Initialize logger for this module
 logger = logging.getLogger(__name__)
@@ -27,114 +27,68 @@ load_dotenv()
 logger.info("Environment variables loaded from .env file.")
 
 
-def resolve_placeholders(value: Any) -> Any:
+def resolve_placeholders(obj: Any) -> Any:
     """
-    Recursively resolves environment variable placeholders in strings, dictionaries, or lists.
+    Recursively resolve placeholders in the given object.
 
-    Placeholders are in the format `${VAR_NAME}` and are replaced with the corresponding environment variable value.
+    Placeholders are in the form of ${VAR_NAME} and are replaced with the corresponding environment variable.
 
     Args:
-        value (Any): The value to process (can be a string, dict, list, or other types).
+        obj (Any): The object to resolve placeholders in.
 
     Returns:
-        Any: The resolved value with placeholders replaced.
+        Any: The object with all placeholders resolved.
 
     Raises:
         ValueError: If a required environment variable is not set.
     """
-    if isinstance(value, str):
-        # Match `${VAR_NAME}` patterns in the string
+    if isinstance(obj, dict):
+        return {k: resolve_placeholders(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [resolve_placeholders(item) for item in obj]
+    elif isinstance(obj, str):
         pattern = re.compile(r'\$\{(\w+)\}')
-        matches = pattern.findall(value)
-
+        matches = pattern.findall(obj)
         for var in matches:
             env_value = os.getenv(var)
             if env_value is None:
-                logger.error(f"Environment variable '{var}' is not set.")
-                raise ValueError(f"Environment variable '{var}' is not set.")
-            logger.debug(f"Resolving placeholder '${{{var}}}' with value '{env_value}'.")
-            value = value.replace(f"${{{var}}}", env_value)
-
-        logger.debug(f"Resolved value: {value}")
-        return value
-    elif isinstance(value, dict):
-        # Recursively resolve placeholders in dictionary values
-        logger.debug(f"Resolving placeholders in dictionary: {value}")
-        return {key: resolve_placeholders(val) for key, val in value.items()}
-    elif isinstance(value, list):
-        # Recursively resolve placeholders in list items
-        logger.debug(f"Resolving placeholders in list: {value}")
-        return [resolve_placeholders(item) for item in value]
+                logger.error(f"Environment variable '{var}' is not set but is required.")
+                raise ValueError(f"Environment variable '{var}' is not set but is required.")
+            obj = obj.replace(f'${{{var}}}', env_value)
+            logger.debug(f"Resolved placeholder '${{{var}}}' with value '{env_value}'")
+        return obj
     else:
-        # Return value as is if it's not a string, dict, or list
-        logger.debug(f"No placeholders to resolve for value: {value}")
-        return value
+        return obj
 
-def load_server_config(file_path: Optional[str] = None) -> Dict[str, Any]:
+def load_server_config(file_path: str) -> Dict[str, Any]:
     """
-    Loads the server configuration from a JSON file and resolves environment variable placeholders.
+    Loads the server configuration from a JSON file and resolves any environment variable placeholders.
 
     Args:
-        file_path (Optional[str]): The path to the configuration file. Defaults to './swarm_config.json'.
+        file_path (str): The path to the configuration JSON file.
 
     Returns:
-        Dict[str, Any]: A dictionary containing the resolved server configuration.
+        Dict[str, Any]: The resolved configuration dictionary.
 
     Raises:
-        FileNotFoundError: If the configuration file is missing and no explicit path is provided.
-        json.JSONDecodeError: If the configuration file is not a valid JSON.
-        ValueError: If required environment variables are missing in the configuration.
+        FileNotFoundError: If the configuration file does not exist.
+        json.JSONDecodeError: If the configuration file contains invalid JSON.
+        ValueError: If any required environment variables are missing.
     """
-    # Define search paths
-    search_paths = []
-    if file_path is None:
-        search_paths = [
-            "./swarm_config.json",            # Relative to the script
-            os.path.join(os.getenv("PWD", ""), "swarm_config.json"),  # Relative to the shell
-        ]
-        logger.debug(f"No file_path provided. Using fallback paths: {search_paths}")
-    else:
-        search_paths = [file_path]
-        logger.debug(f"Using explicit file_path: {file_path}")
+    logger.debug(f"Attempting to load configuration from {file_path}")
+    if not os.path.exists(file_path):
+        logger.error(f"Configuration file not found at {file_path}")
+        raise FileNotFoundError(f"Configuration file not found at {file_path}")
 
-    # Locate the configuration file
-    found_path = None
-    for path in search_paths:
-        logger.debug(f"Checking if configuration file exists at: {path}")
-        if os.path.exists(path):
-            logger.info(f"Configuration file found at: {path}")
-            found_path = path
-            break
-    if not found_path:
-        if file_path is None:
-            # Gracefully continue if no file is found in default locations
-            logger.warning(f"No configuration file found in paths: {search_paths}. Continuing with default settings.")
-            return {}
-        else:
-            # Raise an error if the explicitly provided file path was not found
-            logger.error(f"Configuration file not found at: {file_path}")
-            raise FileNotFoundError(f"Configuration file not found at: {file_path}")
+    with open(file_path, 'r') as f:
+        config = json.load(f)
+    logger.debug(f"Configuration loaded: {config}")
 
-    # Load the configuration JSON file
-    logger.debug(f"Attempting to load configuration from: {found_path}")
-    with open(found_path, "r") as file:
-        try:
-            config = json.load(file)
-            logger.debug(f"Configuration loaded successfully: {json.dumps(config, indent=2)}")
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON format in configuration file '{found_path}': {e}")
-            raise
+    # Resolve placeholders recursively
+    resolved_config = resolve_placeholders(config)
+    logger.debug(f"Configuration after resolving placeholders: {resolved_config}")
 
-    # Resolve placeholders in `llm` and `mcpServers` sections
-    logger.debug("Resolving placeholders in LLM and MCP server configurations.")
-    config["llm"] = resolve_placeholders(config.get("llm", {}))
-    config["mcpServers"] = resolve_placeholders(config.get("mcpServers", {}))
-
-    # Validate mandatory environment variables in MCP server `env` sections
-    validate_mcp_server_env(config.get("mcpServers", {}))
-
-    logger.info("Configuration successfully loaded and resolved.")
-    return config
+    return resolved_config
 
 def validate_mcp_server_env(mcp_servers: Dict[str, Any]) -> None:
     """

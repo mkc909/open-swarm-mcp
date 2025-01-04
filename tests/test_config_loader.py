@@ -4,7 +4,7 @@ from swarm.extensions.config.config_loader import (
     resolve_placeholders,
     load_server_config,
     validate_api_keys,
-    are_required_mcp_servers_running,
+    are_required_mcp_servers_configured,
 )
 
 @pytest.fixture
@@ -46,7 +46,7 @@ def test_load_server_config_valid(mock_env):
 #     """Test validate_api_keys with valid configuration."""
 #     assert validate_api_keys(valid_config) == valid_config
 
-def test_are_required_mcp_servers_running(valid_config):
+def test_are_required_mcp_servers_configured(valid_config):
     """Test required MCP servers validation."""
-    assert are_required_mcp_servers_running(["example"], valid_config) == (True, [])
-    assert are_required_mcp_servers_running(["nonexistent"], valid_config) == (False, ["nonexistent"])
+    assert are_required_mcp_servers_configured(["example"], valid_config) == (True, [])
+    assert are_required_mcp_servers_configured(["nonexistent"], valid_config) == (False, ["nonexistent"])

@@ -8,10 +8,10 @@ It leverages the BlueprintBase to handle all configuration and MCP session manag
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Callable
 
 from swarm.extensions.blueprint import BlueprintBase
-from swarm.types import Agent
+from swarm.types import Agent, AgentFunctionDefinition  # Updated import
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -58,6 +58,46 @@ class FilesystemBlueprint(BlueprintBase):
         if not allowed_paths:
             raise EnvironmentError("Environment variable 'ALLOWED_PATHS' is not set.")
 
+        # Define filesystem interaction functions
+        def read_file(content: str) -> str:
+            """
+            Reads the content of a specified file.
+
+            Args:
+                content (str): The path of the file to read.
+
+            Returns:
+                str: The content of the file.
+            """
+            try:
+                with open(content, 'r') as file:
+                    data = file.read()
+                logger.info(f"Read file at {content}")
+                return data
+            except Exception as e:
+                logger.error(f"Error reading file at {content}: {e}")
+                return f"Failed to read file: {e}"
+
+        def write_file(content: str, data: str) -> str:
+            """
+            Writes data to a specified file.
+
+            Args:
+                content (str): The path of the file to write to.
+                data (str): The data to write into the file.
+
+            Returns:
+                str: Confirmation message.
+            """
+            try:
+                with open(content, 'w') as file:
+                    file.write(data)
+                logger.info(f"Wrote data to file at {content}")
+                return f"Successfully wrote to {content}"
+            except Exception as e:
+                logger.error(f"Error writing to file at {content}: {e}")
+                return f"Failed to write to file: {e}"
+
         # Define transfer functions
         def transfer_to_filesystem() -> Agent:
             """
@@ -65,6 +105,55 @@ class FilesystemBlueprint(BlueprintBase):
             """
             logger.debug("Transferring control from TriageAgent to FilesystemAgent.")
             return self.swarm.agents.get("FilesystemAgent")
+
+        # Wrap filesystem functions using AgentFunctionDefinition
+        read_file_func = AgentFunctionDefinition(
+            name="read_file",
+            description="Reads the content of a specified file.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "content": {
+                        "type": "string",
+                        "description": "The path of the file to read."
+                    }
+                },
+                "required": ["content"]
+            },
+            func=read_file
+        )
+
+        write_file_func = AgentFunctionDefinition(
+            name="write_file",
+            description="Writes data to a specified file.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "content": {
+                        "type": "string",
+                        "description": "The path of the file to write to."
+                    },
+                    "data": {
+                        "type": "string",
+                        "description": "The data to write into the file."
+                    }
+                },
+                "required": ["content", "data"]
+            },
+            func=write_file
+        )
+
+        # Wrap transfer function
+        transfer_func = AgentFunctionDefinition(
+            name="transfer_to_filesystem",
+            description="Transfers control to the FilesystemAgent.",
+            parameters={
+                "type": "object",
+                "properties": {},
+                "required": []
+            },
+            func=transfer_to_filesystem
+        )
 
         # Filesystem Agent
         filesystem_agent = Agent(
@@ -75,7 +164,8 @@ class FilesystemBlueprint(BlueprintBase):
             ),
             mcp_servers=["filesystem"],
             env_vars={"ALLOWED_PATHS": allowed_paths},
-            functions=[],
+            functions=[read_file_func, write_file_func],
+            parallel_tool_calls=False  # Set based on your framework's requirements
         )
 
         # Triage Agent
@@ -87,31 +177,22 @@ class FilesystemBlueprint(BlueprintBase):
             ),
             mcp_servers=[],
             env_vars={},
-            functions=[
-                # Attach transfer function directly
-                transfer_to_filesystem,
-            ],
+            functions=[transfer_func],
+            parallel_tool_calls=False
         )
 
         # Register agents with Swarm
         self.swarm.create_agent(filesystem_agent)
         self.swarm.create_agent(triage_agent)
+        logger.info("FilesystemAgent and TriageAgent have been created and registered.")
 
     def run(self):
         """
         Run the blueprint interactively using the Swarm client.
         """
         logger.info("Starting FilesystemBlueprint.")
-        # Example initial message
-        initial_messages = [
-            {"role": "user", "content": "Organize the documents in the allowed paths."}
-        ]
-        response = self.swarm.run(
-            agent=self.swarm.agents.get("FilesystemAgent"),
-            messages=initial_messages,
-        )
-        logger.info("Run completed. Final response:")
-        logger.info(response.messages[-1]["content"])
+        # Start interactive mode with FilesystemAgent as the starting agent
+        self.interactive_mode(starting_agent=self.swarm.agents.get("FilesystemAgent"))
 
 
 if __name__ == "__main__":

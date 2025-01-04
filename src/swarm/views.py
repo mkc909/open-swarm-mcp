@@ -29,7 +29,7 @@ from swarm.extensions.blueprint import discover_blueprints
 from swarm.extensions.config.config_loader import (
     load_server_config,
     validate_api_keys,
-    get_llm_provider,
+    load_llm_config,
 )
 
 from .utils.logger import setup_logger
@@ -46,26 +46,6 @@ except Exception as e:
     logger.critical(f"Failed to load configuration from {CONFIG_PATH}: {e}")
     raise e
 
-# Determine the selected LLM profile from the 'LLM' environment variable
-selected_llm = os.getenv("LLM", "default")
-logger.debug(f"Selected LLM profile from environment: '{selected_llm}'")
-
-# Validate API keys with the selected LLM configuration
-try:
-    config = validate_api_keys(config, selected_llm)
-    logger.debug("API keys validated successfully with the selected LLM configuration.")
-except ValueError as ve:
-    logger.critical(f"Configuration validation error: {ve}")
-    raise ve
-
-# Retrieve the LLM provider instance based on configuration
-try:
-    llm_provider_instance = get_llm_provider(config, selected_llm)
-    logger.debug(f"Initialized LLM Provider: {llm_provider_instance.__class__.__name__}")
-except Exception as e:
-    logger.critical(f"Failed to initialize LLM provider: {e}")
-    raise e
-
 # Discover blueprints located in the 'blueprints' directory
 BLUEPRINTS_DIR = (Path(settings.BASE_DIR) / "blueprints").resolve()
 logger.debug(f"Attempting to locate blueprints at: {BLUEPRINTS_DIR}")
@@ -76,17 +56,20 @@ except Exception as e:
     logger.error(f"Error discovering blueprints: {e}", exc_info=True)
     raise e
 
-# Inject 'openai_model' and 'llm_provider' into blueprints metadata
-llm_model = config['llm'][selected_llm].get('model', 'gpt-4o')
-llm_provider = config['llm'][selected_llm].get('provider', 'openai')
+# Inject LLM metadata into blueprints
+try:
+    llm_config = load_llm_config(config)
+    llm_model = llm_config.get("model", "gpt-4o")
+    llm_provider = llm_config.get("provider", "openai")
+    logger.debug(f"Loaded LLM configuration: Provider='{llm_provider}', Model='{llm_model}'")
 
-logger.debug(f"Selected LLM configuration: Provider='{llm_provider}', Model='{llm_model}'")
-
-for blueprint in blueprints_metadata.values():
-    blueprint['openai_model'] = llm_model
-    blueprint['llm_provider'] = llm_provider  # Inject provider info
-
-logger.debug(f"Injected 'openai_model' and 'llm_provider' into blueprints metadata: {blueprints_metadata}")
+    for blueprint in blueprints_metadata.values():
+        blueprint["openai_model"] = llm_model
+        blueprint["llm_provider"] = llm_provider
+    logger.debug(f"Updated blueprints with LLM metadata: {blueprints_metadata}")
+except ValueError as e:
+    logger.critical(f"Failed to load LLM configuration: {e}")
+    raise e
 
 def get_file_modification_timestamp(file_path: str) -> int:
     """

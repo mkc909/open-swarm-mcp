@@ -2,8 +2,10 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any
+from swarm.core import Swarm
 from swarm.extensions.config.config_loader import load_server_config
 from swarm.repl import run_demo_loop
+from swarm.utils.redact import redact_sensitive_data
 from dotenv import load_dotenv
 import argparse
 
@@ -24,7 +26,7 @@ class BlueprintBase(ABC):
             config (dict): The preloaded configuration dictionary.
             **kwargs: Additional keyword arguments for customization.
         """
-        logger.debug(f"Initializing {self.__class__.__name__} with config={config}, kwargs={kwargs}")
+        logger.debug(f"Initializing BlueprintBase with config: {redact_sensitive_data(config)}")
 
         # Ensure metadata is defined in subclasses
         if not hasattr(self, 'metadata') or not isinstance(self.metadata, dict):
@@ -39,7 +41,6 @@ class BlueprintBase(ABC):
         self.config = config
 
         # Initialize Swarm
-        from swarm.core import Swarm
         self.swarm = Swarm(config=self.config)
         logger.info("Swarm instance created.")
 

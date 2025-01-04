@@ -35,6 +35,7 @@ from .types import (
 from .extensions.config.config_loader import load_server_config, validate_api_keys, validate_mcp_server_env
 from .extensions.mcp.mcp_client import MCPClientManager
 from .extensions.mcp.mcp_tool_provider import MCPToolProvider
+from .utils.redact import redact_sensitive_data
 
 __CTX_VARS_NAME__ = "context_variables"
 
@@ -55,10 +56,6 @@ class Swarm:
             client: Custom OpenAI client instance.
             config (Optional[dict]): Preloaded configuration dictionary.
         """
-        if not client:
-            client = OpenAI()
-        self.client = client
-
         # Default settings
         self.model = "gpt-4o"
         self.temperature = 0.7
@@ -80,7 +77,6 @@ class Swarm:
 
             # Override default settings from configuration
             llm_config = self.config.get("llm", {}).get("default", {})
-            self.client.api_key = llm_config.get("api_key", "")
             self.model = llm_config.get("model", self.model)
             self.temperature = llm_config.get("temperature", self.temperature)
             self.tool_choice = llm_config.get("tool_choice", self.tool_choice)
@@ -91,6 +87,21 @@ class Swarm:
             logger.debug(f"Swarm initialized with model={self.model}, "
                          f"temperature={self.temperature}, tool_choice={self.tool_choice}, "
                          f"parallel_tool_calls={self.parallel_tool_calls}.")
+
+            # Initialize the OpenAI client after processing the LLM configuration
+            if not client:
+                client_kwargs = {}
+                if "api_key" in llm_config:
+                    client_kwargs["api_key"] = llm_config["api_key"]
+                if "base_url" in llm_config:
+                    client_kwargs["base_url"] = llm_config["base_url"]
+
+                # Log the client kwargs with sensitive data redacted
+                redacted_kwargs = redact_sensitive_data(client_kwargs, sensitive_keys=["api_key"])
+                logger.debug(f"Initializing OpenAI client with kwargs: {redacted_kwargs}")
+
+                client = OpenAI(**client_kwargs)
+            self.client = client
 
         except (ValueError, KeyError) as e:
             logger.error(f"Failed to initialize Swarm due to configuration error: {e}")

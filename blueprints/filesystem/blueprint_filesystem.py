@@ -51,9 +51,12 @@ class FilesystemBlueprint(BlueprintBase):
             "env_vars": ["ALLOWED_PATHS"],
         }
 
-    def create_agents(self) -> None:
+    def create_agents(self) -> Dict[str, Agent]:
         """
         Create agents for the FilesystemBlueprint.
+
+        Returns:
+            Dict[str, Agent]: Dictionary containing all created agents.
         """
         import os
 
@@ -62,16 +65,19 @@ class FilesystemBlueprint(BlueprintBase):
         if not allowed_paths:
             raise EnvironmentError("Environment variable 'ALLOWED_PATHS' is not set.")
 
-        # Define transfer function
+        # Define agents dictionary
+        agents = {}
+
+        # Define transfer function with explicit reference to `agents`
         def transfer_to_filesystem() -> Agent:
             """
             Transfer control from TriageAgent to FilesystemAgent.
             """
             logger.debug("Transferring control from TriageAgent to FilesystemAgent.")
-            return self.filesystem_agent  # Directly return the FilesystemAgent
+            return agents["FilesystemAgent"]
 
         # Create Filesystem Agent
-        self.filesystem_agent = Agent(
+        filesystem_agent = Agent(
             name="FilesystemAgent",
             instructions=(
                 "You are the FilesystemAgent. Manage and interact with the filesystem within the allowed paths. "
@@ -80,11 +86,11 @@ class FilesystemBlueprint(BlueprintBase):
             mcp_servers=["filesystem"],
             env_vars={"ALLOWED_PATHS": allowed_paths},
             functions=[],  # Functions are provided by the MCP server
-            parallel_tool_calls=False  # Set based on your framework's requirements
+            parallel_tool_calls=False,  # Set based on your framework's requirements
         )
 
         # Create Triage Agent
-        self.triage_agent = Agent(
+        triage_agent = Agent(
             name="TriageAgent",
             instructions=(
                 "You are the TriageAgent, responsible for categorizing and managing tasks. "
@@ -92,11 +98,17 @@ class FilesystemBlueprint(BlueprintBase):
             ),
             mcp_servers=[],
             env_vars={},
-            functions=[transfer_to_filesystem],  # Passing function directly
-            parallel_tool_calls=False
+            functions=[transfer_to_filesystem],  # Pass the closure function
+            parallel_tool_calls=False,
         )
 
-        logger.info("FilesystemAgent and TriageAgent have been created and assigned.")
+        # Populate agents dictionary
+        agents["FilesystemAgent"] = filesystem_agent
+        agents["TriageAgent"] = triage_agent
+
+        logger.info("FilesystemAgent and TriageAgent have been created.")
+        self.set_starting_agent(triage_agent)  # Set TriageAgent as the starting agent
+        return agents
 
     def run(self):
         """
@@ -104,7 +116,7 @@ class FilesystemBlueprint(BlueprintBase):
         """
         logger.info("Starting FilesystemBlueprint.")
         # Start interactive mode with TriageAgent as the starting agent
-        self.interactive_mode(starting_agent=self.triage_agent)
+        self.interactive_mode()
 
 
 if __name__ == "__main__":

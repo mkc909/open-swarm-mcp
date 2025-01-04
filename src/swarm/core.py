@@ -102,24 +102,16 @@ class Swarm:
             logger.info("No configuration file provided. Using default settings.")
 
     async def discover_and_merge_agent_tools(self, agent: Agent, debug: bool = False):
-        """
-        Discover tools from MCP servers for the agent and merge them with existing functions.
-
-        Args:
-            agent (Agent): The agent for which to discover tools.
-            debug (bool): Enable debug logging.
-
-        Returns:
-            List[AgentFunction]: Merged list of tools and functions.
-        """
         if not agent.mcp_servers:
             logger.debug(f"Agent '{agent.name}' has no assigned MCP servers.")
             return agent.functions
 
+        logger.debug(f"Full MCP server configuration: {json.dumps(self.config.get('mcpServers', {}), indent=2)}")
+
         discovered_tools = []
 
         for server_name in agent.mcp_servers:
-            # Retrieve server configuration
+            logger.debug(f"Looking up MCP server '{server_name}' for agent '{agent.name}'.")
             server_config = self.config.get("mcpServers", {}).get(server_name)
             if not server_config:
                 logger.warning(f"MCP server '{server_name}' not found in configuration.")

@@ -11,7 +11,8 @@ import os
 import json
 import re
 import logging
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union, Optional
+from dotenv import load_dotenv  # Import python-dotenv
 
 # Initialize logger for this module
 logger = logging.getLogger(__name__)
@@ -20,6 +21,10 @@ stream_handler = logging.StreamHandler()
 formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(name)s - %(message)s")
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
+
+# Load environment variables from .env
+load_dotenv()
+logger.info("Environment variables loaded from .env file.")
 
 
 def resolve_placeholders(value: Any) -> Any:
@@ -45,52 +50,79 @@ def resolve_placeholders(value: Any) -> Any:
         for var in matches:
             env_value = os.getenv(var)
             if env_value is None:
-                logger.error(f"Required environment variable '{var}' is not set.")
+                logger.error(f"Environment variable '{var}' is not set.")
                 raise ValueError(f"Environment variable '{var}' is not set.")
             logger.debug(f"Resolving placeholder '${{{var}}}' with value '{env_value}'.")
             value = value.replace(f"${{{var}}}", env_value)
 
+        logger.debug(f"Resolved value: {value}")
         return value
     elif isinstance(value, dict):
         # Recursively resolve placeholders in dictionary values
+        logger.debug(f"Resolving placeholders in dictionary: {value}")
         return {key: resolve_placeholders(val) for key, val in value.items()}
     elif isinstance(value, list):
         # Recursively resolve placeholders in list items
+        logger.debug(f"Resolving placeholders in list: {value}")
         return [resolve_placeholders(item) for item in value]
     else:
         # Return value as is if it's not a string, dict, or list
+        logger.debug(f"No placeholders to resolve for value: {value}")
         return value
 
-
-def load_server_config(file_path: str) -> Dict[str, Any]:
+def load_server_config(file_path: Optional[str] = None) -> Dict[str, Any]:
     """
     Loads the server configuration from a JSON file and resolves environment variable placeholders.
 
     Args:
-        file_path (str): The path to the configuration file.
+        file_path (Optional[str]): The path to the configuration file. Defaults to './swarm_config.json'.
 
     Returns:
         Dict[str, Any]: A dictionary containing the resolved server configuration.
 
     Raises:
-        FileNotFoundError: If the specified configuration file does not exist.
+        FileNotFoundError: If the configuration file is missing and no explicit path is provided.
         json.JSONDecodeError: If the configuration file is not a valid JSON.
         ValueError: If required environment variables are missing in the configuration.
     """
-    logger.info(f"Loading configuration from '{file_path}'.")
+    # Define search paths
+    search_paths = []
+    if file_path is None:
+        search_paths = [
+            "./swarm_config.json",            # Relative to the script
+            os.path.join(os.getenv("PWD", ""), "swarm_config.json"),  # Relative to the shell
+        ]
+        logger.debug(f"No file_path provided. Using fallback paths: {search_paths}")
+    else:
+        search_paths = [file_path]
+        logger.debug(f"Using explicit file_path: {file_path}")
 
-    # Ensure the configuration file exists
-    if not os.path.exists(file_path):
-        logger.error(f"Configuration file not found at {file_path}.")
-        raise FileNotFoundError(f"Configuration file not found at {file_path}.")
+    # Locate the configuration file
+    found_path = None
+    for path in search_paths:
+        logger.debug(f"Checking if configuration file exists at: {path}")
+        if os.path.exists(path):
+            logger.info(f"Configuration file found at: {path}")
+            found_path = path
+            break
+    if not found_path:
+        if file_path is None:
+            # Gracefully continue if no file is found in default locations
+            logger.warning(f"No configuration file found in paths: {search_paths}. Continuing with default settings.")
+            return {}
+        else:
+            # Raise an error if the explicitly provided file path was not found
+            logger.error(f"Configuration file not found at: {file_path}")
+            raise FileNotFoundError(f"Configuration file not found at: {file_path}")
 
     # Load the configuration JSON file
-    with open(file_path, "r") as file:
+    logger.debug(f"Attempting to load configuration from: {found_path}")
+    with open(found_path, "r") as file:
         try:
             config = json.load(file)
             logger.debug(f"Configuration loaded successfully: {json.dumps(config, indent=2)}")
         except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON format in configuration file '{file_path}': {e}")
+            logger.error(f"Invalid JSON format in configuration file '{found_path}': {e}")
             raise
 
     # Resolve placeholders in `llm` and `mcpServers` sections
@@ -104,7 +136,6 @@ def load_server_config(file_path: str) -> Dict[str, Any]:
     logger.info("Configuration successfully loaded and resolved.")
     return config
 
-
 def validate_mcp_server_env(mcp_servers: Dict[str, Any]) -> None:
     """
     Validates that mandatory environment variables in MCP server configurations are set.
@@ -116,12 +147,14 @@ def validate_mcp_server_env(mcp_servers: Dict[str, Any]) -> None:
         ValueError: If any mandatory environment variable in an `env` section is not set.
     """
     for server_name, server_config in mcp_servers.items():
+        logger.debug(f"Validating environment variables for MCP server '{server_name}'.")
         env_vars = server_config.get("env", {})
         for env_key, env_value in env_vars.items():
+            logger.debug(f"Checking environment variable '{env_key}' for server '{server_name}': {env_value}")
             if not env_value:
                 logger.error(f"Environment variable '{env_key}' for MCP server '{server_name}' is not set.")
                 raise ValueError(f"Environment variable '{env_key}' for MCP server '{server_name}' is not set.")
-            logger.debug(f"Validated environment variable '{env_key}' for server '{server_name}' with value '{env_value}'.")
+            logger.debug(f"Environment variable '{env_key}' is set with value: {env_value}.")
 
 
 def validate_api_keys(config: Dict[str, Any], selected_llm: str = "default") -> Dict[str, Any]:

@@ -51,6 +51,8 @@ class BlueprintBase(ABC):
         self.swarm = Swarm(config_path=config_path)
         logger.info("Swarm instance created.")
 
+        self.starting_agent = None  # Initialize starting agent as None
+
         # Create and register agents
         agents = self.create_agents()
         self.swarm.agents.update(agents)
@@ -59,8 +61,6 @@ class BlueprintBase(ABC):
         # Discover tools for all agents
         asyncio.run(self.async_discover_agent_tools())
         logger.info("Tool discovery completed.")
-
-        self.starting_agent = None  # Initialize starting agent as None
 
     def set_starting_agent(self, agent: Agent) -> None:
         """

@@ -78,6 +78,8 @@ class EchoBlueprint(BlueprintBase):
             parallel_tool_calls=False  # Set based on your framework's requirements
         )
 
+        self.set_starting_agent(echo_agent)  # Set EchoAgent as the starting agent
+
         logger.info("EchoAgent has been created.")
         return {"EchoAgent": echo_agent}
 

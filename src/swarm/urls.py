@@ -3,7 +3,7 @@ from django.urls import path
 from django.http import HttpResponse
 from django.conf import settings
 import os
-from .rest_mode import views
+from swarm import views
 
 def favicon(request):
     favicon_path = os.path.join(settings.BASE_DIR, 'assets', 'images', 'favicon.ico')

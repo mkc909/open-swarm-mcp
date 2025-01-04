@@ -24,12 +24,12 @@
             <!-- Toggle Controls -->
             <div class="toggle-container">
                 <div>
-                    <input type="checkbox" id="rawToggle" onclick="toggleRawMessages()" />
-                    <label for="rawToggle">Show Raw Messages</label>
-                </div>
-                <div>
                     <input type="checkbox" id="debugToggle" onclick="toggleDebugPane()" />
                     <label for="debugToggle">Show Debug Info</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="rawToggle" onclick="toggleRawMessages()" />
+                    <label for="rawToggle">Show Raw Messages</label>
                 </div>
             </div>
 
@@ -48,18 +48,21 @@
             </div>
         </div>
 
-        <!-- Raw Messages Pane -->
-        <div class="raw-messages-pane" id="rawMessagesPane">
-            <h2>Raw Messages</h2>
-            <div id="rawMessagesContent"></div>
-        </div>
+        <!-- Raw and Debug Panes -->
+        <div class="raw-debug-container">
+            <!-- Debug Pane -->
+            <div class="debug-pane" id="debugPane">
+                <h2>Debug Information</h2>
+                <div id="debugContent"></div>
+            </div>
 
-        <!-- Debug Pane -->
-        <div class="debug-pane" id="debugPane">
-            <h2>Debug Information</h2>
-            <div id="debugContent"></div>
+            <!-- Raw Messages Pane -->
+            <div class="raw-messages-pane" id="rawMessagesPane">
+                <h2>Raw Messages</h2>
+                <div id="rawMessagesContent"></div>
+            </div>
         </div>
     </div>
-        <script type="module" src="{% static 'rest_mode/script.js' %}"></script>
+    <script type="module" src="{% static 'rest_mode/script.js' %}"></script>
 </body>
 </html>

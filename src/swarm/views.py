@@ -65,82 +65,60 @@ except ValueError as e:
     raise e
 
 def construct_openai_response(response: Any, openai_model: str) -> Dict[str, Any]:
-    """
-    Constructs a response dictionary conforming to OpenAI's Chat Completion API format.
-
-    Args:
-        response (Any): The response from Swarm.run (can be a dictionary or an object with a 'messages' attribute).
-        openai_model (str): The actual OpenAI model name used for the request.
-
-    Returns:
-        Dict[str, Any]: The formatted response dictionary.
-
-    Raises:
-        ValueError: If the response is invalid or missing required data.
-    """
     logger.debug("Constructing OpenAI-like response.")
 
-    # Guard: Ensure response is not None
     if response is None:
         logger.error("Invalid response: response is None.")
         raise ValueError("Invalid response: response is None.")
 
-    # Extract messages from response (handles both dictionary and object)
-    if isinstance(response, dict):
-        messages = response.get('messages', [])
-    elif hasattr(response, 'messages'):
-        messages = response.messages
-    else:
-        logger.error("Invalid response: response is not a dictionary or object with 'messages' attribute.")
-        raise ValueError("Invalid response: response is not a dictionary or object with 'messages' attribute.")
+    # Extract messages
+    messages = response.get("messages", []) if isinstance(response, dict) else getattr(response, "messages", [])
+    if not isinstance(messages, list):
+        logger.error("Invalid response: 'messages' is not a list.")
+        raise ValueError("Invalid response: 'messages' is not a list.")
 
-    # Guard: Ensure messages is a non-empty list
-    if not isinstance(messages, list) or len(messages) == 0:
-        logger.error("Invalid response: 'messages' is not a list or is empty.")
-        raise ValueError("Invalid response: 'messages' is not a list or is empty.")
-
-    # Select all assistant messages with non-None content
+    # Filter assistant and tool messages
     assistant_messages = [m for m in messages if m.get("role") == "assistant" and m.get("content") is not None]
+    tool_calls = [m for m in messages if m.get("role") == "tool"]
 
+    # Default if no assistant message
     if not assistant_messages:
         assistant_messages = [{"content": "No response.", "role": "assistant", "sender": "Assistant"}]
         logger.debug("No assistant messages found; defaulting to 'No response.'")
 
     # Use the last assistant message
     assistant_message = assistant_messages[-1]
-    logger.debug(f"Selected assistant message: {assistant_message}")
 
-    # Generate a unique response ID
+    # Generate unique response ID
     response_id = f"swarm-chat-completion-{uuid.uuid4()}"
     logger.debug(f"Generated response ID: {response_id}")
 
     # Calculate token counts
-    prompt_tokens = sum(len(msg['content'].split()) for msg in messages if msg['role'] in ['user', 'system'])
-    completion_tokens = len(assistant_message['content'].split()) if assistant_message['content'] != "No response." else 0
+    prompt_tokens = sum(len((msg.get("content") or "").split()) for msg in messages if msg.get("role") in ["user", "system"])
+    completion_tokens = sum(len((msg.get("content") or "").split()) for msg in messages if msg.get("role") not in ["user", "system"])
     total_tokens = prompt_tokens + completion_tokens
 
-    logger.debug(
-        f"Token counts - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens}"
-    )
+    logger.debug(f"Token counts - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens}")
 
-    # Return the formatted response
+    # Format the response
     return {
         "id": response_id,
         "object": "chat.completion",
-        "created": 0, # TODO get_file_modification_timestamp(openai_model)?
-        "model": openai_model,  # Use the actual OpenAI model name from server config
+        "created": int(time.time()),
+        "model": openai_model,
         "choices": [
             {
                 "index": 0,
                 "message": assistant_message,
-                "finish_reason": "stop"
+                "tool_calls": tool_calls,  # Include tool calls explicitly
+                "finish_reason": "stop",
             }
         ],
         "usage": {
             "prompt_tokens": prompt_tokens,
             "completion_tokens": completion_tokens,
-            "total_tokens": total_tokens
-        }
+            "total_tokens": total_tokens,
+        },
     }
 
 

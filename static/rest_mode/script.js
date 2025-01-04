@@ -85,32 +85,43 @@
          * @param {object|null} metadata - Optional debug information.
          */
         window.renderMessage = function(role, message, sender = "Unknown", metadata = {}) {
-            console.log("renderMessage called with:", { role, message, sender, metadata });
-
+            console.log("Rendering message:", { role, message, sender, metadata });
+        
             const container = document.createElement("div");
             container.className = `message ${role}`;
-
+        
             const header = document.createElement("h4");
             header.textContent = sender;
             header.className = "sender-header";
             container.appendChild(header);
-
+        
             const content = document.createElement("p");
-            content.textContent = message?.content || "No content provided.";
+        
+            if (role === "tool") {
+                const toolName = metadata?.tool_name || "Unknown Tool";
+                const toolOutput = message?.content || "No output.";
+                content.innerHTML = `
+                    <strong>Tool Name:</strong> ${toolName}<br/>
+                    <strong>Tool Call ID:</strong> ${metadata?.tool_call_id || "N/A"}<br/>
+                    <strong>Output:</strong><pre>${JSON.stringify(toolOutput, null, 2)}</pre>
+                `;
+            } else {
+                content.textContent = message?.content || "No content provided.";
+            }
+        
             container.appendChild(content);
-
-            const messageHistory = document.getElementById("messageHistory");
+        
             if (!messageHistory) {
-                console.error("messageHistory element not found!");
+                console.error("Message history element not found!");
                 return;
             }
-
+        
             messageHistory.appendChild(container);
             messageHistory.scrollTop = messageHistory.scrollHeight;
-
+        
             console.log("Message rendered successfully");
         };
-
+                        
 
     /**
      * Appends raw message data to the Raw Messages pane.
@@ -122,41 +133,47 @@
     window.appendRawMessage = function(role, content, sender, metadata) {
         const rawMessage = document.createElement("div");
         rawMessage.className = "raw-message";
-
-        // Assign a default sender if missing
+    
         const finalSender = sender || (role === "tool" ? "Tool" : "Unknown");
-
-        // Correctly map tool_call_id and tool_name based on metadata structure
-        const toolCallId = metadata.id || metadata.tool_call_id || null;
-        const toolName = (metadata.function && metadata.function.name) ? metadata.function.name : metadata.tool_name || null;
-
+        const toolCallId = metadata?.tool_call_id || null;
+        const toolName = metadata?.tool_name || "Unknown";
+    
         const rawData = {
             role: role,
-            sender: finalSender, // Include sender in rawData
+            sender: finalSender,
             tool_call_id: toolCallId,
             tool_name: toolName,
-            content: content.content
+            content: content.content || "No content provided."
         };
-
-        // Display raw JSON in a <pre> block for better readability
+    
         const pre = document.createElement("pre");
         pre.textContent = JSON.stringify(rawData, null, 2);
         rawMessage.appendChild(pre);
-
+    
+        const rawMessagesContent = document.getElementById("rawMessagesContent");
+        if (!rawMessagesContent) {
+            console.error("Raw messages content element not found!");
+            return;
+        }
+    
         rawMessagesContent.appendChild(rawMessage);
         rawMessagesContent.scrollTop = rawMessagesContent.scrollHeight;
-
+    
         console.log("Appended Raw Message:", rawData);
-    }
-
+    };
+    
     /**
      * Renders debug information in the Debug pane.
+     * Replaces existing content with the latest debug info.
      * @param {string} role - The role of the sender.
      * @param {object} content - The message content.
      * @param {string} sender - The display name of the sender.
      * @param {object} metadata - The metadata associated with the message.
      */
     window.renderDebugInfo = function (role, content, sender, metadata) {
+        // Clear the debug pane before adding new debug info
+        debugContent.innerHTML = "";
+
         const debugMessage = document.createElement("div");
         debugMessage.className = "debug-message";
 
@@ -197,7 +214,7 @@
         debugContent.scrollTop = debugContent.scrollHeight;
 
         console.log(`Rendered debug info for message - Role: ${role}, Sender: ${finalSender}`);
-    }
+    };
 
     /**
      * Parses the metadata object to extract relevant fields.
@@ -263,147 +280,110 @@
         const userInput = document.getElementById("userInput");
         const userMessageContent = messageText ? messageText : userInput.value.trim();
         if (!userMessageContent) return;
-
-        // Clear the input field if not sending a predefined message
-        if (!messageText) {
-            userInput.value = "";
-        }
-
-        // Create user message object
+    
+        if (!messageText) userInput.value = ""; // Clear input if manually entered
+    
         const userMessage = {
             role: "user",
             content: userMessageContent,
             sender: "User",
             metadata: {}
         };
-
-        // Add user's message to chat history
+    
         chatHistory.push(userMessage);
-
-        // Render the user's message
         renderMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
         appendRawMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
-
+    
         if (debugToggle.checked) {
             renderDebugInfo(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
         }
-
+    
         try {
-            // Extract blueprint ID from URL
             const urlPath = window.location.pathname;
             const blueprintId = urlPath.split("/").filter(Boolean).pop();
-
-            console.log("Submitting model ID:", blueprintId); // Log the model ID
-
-            if (!blueprintId) {
-                console.error("Error: Blueprint ID is missing.");
-                alert("Unable to identify the blueprint. Please check the URL.");
-                return;
-            }
-
-            // Send the entire chat history to /v1/chat/completions
+            if (!blueprintId) throw new Error("Blueprint ID missing in URL.");
+    
             const response = await fetch("/v1/chat/completions", {
                 method: "POST",
-                headers: { 
+                headers: {
                     "Content-Type": "application/json",
-                    "X-CSRFToken": csrfToken, // Include CSRF token
+                    "X-CSRFToken": csrfToken
                 },
                 body: JSON.stringify({
-                    model: blueprintId, // Use the extracted blueprint ID
+                    model: blueprintId,
                     messages: chatHistory.map(msg => ({
                         role: msg.role,
                         content: msg.content,
                         sender: msg.sender,
-                        tool_calls: msg.metadata.tool_calls || undefined // Include tool_calls if present
-                    })),
-                }),
+                        tool_calls: msg.metadata.tool_calls || undefined
+                    }))
+                })
             });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-
+    
+            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
             const data = await response.json();
-            console.log("Chat completions response:", data); // Log the response
-
-            if (data && data.choices && data.choices.length > 0) {
-                const assistantResponse = data.choices[0].message;
-                const assistantMessage = assistantResponse?.content || 'No response.';
-                const assistantSender = assistantResponse?.sender || 'Assistant'; // Default to 'Assistant' if sender is missing
-                const toolCalls = assistantResponse?.tool_calls || [];
-
-                // Create assistant message object
-                const assistantMsgObject = {
-                    role: "assistant",
-                    content: assistantMessage,
-                    sender: assistantSender,
-                    metadata: assistantResponse
-                };
-
-                // Add assistant's message to chat history
-                chatHistory.push(assistantMsgObject);
-
-                // Render assistant's message
-                renderMessage(assistantMsgObject.role, { content: assistantMsgObject.content }, assistantMsgObject.sender, assistantMsgObject.metadata);
-                appendRawMessage(assistantMsgObject.role, { content: assistantMsgObject.content }, assistantMsgObject.sender, assistantMsgObject.metadata);
-
-                if (debugToggle.checked && assistantMsgObject.metadata) {
-                    renderDebugInfo(assistantMsgObject.role, { content: assistantMsgObject.content }, assistantMsgObject.sender, assistantMsgObject.metadata);
-                }
-
-                // Render tool calls if any
-                toolCalls.forEach(toolCall => {
-                    const toolMessageContent = toolCall.content || "";
-                    const toolCallId = toolCall.id || toolCall.tool_call_id || null;
-                    const toolName = (toolCall.function && toolCall.function.name) ? toolCall.function.name : toolCall.tool_name || "Unknown Tool";
-
-                    console.log(`Processing tool call - ID: ${toolCallId}, Name: ${toolName}, Content: ${toolMessageContent}`);
-
-                    // Create tool message object
-                    const toolMsgObject = {
-                        role: "tool",
-                        content: toolMessageContent,
-                        sender: `Tool: ${toolName}`,
-                        metadata: toolCall
-                    };
-
-                    // Add tool message to chat history
-                    chatHistory.push(toolMsgObject);
-
-                    // Render tool message
-                    renderMessage(toolMsgObject.role, { content: toolMsgObject.content }, toolMsgObject.sender, toolMsgObject.metadata);
-                    appendRawMessage(toolMsgObject.role, { content: toolMsgObject.content }, toolMsgObject.sender, toolMsgObject.metadata);
-
-                    if (debugToggle.checked && toolMsgObject.metadata) {
-                        renderDebugInfo(toolMsgObject.role, { content: toolMsgObject.content }, toolMsgObject.sender, toolMsgObject.metadata);
-                    }
-                });
+    
+            if (data?.choices?.length > 0) {
+                processAssistantResponse(data.choices);
             } else {
-                // Handle cases where no response is received
-                const noResponseMessage = {
-                    role: "assistant",
-                    content: "No response received.",
-                    sender: "Assistant",
-                    metadata: {}
-                };
-                chatHistory.push(noResponseMessage);
-                renderMessage(noResponseMessage.role, { content: noResponseMessage.content }, noResponseMessage.sender, noResponseMessage.metadata);
-                appendRawMessage(noResponseMessage.role, { content: noResponseMessage.content }, noResponseMessage.sender, noResponseMessage.metadata);
+                renderMessage("assistant", { content: "No response received." }, "Assistant", {});
             }
         } catch (error) {
-            console.error("Error submitting chat completion:", error);
-            const errorMessage = {
-                role: "assistant",
-                content: "Error occurred. Please try again.",
-                sender: "Assistant",
-                metadata: {}
-            };
-            chatHistory.push(errorMessage);
-            renderMessage(errorMessage.role, { content: errorMessage.content }, errorMessage.sender, errorMessage.metadata);
-            appendRawMessage(errorMessage.role, { content: errorMessage.content }, errorMessage.sender, errorMessage.metadata);
+            console.error("Error during submission:", error);
+            renderMessage("assistant", { content: "Error occurred. Please try again." }, "Assistant", {});
         }
     }
+    
 
+    function processAssistantResponse(choices) {
+        choices.forEach(choice => {
+            const content = choice.message?.content || "No response.";
+            const sender = choice.message?.sender || "Assistant";
+            const toolCalls = choice.message?.tool_calls || [];
+    
+            const assistantMessage = {
+                role: "assistant",
+                content: content,
+                sender: sender,
+                metadata: choice.message || {}
+            };
+    
+            chatHistory.push(assistantMessage);
+            renderMessage(assistantMessage.role, { content: assistantMessage.content }, assistantMessage.sender, assistantMessage.metadata);
+            appendRawMessage(assistantMessage.role, { content: assistantMessage.content }, assistantMessage.sender, assistantMessage.metadata);
+    
+            if (debugToggle.checked) {
+                renderDebugInfo(assistantMessage.role, { content: assistantMessage.content }, assistantMessage.sender, assistantMessage.metadata);
+            }
+    
+            // Process tool calls if present
+            toolCalls.forEach(toolCall => processToolCall(toolCall));
+        });
+    }
+    
+    function processToolCall(toolCall) {
+        const content = toolCall.content || "No tool output.";
+        const toolCallId = toolCall.id || toolCall.tool_call_id || "N/A";
+        const toolName = toolCall.function?.name || toolCall.tool_name || "Unknown Tool";
+    
+        console.log(`Processing tool call - ID: ${toolCallId}, Name: ${toolName}, Content: ${content}`);
+    
+        const toolMessage = {
+            role: "tool",
+            content: content,
+            sender: `Tool: ${toolName}`,
+            metadata: toolCall
+        };
+    
+        chatHistory.push(toolMessage);
+        renderMessage(toolMessage.role, { content: toolMessage.content }, toolMessage.sender, toolMessage.metadata);
+        appendRawMessage(toolMessage.role, { content: toolMessage.content }, toolMessage.sender, toolMessage.metadata);
+    
+        if (debugToggle.checked) {
+            renderDebugInfo(toolMessage.role, { content: toolMessage.content }, toolMessage.sender, toolMessage.metadata);
+        }
+    }
+    
 
     /**
      * Handles user decision on tool calls (Approve or Deny).

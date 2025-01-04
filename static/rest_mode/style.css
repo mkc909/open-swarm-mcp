@@ -71,11 +71,10 @@ body {
 }
 
 /* Message History Styling */
-/* Updated to limit height to 80% of viewport and enable scrollbar */
 #messageHistory {
     flex: 1;
-    height: 80vh; /* Limit height to 80% of viewport height */
-    overflow-y: auto; /* Enable vertical scrollbar when content exceeds height */
+    height: 80vh;
+    overflow-y: auto;
     padding-right: 10px;
     border: 1px solid #ddd;
     border-radius: 5px;
@@ -100,16 +99,17 @@ body {
 }
 
 .message.assistant {
-    background-color: #f0e9ff;
+    background-color: #e0ffe0; /* Pastel green for assistant messages */
+    border: 1px solid #9ed39e;
 }
 
 .message.tool {
-    background-color: #ffe4e1; /* Pastel shade for tool messages */
+    background-color: #ffe4e1;
     border: 1px solid #ffb6c1;
 }
 
 .message.other {
-    background-color: #e1f5fe; /* Light blue for other roles */
+    background-color: #e1f5fe;
     border: 1px solid #81d4fa;
 }
 
@@ -177,15 +177,21 @@ body {
 
 /* Raw Messages Pane Styling */
 .raw-messages-pane {
-    flex: 1;
+    position: relative; /* Allow placement within the container */
     background-color: #f7f7f9;
     border: 1px solid #ccc;
     border-radius: 5px;
     padding: 10px;
     overflow-y: auto;
     display: none; /* Hidden by default */
-    height: 600px; /* Adjust as needed */
-    margin-right: 20px;
+    height: 320px; /* Adjust height as needed */
+    
+    /* Set the width to 30% of the entire viewport width */
+    width: 30vw; /* 30% of the viewport width */
+    
+    /* Optional: Center horizontally within the page */
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .raw-messages-pane h2 {
@@ -215,7 +221,14 @@ body {
     padding: 10px;
     overflow-y: auto;
     display: none; /* Hidden by default */
-    height: 600px; /* Adjust as needed */
+    height: 240px; 
+    
+    /* Set the width to 30% of the entire viewport width */
+    width: 30vw; /* 30% of the viewport width */
+    
+    /* Optional: Center horizontally within the page */
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .debug-pane h2 {
@@ -240,7 +253,7 @@ body {
 }
 
 .debug-role-assistant {
-    color: #6f42c1;
+    color: #28a745; /* Green for assistant debug */
     font-weight: bold;
 }
 
@@ -250,25 +263,13 @@ body {
 }
 
 .debug-boolean-true {
-    color: #28a745; /* Green */
+    color: #28a745;
     font-weight: bold;
 }
 
 .debug-boolean-false {
-    color: #dc3545; /* Red */
+    color: #dc3545;
     font-weight: bold;
-}
-
-/* Toggle Containers */
-.toggle-container {
-    margin-top: 10px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
-.toggle-container input {
-    margin-right: 5px;
 }
 
 /* Responsive Design */
@@ -282,10 +283,9 @@ body {
         margin-bottom: 20px;
     }
 
-    .raw-messages-pane, .debug-pane {
-        max-width: 100%;
-        margin-right: 0;
+    .raw-messages-pane,
+    .debug-pane {
+        max-width: 30%;
         margin-bottom: 20px;
-        height: 300px;
     }
 }

@@ -50,3 +50,25 @@ def test_are_required_mcp_servers_configured(valid_config):
     """Test required MCP servers validation."""
     assert are_required_mcp_servers_configured(["example"], valid_config) == (True, [])
     assert are_required_mcp_servers_configured(["nonexistent"], valid_config) == (False, ["nonexistent"])
+
+@patch("builtins.open", mock_open(read_data='{"api_key": "${TEST_API_KEY}"}'))
+@patch("os.getenv", return_value="mock_api_key")
+def test_load_server_config_with_placeholders(mock_getenv):
+    """Test loading configuration with placeholders."""
+    config = load_server_config()
+    assert config["api_key"] == "mock_api_key"
+    mock_getenv.assert_called_once_with("TEST_API_KEY")
+
+@patch("builtins.open", mock_open(read_data='{"api_key": "${MISSING_API_KEY}"}'))
+def test_load_server_config_with_missing_placeholder():
+    """Test loading configuration with a missing environment variable."""
+    with pytest.raises(ValueError, match="Environment variable 'MISSING_API_KEY' is not set but is required."):
+        load_server_config()
+
+@patch("os.getcwd", return_value="/mock/path")
+@patch("builtins.open", mock_open(read_data='{"key": "value"}'))
+def test_load_server_config_default_path(mock_getcwd):
+    """Test loading configuration from the default path."""
+    config = load_server_config()
+    assert config["key"] == "value"
+    mock_getcwd.assert_called_once()

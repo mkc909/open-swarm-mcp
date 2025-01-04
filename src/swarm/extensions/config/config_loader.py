@@ -60,29 +60,34 @@ def resolve_placeholders(obj: Any) -> Any:
     else:
         return obj
 
-def load_server_config(file_path: str) -> Dict[str, Any]:
+def load_server_config(file_path: str = None) -> dict:
     """
-    Loads the server configuration from a JSON file and resolves any environment variable placeholders.
+    Loads the server configuration from a JSON file in the root directory and resolves placeholders.
 
     Args:
-        file_path (str): The path to the configuration JSON file.
+        file_path (str): Optional custom path to the configuration file.
 
     Returns:
-        Dict[str, Any]: The resolved configuration dictionary.
+        dict: The resolved configuration.
 
     Raises:
         FileNotFoundError: If the configuration file does not exist.
-        json.JSONDecodeError: If the configuration file contains invalid JSON.
-        ValueError: If any required environment variables are missing.
+        ValueError: If the file contains invalid JSON or unresolved placeholders.
     """
-    logger.debug(f"Attempting to load configuration from {file_path}")
-    if not os.path.exists(file_path):
-        logger.error(f"Configuration file not found at {file_path}")
+    if file_path is None:
+        file_path = os.path.join(os.getcwd(), "swarm_settings.json")
+    
+    logger.debug(f"Loading configuration from {file_path}")
+    
+    try:
+        with open(file_path, "r") as file:
+            config = json.load(file)
+    except FileNotFoundError:
         raise FileNotFoundError(f"Configuration file not found at {file_path}")
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON in configuration file {file_path}: {e}")
 
-    with open(file_path, 'r') as f:
-        config = json.load(f)
-    logger.debug(f"Configuration loaded: {config}")
+    logger.info(f"Configuration loaded from {file_path}: {config}")
 
     # Resolve placeholders recursively
     resolved_config = resolve_placeholders(config)

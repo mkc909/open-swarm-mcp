@@ -29,10 +29,12 @@ from .types import (
     Function,
     Response,
     Result,
+    Tool,
 )
 
 from .extensions.config.config_loader import load_server_config, validate_api_keys, validate_mcp_server_env
 from .extensions.mcp.mcp_client import MCPClientManager
+from .extensions.mcp.mcp_tool_provider import MCPToolProvider
 
 __CTX_VARS_NAME__ = "context_variables"
 
@@ -63,6 +65,7 @@ class Swarm:
         self.tool_choice = "sequential"
         self.parallel_tool_calls = False
         self.agents: Dict[str, Agent] = {}
+        self.mcp_tool_providers = {}
         self.config = config or {}
 
         try:
@@ -95,61 +98,18 @@ class Swarm:
 
         logger.info("Swarm initialized successfully.")
 
-    async def discover_and_merge_agent_tools(self, agent: Agent, debug: bool = False):
-        if not agent.mcp_servers:
-            logger.debug(f"Agent '{agent.name}' has no assigned MCP servers.")
-            return agent.functions
+    async def discover_and_merge_agent_tools(self, agent: Agent, debug: bool = False) -> List[Tool]:
+        """
+        Discover tools for a given agent by querying MCP servers or other sources
+        and merge with existing tools.
+        """
+        # Discover tools via MCPToolProvider
+        mcp_provider = MCPToolProvider(self.config)
+        discovered_tools = await mcp_provider.discover_tools(agent, debug=debug)
 
-        logger.debug(f"Full MCP server configuration: {json.dumps(self.config.get('mcpServers', {}), indent=2)}")
-
-        discovered_tools = []
-
-        for server_name in agent.mcp_servers:
-            logger.debug(f"Looking up MCP server '{server_name}' for agent '{agent.name}'.")
-            server_config = self.config.get("mcpServers", {}).get(server_name)
-            if not server_config:
-                logger.warning(f"MCP server '{server_name}' not found in configuration.")
-                continue
-
-            # Initialize MCP client
-            try:
-                mcp_client = MCPClientManager(
-                    command=server_config.get("command", "npx"),
-                    args=server_config.get("args", []),
-                    env=server_config.get("env", {}),
-                    timeout=30,
-                )
-                logger.info(f"Initialized MCP client for server '{server_name}'.")
-
-                # Discover tools via MCP server
-                responses = await mcp_client.initialize_and_list_tools()
-                logger.debug(f"Responses from tool discovery on '{server_name}': {responses}")
-
-                # Parse tools from response
-                tools_data = [
-                    tool for response in responses
-                    if "result" in response and "tools" in response["result"]
-                    for tool in response["result"]["tools"]
-                ]
-
-                # Attach discovered tools to the agent
-                for tool_info in tools_data:
-                    tool_name = tool_info.get("name", "UnnamedTool")
-                    tool_callable = mcp_client._create_tool_callable(tool_name)
-                    agent_function = AgentFunction(
-                        name=tool_name,
-                        description=tool_info.get("description", "No description provided."),
-                        func=tool_callable,
-                        input_schema=tool_info.get("inputSchema", {}),
-                    )
-                    discovered_tools.append(agent_function)
-
-            except Exception as e:
-                logger.error(f"Error discovering tools for server '{server_name}': {e}", exc_info=True)
-
-        # Merge existing and discovered functions
-        all_functions = agent.functions + discovered_tools
-        return all_functions
+        # Merge existing and discovered tools
+        all_tools = agent.functions + discovered_tools
+        return all_tools
 
     def get_chat_completion(
         self,

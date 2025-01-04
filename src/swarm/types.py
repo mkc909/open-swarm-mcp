@@ -8,8 +8,8 @@ from typing import List, Callable, Union, Optional, Dict, Any
 # Third-party imports
 from pydantic import BaseModel
 
-AgentFunction = Callable[[], Union[str, "Agent", dict]]
-
+# AgentFunction = Callable[[], Union[str, "Agent", dict]]
+AgentFunction = Callable[..., Union[str, "Agent", dict]]
 
 class Agent(BaseModel):
     name: str = "Agent"
@@ -41,17 +41,32 @@ class Result(BaseModel):
     agent: Optional[Agent] = None
     context_variables: dict = {}
 
-class Tool(BaseModel):
-    """
-    Represents a generic tool that can be invoked by agents.
+class Tool:
+    def __init__(
+        self,
+        name: str,
+        func: Callable,
+        description: str = "",
+        input_schema: Optional[Dict[str, Any]] = None,
+        dynamic: bool = False,
+    ):
+        """
+        Initialize a Tool object.
 
-    Attributes:
-        name (str): The name of the tool.
-        description (str): A brief description of the tool's functionality.
-        func (Callable[..., Any]): The function to execute the tool.
-        input_schema (Optional[Dict[str, Any]]): JSON schema defining the tool's input parameters.
-    """
-    name: str
-    description: str
-    func: Callable[..., Any]  # Requires `Any` from `typing`
-    input_schema: Optional[Dict[str, Any]] = None
+        :param name: Name of the tool.
+        :param func: The callable associated with this tool.
+        :param description: A brief description of the tool.
+        :param input_schema: Schema defining the inputs the tool accepts.
+        :param dynamic: Whether this tool is dynamically generated.
+        """
+        self.name = name
+        self.func = func
+        self.description = description
+        self.input_schema = input_schema or {}
+        self.dynamic = dynamic
+
+    def __call__(self, *args, **kwargs):
+        """
+        Make the Tool instance callable.
+        """
+        return self.func(*args, **kwargs)

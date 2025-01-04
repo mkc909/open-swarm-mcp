@@ -74,7 +74,8 @@ class Swarm:
         self.config_path = config_path or self._get_default_config_path()
         logger.debug(f"Config path set to: {self.config_path}")
         self.config = self.load_configuration()
-        self.validate_api_keys()
+        selected_llm = self.config.get("selectedLLM")
+        self.validate_api_keys(selected_llm)
 
         # Flag to indicate whether MCP sessions have been initialized
         self.mcp_initialized = False
@@ -86,6 +87,7 @@ class Swarm:
         Return the default config file path 'swarm_config.json' in the current working directory.
         """
         from pathlib import Path
+
         default_path = str(Path.cwd() / "swarm_config.json")
         logger.debug(f"Default configuration path: {default_path}")
         return default_path
@@ -107,7 +109,7 @@ class Swarm:
                 return config
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON in configuration file '{self.config_path}': {e}")
-            raise
+            return {}
         except Exception as e:
             logger.error(f"Error loading configuration file '{self.config_path}': {e}")
             raise
@@ -120,8 +122,7 @@ class Swarm:
         - Validation applies only to the selected LLM provider.
 
         Args:
-            selected_llm (Optional[str]): The selected LLM profile. Defaults to "default".
-
+            selected_llm (Optional[str]): The selected LLM profile.
         Raises:
             ValueError: If a required environment variable is missing for the selected LLM profile.
         """
@@ -140,6 +141,7 @@ class Swarm:
         if api_key.startswith("${") and api_key.endswith("}"):
             env_var = api_key[2:-1]
             env_value = os.getenv(env_var)
+            logger.debug(f"Checking environment variable '{env_var}': {env_value}")
 
             if not env_value:
                 error_msg = (
@@ -308,14 +310,18 @@ class Swarm:
         def sync_tool_fn(**kwargs):
             logger.debug(f"Executing sync_tool_fn for tool '{tool_name}' with args: {kwargs}")
             try:
-                loop = asyncio.get_event_loop()
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
                 if loop.is_running():
                     logger.debug(f"Async loop is running. Scheduling '{tool_name}' coroutine.")
                     fut = asyncio.run_coroutine_threadsafe(async_tool_fn(**kwargs), loop)
                     result = fut.result()
                 else:
                     logger.debug(f"Async loop is not running. Running '{tool_name}' coroutine.")
-                    result = asyncio.run(async_tool_fn(**kwargs))
+                    result = loop.run_until_complete(async_tool_fn(**kwargs))
                 logger.debug(f"Tool '{tool_name}' executed with result: {result}")
                 return result
             except Exception as e:

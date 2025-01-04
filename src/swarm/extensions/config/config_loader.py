@@ -102,8 +102,8 @@ def validate_api_keys(config: Dict[str, Any], selected_llm: str = None) -> Dict[
 
     logger.debug(f"Validating API keys for LLM profile '{selected_llm}'")
     try:
-        llm_provider = config['llm_providers'][selected_llm]['provider']
-        llm_api_key = config['llm_providers'][selected_llm]['api_key']
+        llm_provider = config['llm'][selected_llm]['provider']
+        llm_api_key = config['llm'][selected_llm]['api_key']
         if not llm_api_key:
             raise ValueError(f"API key for provider '{llm_provider}' in LLM profile '{selected_llm}' is missing.")
         logger.debug(f"LLM API key for provider '{llm_provider}' is present.")
@@ -145,16 +145,16 @@ def get_llm_provider(config: Dict[str, Any], selected_llm: str) -> Any:
     """
     logger.debug(f"Getting LLM provider for profile '{selected_llm}'")
     try:
-        provider_name = config['llm_providers'][selected_llm]['provider']
+        provider_name = config['llm'][selected_llm]['provider']
         if provider_name == 'openai':
             from swarm.extensions.llm.openai_provider import OpenAIProvider
-            return OpenAIProvider(config['llm_providers'][selected_llm])
+            return OpenAIProvider(config['llm'][selected_llm])
         elif provider_name == 'ollama':
             from swarm.extensions.llm.ollama_provider import OllamaProvider
-            return OllamaProvider(config['llm_providers'][selected_llm])
+            return OllamaProvider(config['llm'][selected_llm])
         elif provider_name == 'mock':
             from swarm.extensions.llm.mock_provider import MockProvider
-            return MockProvider(config['llm_providers'][selected_llm])
+            return MockProvider(config['llm'][selected_llm])
         else:
             logger.error(f"Unsupported LLM provider: {provider_name}")
             raise ValueError(f"Unsupported LLM provider: {provider_name}")

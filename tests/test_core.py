@@ -222,5 +222,5 @@ def test_load_configuration_invalid(tmp_path, monkeypatch):
     monkeypatch.setenv("LLM", "grok")
     monkeypatch.delenv("XAI_API_KEY", raising=False)
 
-    with pytest.raises(ValueError, match="Environment variable 'XAI_API_KEY' required for API key in LLM profile 'grok' is not set or empty."):
+    with pytest.raises(ValueError, match="Environment variable 'XAI_API_KEY' is not set but is required."):
         swarm = Swarm(config_path=str(config_file))

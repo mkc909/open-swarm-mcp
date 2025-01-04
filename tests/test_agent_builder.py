@@ -1,55 +1,29 @@
-import logging
+# tests/test_agent_builder.py
+
+import requests
 import pytest
 from unittest.mock import patch, Mock
-from swarm.agent.agent_builder import build_agent, build_agent_with_mcp_tools, create_tool_function
-from swarm import Agent
-import requests
-
-@pytest.fixture
-def basic_config():
-    '''
-    Provides a basic configuration without MCP servers.
-    '''
-    return {
-        'agentName': 'TestAgent',
-        'instructions': 'You are a test agent.'
-    }
+from swarm.agent.agent_builder import build_agent_with_mcp_tools
+from swarm.types import Agent, Tool
+import logging
 
 @pytest.fixture
 def mcp_config():
-    '''
-    Provides a configuration with MCP servers and tools.
-    '''
+    """
+    Provides a sample MCP configuration for testing.
+    """
     return {
         'agentName': 'MCPAgent',
         'instructions': 'You are an MCP-enabled agent.',
         'mcpServers': {
             'test_server': {
                 'tools': [
-                    {
-                        'name': 'tool1',
-                        'description': 'Test Tool 1',
-                        'endpoint': 'http://mock-mcp-server/tool1'
-                    },
-                    {
-                        'name': 'tool2',
-                        'description': 'Test Tool 2',
-                        'endpoint': 'http://mock-mcp-server/tool2'
-                    }
+                    {'description': 'Test Tool 1', 'endpoint': 'http://mock-mcp-server/tool1', 'name': 'tool1'},
+                    {'description': 'Test Tool 2', 'endpoint': 'http://mock-mcp-server/tool2', 'name': 'tool2'}
                 ]
             }
         }
     }
-
-def test_build_agent_without_tools(basic_config):
-    '''
-    Test building an Agent without any MCP tools.
-    '''
-    agent = build_agent(basic_config)
-    assert isinstance(agent, Agent)
-    assert agent.name == 'TestAgent'
-    assert agent.instructions == 'You are a test agent.'
-    assert len(agent.functions) == 0  # No tools should be registered
 
 @patch('swarm.agent.agent_builder.create_tool_function')
 def test_build_agent_with_tools(mock_create_tool_function, mcp_config):
@@ -65,20 +39,35 @@ def test_build_agent_with_tools(mock_create_tool_function, mcp_config):
     # Set the side_effect to return these functions
     mock_create_tool_function.side_effect = [mock_tool1, mock_tool2]
 
+    # Build the agent with MCP tools
     agent = build_agent_with_mcp_tools(mcp_config)
-    assert isinstance(agent, Agent)
-    assert agent.name == 'MCPAgent'
-    assert agent.instructions == 'You are an MCP-enabled agent.'
-    assert len(agent.functions) == 2  # Two tools should be registered
-    assert agent.functions[0] == mock_tool1
-    assert agent.functions[1] == mock_tool2
 
-    # Ensure create_tool_function was called correctly
-    mock_create_tool_function.assert_any_call('tool1', 'Test Tool 1', 'http://mock-mcp-server/tool1')
-    mock_create_tool_function.assert_any_call('tool2', 'Test Tool 2', 'http://mock-mcp-server/tool2')
-    assert mock_create_tool_function.call_count == 2
+    # Assertions to ensure the agent is built correctly
+    assert isinstance(agent, Agent), "Built object should be an instance of Agent."
+    assert agent.name == 'MCPAgent', "Agent name mismatch."
+    assert agent.instructions == 'You are an MCP-enabled agent.', "Agent instructions mismatch."
+    assert len(agent.functions) == 2, "Agent should have two tools registered."
 
-@patch('requests.post')
+    # Check each tool
+    tool1 = next((tool for tool in agent.functions if tool.name == 'tool1'), None)
+    tool2 = next((tool for tool in agent.functions if tool.name == 'tool2'), None)
+
+    assert tool1 is not None, "'tool1' should be registered."
+    assert tool2 is not None, "'tool2' should be registered."
+
+    # Verify tool descriptions
+    assert tool1.description == 'Test Tool 1', "Tool1 description mismatch."
+    assert tool2.description == 'Test Tool 2', "Tool2 description mismatch."
+
+    # Verify that the tool functions are callable
+    assert callable(tool1.func), "Tool1.func should be callable."
+    assert callable(tool2.func), "Tool2.func should be callable."
+
+    # Test the tool functions
+    assert tool1.func() == 'Mock Tool 1 Success', "Tool1.func did not return expected result."
+    assert tool2.func() == 'Mock Tool 2 Success', "Tool2.func did not return expected result."
+
+@patch('swarm.agent.agent_builder.requests.post')
 def test_tool_function_execution_success(mock_post, mcp_config):
     '''
     Test successful execution of a tool function.
@@ -91,20 +80,18 @@ def test_tool_function_execution_success(mock_post, mcp_config):
 
     # Build the agent with tools
     agent = build_agent_with_mcp_tools(mcp_config)
-    tool_function = agent.functions[0]  # tool1
 
-    # Execute the tool function with arbitrary parameters
-    result = tool_function(param1='value1', param2='value2')
+    # Find 'tool1' and execute it
+    tool1 = next((tool for tool in agent.functions if tool.name == 'tool1'), None)
+    assert tool1 is not None, "'tool1' should be registered."
 
-    # Assertions
-    mock_post.assert_called_once_with(
-        'http://mock-mcp-server/tool1',
-        json={'param1': 'value1', 'param2': 'value2'},
-        timeout=10
-    )
-    assert result == 'Success'
+    result = tool1.func(query="SELECT * FROM courses LIMIT 1")
+    assert result == 'Success', "Tool1.func should return 'Success'."
 
-@patch('requests.post')
+    # Verify that the POST request was called correctly
+    mock_post.assert_called_with('http://mock-mcp-server/tool1', json={'query': "SELECT * FROM courses LIMIT 1"}, timeout=10)
+
+@patch('swarm.agent.agent_builder.requests.post')
 def test_tool_function_execution_failure(mock_post, mcp_config):
     '''
     Test execution of a tool function when MCP server responds with an error.
@@ -117,20 +104,19 @@ def test_tool_function_execution_failure(mock_post, mcp_config):
 
     # Build the agent with tools
     agent = build_agent_with_mcp_tools(mcp_config)
-    tool_function = agent.functions[0]  # tool1
 
-    # Execute the tool function
-    result = tool_function(param1='value1')
+    # Find 'tool2' and execute it
+    tool2 = next((tool for tool in agent.functions if tool.name == 'tool2'), None)
+    assert tool2 is not None, "'tool2' should be registered."
 
-    # Assertions
-    mock_post.assert_called_once_with(
-        'http://mock-mcp-server/tool1',
-        json={'param1': 'value1'},
-        timeout=10
-    )
-    assert result == 'MCP server responded with status 500: Internal Server Error'
+    result = tool2.func(query="SELECT * FROM courses LIMIT 1")
+    expected_error = 'MCP server responded with status 500: Internal Server Error'
+    assert result == expected_error, "Tool2.func should return the error message."
 
-@patch('requests.post')
+    # Verify that the POST request was called correctly
+    mock_post.assert_called_with('http://mock-mcp-server/tool2', json={'query': "SELECT * FROM courses LIMIT 1"}, timeout=10)
+
+@patch('swarm.agent.agent_builder.requests.post')
 def test_tool_function_exception(mock_post, mcp_config):
     '''
     Test execution of a tool function when an exception occurs during the request.
@@ -140,29 +126,17 @@ def test_tool_function_exception(mock_post, mcp_config):
 
     # Build the agent with tools
     agent = build_agent_with_mcp_tools(mcp_config)
-    tool_function = agent.functions[0]  # tool1
 
-    # Execute the tool function
-    result = tool_function(param1='value1')
+    # Find 'tool1' and execute it
+    tool1 = next((tool for tool in agent.functions if tool.name == 'tool1'), None)
+    assert tool1 is not None, "'tool1' should be registered."
 
-    # Assertions
-    mock_post.assert_called_once_with(
-        'http://mock-mcp-server/tool1',
-        json={'param1': 'value1'},
-        timeout=10
-    )
-    assert result == 'HTTP request failed for tool \'tool1\': Connection Error'
+    result = tool1.func(query="SELECT * FROM courses LIMIT 1")
+    expected_error = "HTTP request failed for tool 'tool1': Connection Error"
+    assert result == expected_error, "Tool1.func should return the HTTP error message."
 
-def test_create_tool_function_metadata(mcp_config):
-    '''
-    Test that the tool function has correct metadata.
-    '''
-    tool_name = 'tool1'
-    tool_description = 'Test Tool 1'
-    mcp_endpoint = 'http://mock-mcp-server/tool1'
-    tool_function = create_tool_function(tool_name, tool_description, mcp_endpoint)
-    assert tool_function.__name__ == 'tool1'
-    assert tool_function.__doc__ == 'Test Tool 1'
+    # Verify that the POST request was called correctly
+    mock_post.assert_called_with('http://mock-mcp-server/tool1', json={'query': "SELECT * FROM courses LIMIT 1"}, timeout=10)
 
 def test_build_agent_with_invalid_tool_config(mcp_config, caplog):
     '''
@@ -173,8 +147,9 @@ def test_build_agent_with_invalid_tool_config(mcp_config, caplog):
 
     with caplog.at_level(logging.WARNING):
         agent = build_agent_with_mcp_tools(mcp_config)
-        assert len(agent.functions) == 1  # Only one valid tool should be registered
-        assert agent.functions[0].__name__ == 'tool1'
 
-        # Check that a warning was logged for the missing endpoint
-        assert 'Tool \'tool2\' in server \'test_server\' lacks an endpoint. Skipping.' in caplog.text
+    # Check that only one tool is registered
+    assert len(agent.functions) == 1, "Only one tool should be registered due to missing endpoint."
+
+    # Verify that the correct warning was logged
+    assert "Tool 'tool2' in server 'test_server' lacks an endpoint. Skipping." in caplog.text

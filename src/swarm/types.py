@@ -3,7 +3,7 @@ from openai.types.chat.chat_completion_message_tool_call import (
     ChatCompletionMessageToolCall,
     Function,
 )
-from typing import List, Callable, Union, Optional, Dict
+from typing import List, Callable, Union, Optional, Dict, Any
 
 # Third-party imports
 from pydantic import BaseModel
@@ -40,3 +40,18 @@ class Result(BaseModel):
     value: str = ""
     agent: Optional[Agent] = None
     context_variables: dict = {}
+
+class Tool(BaseModel):
+    """
+    Represents a generic tool that can be invoked by agents.
+
+    Attributes:
+        name (str): The name of the tool.
+        description (str): A brief description of the tool's functionality.
+        func (Callable[..., Any]): The function to execute the tool.
+        input_schema (Optional[Dict[str, Any]]): JSON schema defining the tool's input parameters.
+    """
+    name: str
+    description: str
+    func: Callable[..., Any]  # Requires `Any` from `typing`
+    input_schema: Optional[Dict[str, Any]] = None

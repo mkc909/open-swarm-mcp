@@ -1,177 +1,185 @@
-# src/swarm/config/config_loader.py
-
 """
-Configuration Loader for Open Swarm.
+Configuration Loader for Open Swarm MCP Framework.
 
-This module handles loading and validating the server configuration from a JSON file.
-It resolves environment variable placeholders and ensures all required API keys are present.
+This module provides functionality to:
+- Load and validate server configurations from JSON files.
+- Resolve environment variable placeholders.
+- Ensure all required keys and configurations are present.
 """
 
 import os
 import json
 import re
 import logging
-from typing import Any, Dict, List, Tuple
-
-from .utils.logger import setup_logger
+from typing import Any, Dict, List, Tuple, Union
 
 # Initialize logger for this module
-logger = setup_logger(__name__)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+stream_handler = logging.StreamHandler()
+formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(name)s - %(message)s")
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
-def resolve_placeholders(obj: Any) -> Any:
+
+def resolve_placeholders(value: Any) -> Any:
     """
-    Recursively resolve placeholders in the given object.
+    Recursively resolves environment variable placeholders in strings, dictionaries, or lists.
 
-    Placeholders are in the form of ${VAR_NAME} and are replaced with the corresponding environment variable.
+    Placeholders are in the format `${VAR_NAME}` and are replaced with the corresponding environment variable value.
 
     Args:
-        obj (Any): The object to resolve placeholders in.
+        value (Any): The value to process (can be a string, dict, list, or other types).
 
     Returns:
-        Any: The object with all placeholders resolved.
+        Any: The resolved value with placeholders replaced.
 
     Raises:
         ValueError: If a required environment variable is not set.
     """
-    if isinstance(obj, dict):
-        return {k: resolve_placeholders(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [resolve_placeholders(item) for item in obj]
-    elif isinstance(obj, str):
+    if isinstance(value, str):
+        # Match `${VAR_NAME}` patterns in the string
         pattern = re.compile(r'\$\{(\w+)\}')
-        matches = pattern.findall(obj)
+        matches = pattern.findall(value)
+
         for var in matches:
             env_value = os.getenv(var)
             if env_value is None:
-                logger.error(f"Environment variable '{var}' is not set but is required.")
-                raise ValueError(f"Environment variable '{var}' is not set but is required.")
-            obj = obj.replace(f'${{{var}}}', env_value)
-            logger.debug(f"Resolved placeholder '${{{var}}}' with value '{env_value}'")
-        return obj
+                logger.error(f"Required environment variable '{var}' is not set.")
+                raise ValueError(f"Environment variable '{var}' is not set.")
+            logger.debug(f"Resolving placeholder '${{{var}}}' with value '{env_value}'.")
+            value = value.replace(f"${{{var}}}", env_value)
+
+        return value
+    elif isinstance(value, dict):
+        # Recursively resolve placeholders in dictionary values
+        return {key: resolve_placeholders(val) for key, val in value.items()}
+    elif isinstance(value, list):
+        # Recursively resolve placeholders in list items
+        return [resolve_placeholders(item) for item in value]
     else:
-        return obj
+        # Return value as is if it's not a string, dict, or list
+        return value
+
 
 def load_server_config(file_path: str) -> Dict[str, Any]:
     """
-    Loads the server configuration from a JSON file and resolves any environment variable placeholders.
+    Loads the server configuration from a JSON file and resolves environment variable placeholders.
 
     Args:
-        file_path (str): The path to the configuration JSON file.
+        file_path (str): The path to the configuration file.
 
     Returns:
-        Dict[str, Any]: The resolved configuration dictionary.
+        Dict[str, Any]: A dictionary containing the resolved server configuration.
 
     Raises:
-        FileNotFoundError: If the configuration file does not exist.
-        json.JSONDecodeError: If the configuration file contains invalid JSON.
-        ValueError: If any required environment variables are missing.
+        FileNotFoundError: If the specified configuration file does not exist.
+        json.JSONDecodeError: If the configuration file is not a valid JSON.
+        ValueError: If required environment variables are missing in the configuration.
     """
-    logger.debug(f"Attempting to load configuration from {file_path}")
+    logger.info(f"Loading configuration from '{file_path}'.")
+
+    # Ensure the configuration file exists
     if not os.path.exists(file_path):
-        logger.error(f"Configuration file not found at {file_path}")
-        raise FileNotFoundError(f"Configuration file not found at {file_path}")
+        logger.error(f"Configuration file not found at {file_path}.")
+        raise FileNotFoundError(f"Configuration file not found at {file_path}.")
 
-    with open(file_path, 'r') as f:
-        config = json.load(f)
-    logger.debug(f"Configuration loaded: {config}")
+    # Load the configuration JSON file
+    with open(file_path, "r") as file:
+        try:
+            config = json.load(file)
+            logger.debug(f"Configuration loaded successfully: {json.dumps(config, indent=2)}")
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON format in configuration file '{file_path}': {e}")
+            raise
 
-    # Resolve placeholders recursively
-    resolved_config = resolve_placeholders(config)
-    logger.debug(f"Configuration after resolving placeholders: {resolved_config}")
+    # Resolve placeholders in `llm` and `mcpServers` sections
+    logger.debug("Resolving placeholders in LLM and MCP server configurations.")
+    config["llm"] = resolve_placeholders(config.get("llm", {}))
+    config["mcpServers"] = resolve_placeholders(config.get("mcpServers", {}))
 
-    return resolved_config
+    # Validate mandatory environment variables in MCP server `env` sections
+    validate_mcp_server_env(config.get("mcpServers", {}))
 
-def validate_api_keys(config: Dict[str, Any], selected_llm: str = None) -> Dict[str, Any]:
+    logger.info("Configuration successfully loaded and resolved.")
+    return config
+
+
+def validate_mcp_server_env(mcp_servers: Dict[str, Any]) -> None:
     """
-    Validates that all required API keys are present in the configuration.
-    Skips validation for LLM providers that do not require API keys.
+    Validates that mandatory environment variables in MCP server configurations are set.
+
+    Args:
+        mcp_servers (Dict[str, Any]): MCP server configurations.
+
+    Raises:
+        ValueError: If any mandatory environment variable in an `env` section is not set.
+    """
+    for server_name, server_config in mcp_servers.items():
+        env_vars = server_config.get("env", {})
+        for env_key, env_value in env_vars.items():
+            if not env_value:
+                logger.error(f"Environment variable '{env_key}' for MCP server '{server_name}' is not set.")
+                raise ValueError(f"Environment variable '{env_key}' for MCP server '{server_name}' is not set.")
+            logger.debug(f"Validated environment variable '{env_key}' for server '{server_name}' with value '{env_value}'.")
+
+
+def validate_api_keys(config: Dict[str, Any], selected_llm: str = "default") -> Dict[str, Any]:
+    """
+    Validates the presence of API keys for the selected LLM profile.
 
     Args:
         config (Dict[str, Any]): The configuration dictionary.
-        selected_llm (str): The selected LLM profile. Defaults to "default" if not provided.
+        selected_llm (str): The selected LLM profile. Defaults to "default".
 
     Returns:
         Dict[str, Any]: The validated configuration.
 
     Raises:
-        ValueError: If a required API key is missing and the provider mandates it.
+        ValueError: If a required API key is missing for the selected LLM profile.
     """
-    # Use "default" as the fallback selected LLM profile
-    selected_llm = selected_llm or "default"
-    logger.debug(f"Validating API keys for LLM profile: {selected_llm}")
+    logger.debug(f"Validating API keys for LLM profile '{selected_llm}'.")
+    llm_config = config.get("llm", {}).get(selected_llm, {})
+    if not llm_config:
+        logger.warning(f"No configuration found for LLM profile '{selected_llm}'.")
+        return config
 
-    try:
-        llm_profile = config.get("llm", {}).get(selected_llm, {})
-        llm_provider = llm_profile.get("provider")
-        llm_api_key = llm_profile.get("api_key")
+    api_key = llm_config.get("api_key")
+    if api_key == "":
+        # An empty string explicitly means no API key is required
+        logger.info(f"LLM profile '{selected_llm}' does not require an API key (explicit empty string).")
+        return config
+    elif not api_key:
+        # If not explicitly empty but missing, raise an error
+        logger.error(f"API key is missing for LLM profile '{selected_llm}'.")
+        raise ValueError(f"API key is missing for LLM profile '{selected_llm}'.")
 
-        # If provider is missing, log a warning and skip validation
-        if not llm_provider:
-            logger.warning(f"No provider specified for LLM profile '{selected_llm}'. Skipping API key validation.")
-            return config
-
-        # Log if the API key is missing, but only warn since not all providers require it
-        if not llm_api_key:
-            logger.warning(f"API key missing for provider '{llm_provider}' in LLM profile '{selected_llm}'. Validation skipped.")
-
-        logger.info(f"API key validation completed for provider '{llm_provider}'.")
-    except Exception as e:
-        logger.error(f"Unexpected error during API key validation for profile '{selected_llm}': {e}", exc_info=True)
-
+    logger.info(f"API key validation successful for LLM profile '{selected_llm}'.")
     return config
 
-def get_llm_provider(config: Dict[str, Any], selected_llm: str) -> Any:
+
+def are_required_mcp_servers_configured(
+    required_servers: List[str], config: Dict[str, Any]
+) -> Tuple[bool, List[str]]:
     """
-    Instantiates and returns the appropriate LLM provider based on the configuration.
-
-    Args:
-        config (Dict[str, Any]): The configuration dictionary.
-        selected_llm (str): The selected LLM profile.
-
-    Returns:
-        Any: An instance of the selected LLM provider.
-
-    Raises:
-        ValueError: If the provider is not recognized or unsupported.
-    """
-    logger.debug(f"Getting LLM provider for profile '{selected_llm}'")
-    try:
-        provider_name = config['llm'][selected_llm]['provider']
-        if provider_name == 'openai':
-            from swarm.extensions.llm.openai_provider import OpenAIProvider
-            return OpenAIProvider(config['llm'][selected_llm])
-        elif provider_name == 'ollama':
-            from swarm.extensions.llm.ollama_provider import OllamaProvider
-            return OllamaProvider(config['llm'][selected_llm])
-        elif provider_name == 'mock':
-            from swarm.extensions.llm.mock_provider import MockProvider
-            return MockProvider(config['llm'][selected_llm])
-        else:
-            logger.error(f"Unsupported LLM provider: {provider_name}")
-            raise ValueError(f"Unsupported LLM provider: {provider_name}")
-    except KeyError as e:
-        logger.error(f"Missing key in configuration for LLM provider: {e}")
-        raise ValueError(f"Missing key in configuration for LLM provider: {e}")
-    except ImportError as e:
-        logger.error(f"Failed to import LLM provider module: {e}")
-        raise ValueError(f"Failed to import LLM provider module: {e}")
-
-def are_required_mcp_servers_running(required_servers: List[str], config: Dict[str, Any]) -> Tuple[bool, List[str]]:
-    """
-    Checks whether all required MCP servers are present in the configuration.
+    Checks if all required MCP servers are configured.
 
     Args:
         required_servers (List[str]): A list of required MCP server names.
         config (Dict[str, Any]): The configuration dictionary.
 
     Returns:
-        (bool, List[str]): A tuple where the first element is True if all required servers are present,
-                           and the second element is a list of missing servers.
+        Tuple[bool, List[str]]: A tuple containing:
+            - A boolean indicating if all required servers are present.
+            - A list of missing server names.
     """
-    logger.debug(f"Checking required MCP servers: {required_servers}")
-    missing_servers = [server for server in required_servers if server not in config.get('mcpServers', {})]
+    logger.debug(f"Checking required MCP servers: {required_servers}.")
+    mcp_servers = config.get("mcpServers", {})
+    missing_servers = [server for server in required_servers if server not in mcp_servers]
+
     if missing_servers:
-        logger.warning(f"Missing MCP servers: {missing_servers}")
+        logger.warning(f"Missing MCP servers: {missing_servers}.")
         return False, missing_servers
-    logger.debug("All required MCP servers are present.")
+
+    logger.info("All required MCP servers are configured.")
     return True, []

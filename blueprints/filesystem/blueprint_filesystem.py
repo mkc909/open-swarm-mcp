@@ -11,7 +11,7 @@ import logging
 from typing import Dict, Any, Callable
 
 from swarm.extensions.blueprint import BlueprintBase
-from swarm.types import Agent  # Removed AgentFunctionDefinition import
+from swarm.types import Agent
 
 # Configure logger
 logger = logging.getLogger(__name__)

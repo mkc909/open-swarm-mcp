@@ -296,9 +296,9 @@ class MCPClientManager:
         await self.test_methods(tools)
 
 
-if __name__ == "__main__":
-    client = MCPClientManager(
-        command="npx",
-        args=["-y", "mcp-server-sqlite-npx", "./artificial_university.db"]
-    )
-    asyncio.run(client.main())
+# if __name__ == "__main__":
+#     client = MCPClientManager(
+#         command="npx",
+#         args=["-y", "mcp-server-sqlite-npx", "./artificial_university.db"]
+#     )
+#     asyncio.run(client.main())

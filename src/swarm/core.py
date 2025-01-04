@@ -11,6 +11,7 @@ of conversations between agents and MCP servers.
 import copy
 import json
 import os
+import logging
 from collections import defaultdict
 from typing import List, Callable, Union, Optional, Dict, Any
 
@@ -30,54 +31,24 @@ from .types import (
     Result,
 )
 
+from .extensions.config.config_loader import load_server_config, validate_api_keys, validate_mcp_server_env
+from .extensions.mcp.mcp_client import MCPClientManager
+
 __CTX_VARS_NAME__ = "context_variables"
 
-# Function Registry
-def echo_function(content: str) -> str:
-    """
-    Echoes the user input.
-
-    Args:
-        content (str): The user's input.
-
-    Returns:
-        str: The echoed content.
-    """
-    return content
-
-# Add more functions as needed
-def filesystem_function(operation: str, path: str) -> str:
-    """
-    Performs filesystem operations.
-
-    Args:
-        operation (str): The filesystem operation to perform.
-        path (str): The file or directory path.
-
-    Returns:
-        str: The result of the operation.
-    """
-    # Placeholder implementation
-    if operation == "read":
-        return f"Reading from {path}"
-    elif operation == "write":
-        return f"Writing to {path}"
-    else:
-        return f"Unknown operation '{operation}' on {path}"
-
-# Update the FUNCTION_REGISTRY
-FUNCTION_REGISTRY = {
-    "echo_function": echo_function,
-    "filesystem_function": filesystem_function,
-    # Add more functions here as needed
-}
+# Initialize logger for this module
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+stream_handler = logging.StreamHandler()
+formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(name)s - %(message)s")
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
 class Swarm:
     def __init__(self, client=None, config_path: Optional[str] = None):
         """
         Initialize the Swarm with an optional custom OpenAI client.
-        If no client is provided, a default OpenAI client is created.
-        Optionally load configurations from a JSON file.
+        Load configuration using the config_loader and validate it.
 
         Args:
             client: Custom OpenAI client instance.
@@ -87,83 +58,112 @@ class Swarm:
             client = OpenAI()
         self.client = client
 
-        # Initialize default settings
+        # Default settings
         self.model = "gpt-4o"
         self.temperature = 0.7
         self.tool_choice = "sequential"
         self.parallel_tool_calls = False
         self.agents: Dict[str, Agent] = {}
-
-        # Load configurations if config_path is provided
         self.config = {}
+
         if config_path:
-            self.config = self.load_configuration(config_path)
-            debug_print(True, f"Configuration loaded from {config_path}: {self.config}")
-            print(f"[INFO] Configuration loaded from {config_path}.")
+            try:
+                # Load the configuration using the config_loader module
+                self.config = load_server_config(config_path)
+                logger.info(f"Configuration successfully loaded from {config_path}.")
 
-            # Override client settings based on configuration
-            api_key = self.config.get("api_key")
-            if api_key:
-                self.client.api_key = api_key
-                debug_print(True, "API key set from configuration.")
-                print("[INFO] API key set from configuration.")
+                # Validate API keys for the selected LLM profile
+                validate_api_keys(self.config, selected_llm="default")
+                logger.info("LLM API key validation successful.")
 
-            model = self.config.get("model")
-            if model:
-                self.model = model
-                debug_print(True, f"Model set to {model} from configuration.")
-                print(f"[INFO] Model set to {model} from configuration.")
+                # Validate MCP server environment variables
+                mcp_servers = self.config.get("mcpServers", {})
+                validate_mcp_server_env(mcp_servers)
+                logger.info("MCP server environment validation successful.")
 
-            temperature = self.config.get("temperature", 0.7)
-            self.temperature = temperature
-            debug_print(True, f"Temperature set to {temperature} from configuration.")
-            print(f"[INFO] Temperature set to {temperature} from configuration.")
+                # Override default settings from configuration
+                llm_config = self.config.get("llm", {}).get("default", {})
+                self.client.api_key = llm_config.get("api_key", "")
+                self.model = llm_config.get("model", self.model)
+                self.temperature = llm_config.get("temperature", self.temperature)
+                self.tool_choice = llm_config.get("tool_choice", self.tool_choice)
+                self.parallel_tool_calls = llm_config.get(
+                    "parallel_tool_calls", self.parallel_tool_calls
+                )
 
-            tool_choice = self.config.get("tool_choice", "sequential")
-            self.tool_choice = tool_choice
-            debug_print(True, f"Tool choice set to {tool_choice} from configuration.")
-            print(f"[INFO] Tool choice set to {tool_choice} from configuration.")
+                logger.debug(f"Swarm initialized with model={self.model}, "
+                             f"temperature={self.temperature}, tool_choice={self.tool_choice}, "
+                             f"parallel_tool_calls={self.parallel_tool_calls}.")
 
-            self.parallel_tool_calls = self.config.get("parallel_tool_calls", False)
-            debug_print(True, f"Parallel tool calls set to {self.parallel_tool_calls} from configuration.")
-            print(f"[INFO] Parallel tool calls set to {self.parallel_tool_calls} from configuration.")
-
-            # Note: Removed `register_agents()` since agents are instantiated by blueprints
+            except (FileNotFoundError, ValueError, json.JSONDecodeError) as e:
+                logger.error(f"Failed to initialize Swarm: {e}")
+                raise
         else:
-            print("[INFO] No configuration file provided. Using default settings.")
+            logger.info("No configuration file provided. Using default settings.")
 
-    def load_configuration(self, config_path: str) -> Dict[str, Any]:
+    async def discover_and_merge_agent_tools(self, agent: Agent, debug: bool = False):
         """
-        Load configuration from a JSON file.
+        Discover tools from MCP servers for the agent and merge them with existing functions.
 
         Args:
-            config_path (str): Path to the configuration file.
+            agent (Agent): The agent for which to discover tools.
+            debug (bool): Enable debug logging.
 
         Returns:
-            Dict[str, Any]: The loaded configuration dictionary.
-
-        Raises:
-            FileNotFoundError: If the configuration file does not exist.
-            json.JSONDecodeError: If the file is not valid JSON.
+            List[AgentFunction]: Merged list of tools and functions.
         """
-        if not os.path.exists(config_path):
-            error_msg = f"Configuration file '{config_path}' does not exist."
-            debug_print(True, error_msg)
-            raise FileNotFoundError(error_msg)
+        if not agent.mcp_servers:
+            logger.debug(f"Agent '{agent.name}' has no assigned MCP servers.")
+            return agent.functions
 
-        with open(config_path, "r") as f:
+        discovered_tools = []
+
+        for server_name in agent.mcp_servers:
+            # Retrieve server configuration
+            server_config = self.config.get("mcpServers", {}).get(server_name)
+            if not server_config:
+                logger.warning(f"MCP server '{server_name}' not found in configuration.")
+                continue
+
+            # Initialize MCP client
             try:
-                config = json.load(f)
-                # Replace environment variable placeholders
-                for key, value in config.items():
-                    if isinstance(value, str) and value.startswith("${") and value.endswith("}"):
-                        env_var = value[2:-1]
-                        config[key] = os.getenv(env_var, "")
-                return config
-            except json.JSONDecodeError as e:
-                error_msg = f"Invalid JSON in configuration file '{config_path}': {e}"
-                debug_print(True, error_msg)
-                raise json.JSONDecodeError(error_msg, e.doc, e.pos)
+                mcp_client = MCPClientManager(
+                    command=server_config.get("command", "npx"),
+                    args=server_config.get("args", []),
+                    env=server_config.get("env", {}),
+                    timeout=30,
+                )
+                logger.info(f"Initialized MCP client for server '{server_name}'.")
+
+                # Discover tools via MCP server
+                responses = await mcp_client.initialize_and_list_tools()
+                logger.debug(f"Responses from tool discovery on '{server_name}': {responses}")
+
+                # Parse tools from response
+                tools_data = [
+                    tool for response in responses
+                    if "result" in response and "tools" in response["result"]
+                    for tool in response["result"]["tools"]
+                ]
+
+                # Attach discovered tools to the agent
+                for tool_info in tools_data:
+                    tool_name = tool_info.get("name", "UnnamedTool")
+                    tool_callable = mcp_client._create_tool_callable(tool_name)
+                    agent_function = AgentFunction(
+                        name=tool_name,
+                        description=tool_info.get("description", "No description provided."),
+                        func=tool_callable,
+                        input_schema=tool_info.get("inputSchema", {}),
+                    )
+                    discovered_tools.append(agent_function)
+
+            except Exception as e:
+                logger.error(f"Error discovering tools for server '{server_name}': {e}", exc_info=True)
+
+        # Merge existing and discovered functions
+        all_functions = agent.functions + discovered_tools
+        return all_functions
 
     def get_chat_completion(
         self,

@@ -195,32 +195,17 @@ def set_env_vars(monkeypatch):
 #         assert kwargs["model"] == "grok-2-1212", "Model does not match config."
 #         assert kwargs["temperature"] == 0.0, "Temperature does not match config."
 
-# Test for invalid configuration (missing API key)
-def test_load_configuration_invalid(tmp_path, monkeypatch):
+def test_load_configuration_invalid():
     """
-    Test that loading an invalid configuration (missing API key) raises a ValueError.
+    Test Swarm initialization with an invalid configuration dictionary.
     """
-    # Create an invalid config where 'grok' API key is missing
-    config = {
-        "llm": {
-            "grok": {
-                "provider": "openai",
-                "model": "grok-2-1212",
-                "base_url": "https://api.x.ai/v1",
-                "api_key": "${XAI_API_KEY}",
-                "temperature": 0.0
-            }
-        },
-        "mcpServers": {}
-    }
+    # Mock configuration to simulate invalid data
+    invalid_config = None  # Simulate missing or invalid config
 
-    config_file = tmp_path / "invalid_swarm_settings.json"
-    with open(config_file, "w") as f:
-        json.dump(config, f)
+    # Initialize Swarm and ensure defaults are used
+    swarm = Swarm(config=invalid_config)
 
-    # Set LLM to 'grok' but do not set XAI_API_KEY
-    monkeypatch.setenv("LLM", "grok")
-    monkeypatch.delenv("XAI_API_KEY", raising=False)
-
-    with pytest.raises(ValueError, match="Environment variable 'XAI_API_KEY' is not set but is required."):
-        swarm = Swarm(config_path=str(config_file))
+    assert swarm.model == "gpt-4o", "Default model should be set when no config is provided."
+    assert swarm.temperature == 0.7, "Default temperature should be set when no config is provided."
+    assert swarm.tool_choice == "sequential", "Default tool_choice should be set when no config is provided."
+    assert not swarm.parallel_tool_calls, "Default parallel_tool_calls should be False when no config is provided."

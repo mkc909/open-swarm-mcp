@@ -45,14 +45,13 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
 class Swarm:
-    def __init__(self, client=None, config_path: Optional[str] = None):
+    def __init__(self, client=None, config: Optional[dict] = None):
         """
-        Initialize the Swarm with an optional custom OpenAI client.
-        Load configuration using the config_loader and validate it.
+        Initialize the Swarm with an optional custom OpenAI client and preloaded configuration.
 
         Args:
             client: Custom OpenAI client instance.
-            config_path (Optional[str]): Path to the configuration file.
+            config (Optional[dict]): Preloaded configuration dictionary.
         """
         if not client:
             client = OpenAI()
@@ -64,42 +63,37 @@ class Swarm:
         self.tool_choice = "sequential"
         self.parallel_tool_calls = False
         self.agents: Dict[str, Agent] = {}
-        self.config = {}
+        self.config = config or {}
 
-        if config_path:
-            try:
-                # Load the configuration using the config_loader module
-                self.config = load_server_config(config_path)
-                logger.info(f"Configuration successfully loaded from {config_path}.")
+        try:
+            # Validate API keys for the selected LLM profile
+            validate_api_keys(self.config, selected_llm="default")
+            logger.info("LLM API key validation successful.")
 
-                # Validate API keys for the selected LLM profile
-                validate_api_keys(self.config, selected_llm="default")
-                logger.info("LLM API key validation successful.")
+            # Validate MCP server environment variables
+            mcp_servers = self.config.get("mcpServers", {})
+            validate_mcp_server_env(mcp_servers)
+            logger.info("MCP server environment validation successful.")
 
-                # Validate MCP server environment variables
-                mcp_servers = self.config.get("mcpServers", {})
-                validate_mcp_server_env(mcp_servers)
-                logger.info("MCP server environment validation successful.")
+            # Override default settings from configuration
+            llm_config = self.config.get("llm", {}).get("default", {})
+            self.client.api_key = llm_config.get("api_key", "")
+            self.model = llm_config.get("model", self.model)
+            self.temperature = llm_config.get("temperature", self.temperature)
+            self.tool_choice = llm_config.get("tool_choice", self.tool_choice)
+            self.parallel_tool_calls = llm_config.get(
+                "parallel_tool_calls", self.parallel_tool_calls
+            )
 
-                # Override default settings from configuration
-                llm_config = self.config.get("llm", {}).get("default", {})
-                self.client.api_key = llm_config.get("api_key", "")
-                self.model = llm_config.get("model", self.model)
-                self.temperature = llm_config.get("temperature", self.temperature)
-                self.tool_choice = llm_config.get("tool_choice", self.tool_choice)
-                self.parallel_tool_calls = llm_config.get(
-                    "parallel_tool_calls", self.parallel_tool_calls
-                )
+            logger.debug(f"Swarm initialized with model={self.model}, "
+                         f"temperature={self.temperature}, tool_choice={self.tool_choice}, "
+                         f"parallel_tool_calls={self.parallel_tool_calls}.")
 
-                logger.debug(f"Swarm initialized with model={self.model}, "
-                             f"temperature={self.temperature}, tool_choice={self.tool_choice}, "
-                             f"parallel_tool_calls={self.parallel_tool_calls}.")
+        except (ValueError, KeyError) as e:
+            logger.error(f"Failed to initialize Swarm due to configuration error: {e}")
+            raise
 
-            except (FileNotFoundError, ValueError, json.JSONDecodeError) as e:
-                logger.error(f"Failed to initialize Swarm: {e}")
-                raise
-        else:
-            logger.info("No configuration file provided. Using default settings.")
+        logger.info("Swarm initialized successfully.")
 
     async def discover_and_merge_agent_tools(self, agent: Agent, debug: bool = False):
         if not agent.mcp_servers:

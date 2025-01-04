@@ -32,8 +32,8 @@ class FilesystemBlueprint(BlueprintBase):
       - TriageAgent: Performs triage tasks without accessing any MCP server.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config: dict, **kwargs):
+        super().__init__(config=config, **kwargs)
         self.create_agents()
 
     @property
@@ -118,21 +118,5 @@ class FilesystemBlueprint(BlueprintBase):
         # Start interactive mode with TriageAgent as the starting agent
         self.interactive_mode()
 
-
 if __name__ == "__main__":
-    import argparse
-
-    # Parse command-line arguments for streaming mode
-    parser = argparse.ArgumentParser(description="Run FilesystemBlueprint REPL.")
-    parser.add_argument(
-        "--stream",
-        action="store_true",
-        help="Enable streaming mode for responses."
-    )
-    args = parser.parse_args()
-
-    # Instantiate the blueprint
-    blueprint = FilesystemBlueprint()
-
-    # Run the blueprint's interactive REPL loop with the TriageAgent
-    blueprint.run()
+    FilesystemBlueprint.main()

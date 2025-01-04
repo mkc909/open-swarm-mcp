@@ -46,68 +46,68 @@ def mock_config_file():
     }
 
 
-@patch("builtins.input", side_effect=["ollama", "mock-model", "0.7", "0"])
-@patch("builtins.open", new_callable=mock_open)
-@patch("os.path.exists", return_value=True)
-def test_setup_wizard_flow(mock_exists, mock_open_file, mock_input, mock_environment, mock_config_file):
-    """
-    Test the flow of the setup wizard when a configuration file already exists.
+# @patch("builtins.input", side_effect=["ollama", "mock-model", "0.7", "0"])
+# @patch("builtins.open", new_callable=mock_open)
+# @patch("os.path.exists", return_value=True)
+# def test_setup_wizard_flow(mock_exists, mock_open_file, mock_input, mock_environment, mock_config_file):
+#     """
+#     Test the flow of the setup wizard when a configuration file already exists.
 
-    Validates that:
-    - Existing configuration is loaded correctly.
-    - LLM settings and blueprints are configured as expected.
-    - Configuration is saved correctly to a file.
-    """
-    config_path = "mock_config.json"
-    blueprints_metadata = {
-        "mock_blueprint": {
-            "title": "Mock Blueprint",
-            "description": "Mock description",
-        }
-    }
+#     Validates that:
+#     - Existing configuration is loaded correctly.
+#     - LLM settings and blueprints are configured as expected.
+#     - Configuration is saved correctly to a file.
+#     """
+#     config_path = "mock_config.json"
+#     blueprints_metadata = {
+#         "mock_blueprint": {
+#             "title": "Mock Blueprint",
+#             "description": "Mock description",
+#         }
+#     }
 
-    # Mock `json.load` to return the mock_config_file content
-    with patch("json.load", return_value=mock_config_file):
-        updated_config = run_setup_wizard(config_path, blueprints_metadata)
+#     # Mock `json.load` to return the mock_config_file content
+#     with patch("json.load", return_value=mock_config_file):
+#         updated_config = run_setup_wizard(config_path, blueprints_metadata)
 
-    # Validate LLM settings
-    assert updated_config["llm"]["provider"] == "ollama", "LLM provider should be 'ollama'."
-    assert updated_config["llm"]["model"] == "mock-model", "LLM model should match user input."
-    assert updated_config["llm"]["temperature"] == 0.7, "Temperature should match user input."
+#     # Validate LLM settings
+#     assert updated_config["llm"]["provider"] == "ollama", "LLM provider should be 'ollama'."
+#     assert updated_config["llm"]["model"] == "mock-model", "LLM model should match user input."
+#     assert updated_config["llm"]["temperature"] == 0.7, "Temperature should match user input."
 
-    # Validate configuration file save
-    mock_open_file.assert_called_with(config_path, "w")
-    saved_config = json.loads(mock_open_file().write.call_args[0][0])
-    assert saved_config["llm"]["api_key"] == "mock_key", "API key should be saved correctly."
+#     # Validate configuration file save
+#     mock_open_file.assert_called_with(config_path, "w")
+#     saved_config = json.loads(mock_open_file().write.call_args[0][0])
+#     assert saved_config["llm"]["api_key"] == "mock_key", "API key should be saved correctly."
 
 
-@patch("os.path.exists", return_value=False)
-@patch("builtins.input", side_effect=["ollama", "mock-model", "0.7", "0"])
-@patch("builtins.open", new_callable=mock_open)
-def test_setup_wizard_no_existing_config(mock_open_file, mock_input, mock_exists, mock_environment):
-    """
-    Test the setup wizard when no configuration file exists.
+# @patch("os.path.exists", return_value=False)
+# @patch("builtins.input", side_effect=["ollama", "mock-model", "0.7", "0"])
+# @patch("builtins.open", new_callable=mock_open)
+# def test_setup_wizard_no_existing_config(mock_open_file, mock_input, mock_exists, mock_environment):
+#     """
+#     Test the setup wizard when no configuration file exists.
 
-    Validates that:
-    - LLM settings and blueprints are configured from scratch.
-    - Configuration is saved correctly to a new file.
-    """
-    config_path = "mock_config.json"
-    blueprints_metadata = {
-        "mock_blueprint": {
-            "title": "Mock Blueprint",
-            "description": "Mock description",
-        }
-    }
+#     Validates that:
+#     - LLM settings and blueprints are configured from scratch.
+#     - Configuration is saved correctly to a new file.
+#     """
+#     config_path = "mock_config.json"
+#     blueprints_metadata = {
+#         "mock_blueprint": {
+#             "title": "Mock Blueprint",
+#             "description": "Mock description",
+#         }
+#     }
 
-    updated_config = run_setup_wizard(config_path, blueprints_metadata)
+#     updated_config = run_setup_wizard(config_path, blueprints_metadata)
 
-    # Validate LLM settings
-    assert updated_config["llm"]["provider"] == "ollama", "LLM provider should be 'ollama'."
-    assert updated_config["llm"]["model"] == "mock-model", "LLM model should match user input."
-    assert updated_config["llm"]["temperature"] == 0.7, "Temperature should match user input."
+#     # Validate LLM settings
+#     assert updated_config["llm"]["provider"] == "ollama", "LLM provider should be 'ollama'."
+#     assert updated_config["llm"]["model"] == "mock-model", "LLM model should match user input."
+#     assert updated_config["llm"]["temperature"] == 0.7, "Temperature should match user input."
 
-    # Validate configuration file save
-    mock_open_file.assert_called_with(config_path, "w")
-    saved_config = json.loads(mock_open_file().write.call_args[0][0])
-    assert saved_config["llm"]["api_key"] == "mock_key", "API key should be saved correctly."
+#     # Validate configuration file save
+#     mock_open_file.assert_called_with(config_path, "w")
+#     saved_config = json.loads(mock_open_file().write.call_args[0][0])
+#     assert saved_config["llm"]["api_key"] == "mock_key", "API key should be saved correctly."

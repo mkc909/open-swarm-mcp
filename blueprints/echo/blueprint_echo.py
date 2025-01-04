@@ -11,7 +11,7 @@ import logging
 from typing import Dict, Any, Callable
 
 from swarm.extensions.blueprint import BlueprintBase
-from swarm.types import Agent, AgentFunctionDefinition  # Updated import
+from swarm.types import Agent  # Removed AgentFunctionDefinition import
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ class EchoBlueprint(BlueprintBase):
         """
         logger.debug("Creating agents for EchoBlueprint.")
 
-        # Define the echo function with required attributes
+        # Define the echo function
         def echo_function(content: str) -> str:
             """
             Echoes the user input.
@@ -66,23 +66,6 @@ class EchoBlueprint(BlueprintBase):
             logger.info(f"Echoing content: {content}")
             return content
 
-        # Wrap the function using the AgentFunctionDefinition class
-        echo_func = AgentFunctionDefinition(
-            name="echo_function",
-            description="Echoes the user's input.",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "content": {
-                        "type": "string",
-                        "description": "The user's input to be echoed."
-                    }
-                },
-                "required": ["content"]
-            },
-            func=echo_function
-        )
-
         # Create Echo Agent
         echo_agent = Agent(
             name="EchoAgent",
@@ -91,7 +74,7 @@ class EchoBlueprint(BlueprintBase):
             ),
             mcp_servers=[],  # No MCP servers required
             env_vars={},     # No environment variables required
-            functions=[echo_func],
+            functions=[echo_function],
             parallel_tool_calls=False  # Set based on your framework's requirements
         )
 

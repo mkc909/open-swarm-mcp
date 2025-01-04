@@ -98,18 +98,37 @@ class Swarm:
 
         logger.info("Swarm initialized successfully.")
 
-    async def discover_and_merge_agent_tools(self, agent: Agent, debug: bool = False) -> List[Tool]:
-        """
-        Discover tools for a given agent by querying MCP servers or other sources
-        and merge with existing tools.
-        """
-        # Discover tools via MCPToolProvider
-        mcp_provider = MCPToolProvider(self.config)
-        discovered_tools = await mcp_provider.discover_tools(agent, debug=debug)
+    async def discover_and_merge_agent_tools(self, agent: Agent, debug: bool = False):
+        if not agent.mcp_servers:
+            logger.debug(f"Agent '{agent.name}' has no assigned MCP servers.")
+            return agent.functions
 
-        # Merge existing and discovered tools
-        all_tools = agent.functions + discovered_tools
-        return all_tools
+        discovered_tools = []
+
+        for server_name in agent.mcp_servers:
+            logger.debug(f"Looking up MCP server '{server_name}' for agent '{agent.name}'.")
+
+            # Extract the server-specific configuration
+            server_config = self.config.get("mcpServers", {}).get(server_name)
+            if not server_config:
+                logger.warning(f"MCP server '{server_name}' not found in configuration.")
+                continue
+
+            try:
+                # Pass server-specific config to MCPToolProvider
+                tool_provider = MCPToolProvider(server_name, server_config)
+                logger.info(f"Initialized MCPToolProvider for server '{server_name}'.")
+
+                # Pass the agent to the discover_tools method
+                tools = await tool_provider.discover_tools(agent)
+                discovered_tools.extend(tools)
+
+            except Exception as e:
+                logger.error(f"Error discovering tools for server '{server_name}': {e}", exc_info=True)
+
+        # Combine existing agent functions with discovered tools
+        all_functions = agent.functions + discovered_tools
+        return all_functions
 
     def get_chat_completion(
         self,

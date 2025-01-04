@@ -12,72 +12,70 @@ class MCPToolProvider:
     for each tool with appropriate metadata and input validation.
     """
 
-    def __init__(self, server_name: str, client: Optional[MCPClientManager] = None):
+    def __init__(self, server_name: str, server_config: dict):
         """
-        Initialize the MCPToolProvider.
-
+        Initialize an MCPToolProvider instance.
+        
         Args:
-            server_name (str): The name of the MCP server to connect to.
-            client (Optional[MCPClientManager]): An existing MCPClientManager instance, or None to create a new one.
+            server_name (str): The name of the MCP server.
+            server_config (dict): Configuration dictionary for the specific server.
         """
-        if not server_name:
-            raise ValueError("server_name must be provided.")
-
         self.server_name = server_name
-        self.client = client or MCPClientManager(server_name)
-        self.tools: Dict[str, Callable] = {}
+        self.command = server_config.get("command", "npx")
+        self.args = server_config.get("args", [])
+        self.env = server_config.get("env", {})
+        self.timeout = server_config.get("timeout", 30)
+        self.config = server_config
+        self.client = None
+        self.initialize_client()
+        logger.debug(f"Initialized MCPToolProvider for server '{self.server_name}' with config: {server_config}")
 
-        logger.debug(f"Initialized MCPToolProvider for server '{server_name}'.")
+    def initialize_client(self):
+        # Initialize the MCP client
+        self.client = MCPClientManager(
+            command=self.config.get("command", "npx"),
+            args=self.config.get("args", []),
+            env=self.config.get("env", {}),
+            timeout=self.config.get("timeout", 30),
+        )
 
-    async def discover_tools(self, agent: Agent, debug: bool = False) -> List[Tool]:
+    async def discover_tools(self, agent: Agent) -> list[Tool]:
         """
-        Discover tools via MCP servers for the given agent.
+        Discover tools for the given agent using the associated MCP server.
+        
+        Args:
+            agent (Agent): The agent for which to discover tools.
+
+        Returns:
+            list[Tool]: A list of discovered tools.
         """
-        if not agent.mcp_servers:
-            logger.debug(f"Agent '{agent.name}' has no assigned MCP servers.")
-            return []
+        try:
+            logger.debug(f"Starting tool discovery for agent '{agent.name}' on MCP server '{self.server_name}'.")
 
-        discovered_tools: List[Tool] = []
-        for server_name in agent.mcp_servers:
-            server_config = self.config.get("mcpServers", {}).get(server_name)
-            if not server_config:
-                logger.warning(f"MCP server '{server_name}' not found in configuration.")
-                continue
+            # Call the correct method on the MCP client
+            raw_responses = await self.client.initialize_and_list_tools()
 
-            try:
-                mcp_client = MCPClientManager(
-                    command=server_config.get("command", "npx"),
-                    args=server_config.get("args", []),
-                    env=server_config.get("env", {}),
-                    timeout=30,
+            logger.debug(f"Raw responses from MCP server '{self.server_name}': {raw_responses}")
+
+            tools_data = [
+                tool for response in raw_responses
+                if "result" in response and "tools" in response["result"]
+                for tool in response["result"]["tools"]
+            ]
+
+            discovered_tools = [
+                Tool(
+                    name=tool_info["name"],
+                    description=tool_info.get("description", "No description provided."),
+                    func=self.client._create_tool_callable(tool_info["name"]),
+                    input_schema=tool_info.get("inputSchema", {}),
                 )
-                logger.info(f"Initialized MCP client for server '{server_name}'.")
+                for tool_info in tools_data
+            ]
 
-                # Discover tools via MCP server
-                responses = await mcp_client.initialize_and_list_tools()
-                logger.debug(f"Responses from tool discovery on '{server_name}': {responses}")
-
-                tools_data = [
-                    tool for response in responses
-                    if "result" in response and "tools" in response["result"]
-                    for tool in response["result"]["tools"]
-                ]
-
-                for tool_info in tools_data:
-                    tool_name = tool_info.get("name", "UnnamedTool")
-                    tool_callable = mcp_client._create_tool_callable(tool_name)
-                    mcp_tool = MCPTool(
-                        name=tool_name,
-                        func=tool_callable,
-                        description=tool_info.get("description", "No description provided."),
-                        input_schema=tool_info.get("inputSchema", {}),
-                    )
-                    discovered_tools.append(mcp_tool)
-
-            except Exception as e:
-                logger.error(f"Error discovering tools for server '{server_name}': {e}", exc_info=True)
-
-        return discovered_tools
+        finally:
+            logger.info(f"Discovered tools for agent '{agent.name}': {[tool.name for tool in discovered_tools]}")
+            return discovered_tools
 
     def _create_tool_function(self, tool_info: Dict[str, Any]) -> Callable:
         """

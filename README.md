@@ -254,11 +254,19 @@ https://github.com/user-attachments/assets/a4688100-5737-479f-91e5-974db98296d7
    ```bash
    wget https://raw.githubusercontent.com/matthewhand/open-swarm/refs/heads/main/docker-compose.yaml
    ```
-2. **Configure `.env` & (Optional) `swarm_config.json`**  
-   - Ensure `.env` has `OPENAI_API_KEY`.  
-   - Adjust `swarm_config.json` if you want to use local LLM endpoints or different providers. 
 
-3. **Start the Service**  
+2. **Set up `.env`**  
+   Retrieve the `.env` template and configure the `OPENAI_API_KEY`:
+   ```bash
+   wget https://raw.githubusercontent.com/matthewhand/open-swarm/refs/heads/main/.env.example -O .env
+   sed -i 's/^OPENAI_API_KEY=.*/OPENAI_API_KEY=your_openai_api_key_here/' .env
+   ```
+   Replace `your_openai_api_key_here` with your actual OpenAI API key.
+
+3. **(Optional) Adjust `swarm_config.json`**  
+   Modify `swarm_config.json` if you plan to use local LLM endpoints or different providers.
+
+4. **Start the Service**  
    ```bash
    docker compose up -d
    ```
@@ -267,7 +275,7 @@ https://github.com/user-attachments/assets/a4688100-5737-479f-91e5-974db98296d7
    - Reads port settings and environment variables from `.env`.
    - Exposes the application on `8000` (unless overridden via `$PORT`).
 
-4. **Access**  
+5. **Access the Application**  
    - Visit [http://localhost:8000](http://localhost:8000) for the interactive blueprint pages.
 
 ### Deploy Standalone (TODO) 

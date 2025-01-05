@@ -65,9 +65,17 @@ except ValueError as e:
     raise e
 
 
-def serialize_swarm_response(response: Any, model_name: str) -> Dict[str, Any]:
+def serialize_swarm_response(response: Any, model_name: str, context_variables: Dict[str, Any]) -> Dict[str, Any]:
     """
     Serialize the raw Swarm response to OpenAI-like format.
+    
+    Args:
+        response (Any): The response from Swarm.
+        model_name (str): The name of the model.
+        context_variables (Dict[str, Any]): Context variables for the session.
+
+    Returns:
+        Dict[str, Any]: Serialized response in OpenAI-like format.
     """
     # Extract the last message and active agent
     messages = response.get("messages", []) if isinstance(response, dict) else getattr(response, "messages", [])
@@ -98,6 +106,7 @@ def serialize_swarm_response(response: Any, model_name: str) -> Dict[str, Any]:
             "completion_tokens": sum(len((msg.get("content") or "").split()) for msg in messages if msg.get("role") == "assistant"),
             "total_tokens": len(messages),
         },
+        "context_variables": context_variables, 
     }
 
 @csrf_exempt
@@ -137,23 +146,11 @@ def chat_completions(request):
         response = result["response"]
         updated_context = result["context_variables"]
 
-        # Construct the response to match OpenAI format
-        return JsonResponse({
-            "id": getattr(response, "id", f"swarm-response-{uuid.uuid4()}"),
-            "object": "chat.completion",
-            "created": int(time.time()),
-            "model": model,
-            "choices": [
-                {
-                    "index": i,
-                    "message": msg,
-                    "tool_calls": msg.get("tool_calls", []),
-                    "finish_reason": "stop",
-                }
-                for i, msg in enumerate(response.messages)
-            ],
-            "context_variables": updated_context,
-        }, status=200)
+        # Serialize response and include updated context
+        return JsonResponse(
+            serialize_swarm_response(response, model, updated_context), 
+            status=200
+        )
     except Exception as e:
         logger.error(f"Error during execution: {e}", exc_info=True)
         return JsonResponse({"error": f"Error during execution: {e}"}, status=500)

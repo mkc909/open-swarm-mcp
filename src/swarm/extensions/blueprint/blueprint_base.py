@@ -5,6 +5,7 @@ from typing import Optional, Dict, Any
 from swarm.core import Swarm
 from swarm.repl import run_demo_loop
 from swarm.utils.redact import redact_sensitive_data
+from swarm.extensions.config.config_loader import load_server_config
 from dotenv import load_dotenv
 import argparse
 
@@ -193,25 +194,15 @@ class BlueprintBase(ABC):
             default="./swarm_config.json",
             help="Path to the configuration file (default: ./swarm_config.json)"
         )
-        parser.add_argument(
-            "--stream",
-            action="store_true",
-            help="Enable streaming mode for responses."
-        )
         args = parser.parse_args()
 
         # Log CLI arguments
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger(cls.__name__)
         logger.info(f"Launching blueprint with configuration file: {args.config}")
-        logger.info(f"Streaming mode: {'enabled' if args.stream else 'disabled'}")
 
         # Load configuration and initialize the blueprint
         config = load_server_config(args.config)
         blueprint = cls(config=config)
 
-        # Run based on the streaming mode
-        if args.stream:
-            blueprint.run(stream=True)
-        else:
-            blueprint.interactive_mode()
+        blueprint.interactive_mode()

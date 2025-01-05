@@ -8,7 +8,7 @@ It leverages the BlueprintBase to handle all configuration and MCP session manag
 """
 
 import logging
-from typing import Dict, Any, Callable
+from typing import Dict, Any
 
 from swarm.extensions.blueprint import BlueprintBase
 from swarm.types import Agent
@@ -32,9 +32,8 @@ class FilesystemBlueprint(BlueprintBase):
       - TriageAgent: Performs triage tasks without accessing any MCP server.
     """
 
-    def __init__(self, config: dict, **kwargs):
-        super().__init__(config=config, **kwargs)
-        self.create_agents()
+    # def __init__(self, config: dict, **kwargs):
+    #     super().__init__(config=config, **kwargs)
 
     @property
     def metadata(self) -> Dict[str, Any]:

@@ -39,7 +39,7 @@
    - (TODO) Use **GPT Actions** as an alternative for agent expansions without dedicated MCP infrastructure.
 
 4. **CLI & REST Interface**  
-   - A setup wizard helps define or update blueprint configurations.
+   - (WIP) A setup wizard helps define or update blueprint configurations.
    - Run from the command line or expose a Django-powered REST API for broader integration.
    - Interactive web pages per blueprint at `/<blueprint_name>/`.
 
@@ -123,14 +123,17 @@ Open Swarm showcases a growing library of **Blueprint** examples:
 Open Swarm uses:
 - **`.env`** files for API keys or critical environment variables (e.g., `OPENAI_API_KEY`).  
 - **`swarm_config.json`** (or custom JSON) for advanced settings:
-  - **`llm_providers`**: Define multiple OpenAI-compatible endpoints (e.g., `openai`, `grok`, `ollama`).
+  - **`llm`**: Define multiple OpenAI-compatible endpoints (e.g., `openai`, `grok`, `ollama`).
   - **`mcp_servers`**: Tools/services that agents can call.
   - **`gpt_actions`**: (TODO) More tools/services that agents can call.
+
+### Note:
+If you want to bypass API key validation for a provider (e.g., `ollama`), set the `api_key` field to an empty string (`""`). This can be useful for providers or testing configurations that do not require an API key.
 
 Different agents in a single blueprint can reference different LLM providers. For example:
 ```json
 {
-  "llm_providers": {
+  "llm": {
     "openai": {
       "provider": "openai",
       "model": "gpt-4",
@@ -142,6 +145,12 @@ Different agents in a single blueprint can reference different LLM providers. Fo
       "model": "grok-2-1212",
       "base_url": "https://api.x.ai/v1",
       "api_key": "${XAI_API_KEY}"
+    },
+    "ollama": {
+      "provider": "ollama",
+      "model": "base-model",
+      "base_url": "https://api.ollama.ai/v1",
+      "api_key": ""
     }
   }
 }

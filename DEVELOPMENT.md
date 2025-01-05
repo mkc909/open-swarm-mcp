@@ -17,25 +17,6 @@ This document provides an in-depth look at the **Swarm Framework**’s internal 
 
 ---
 
-## High-Level Architecture
-
-Below is a simplified **Swarm Framework** architecture diagram illustrating the primary components and data flow:
-
-```mermaid
-flowchart TB
-    A[BlueprintBase / DatabaseAndWebBlueprint] --> B[Swarm creation]
-    B --> C{Check if Agents define servers?}
-    C -- yes --> D[Initialize MCPSessionManager]
-    D --> E[Start each server (npx, uvx, etc.)]
-    E --> F[Return sessions to Swarm]
-    C -- no --> F
-    F --> G[Swarm injects discovered tools into Agents]
-    G --> H[Run conversation]
-    H --> [END]
-```
-
----
-
 ## Detailed Sequence Diagrams
 
 ### 1. Blueprint Initialization

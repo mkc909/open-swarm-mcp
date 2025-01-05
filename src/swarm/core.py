@@ -10,8 +10,8 @@ of conversations between agents and MCP servers.
 # Standard library imports
 import copy
 import json
-import os
 import logging
+import uuid
 from collections import defaultdict
 from typing import List, Callable, Union, Optional, Dict, Any
 
@@ -496,6 +496,7 @@ class Swarm:
                 active_agent = partial_response.agent
 
         return Response(
+            id=f"response-{uuid.uuid4()}",  # Generate a unique ID for the response
             messages=history[init_len:],
             agent=active_agent,
             context_variables=context_variables,

@@ -46,6 +46,7 @@ class BlueprintBase(ABC):
 
         # Register agents and discover tools
         self.starting_agent = None
+        self.active_agent_name = None
         agents = self.create_agents()
         self.swarm.agents.update(agents)
         logger.info(f"Agents registered: {list(agents.keys())}")
@@ -92,6 +93,68 @@ class BlueprintBase(ABC):
         """
         logger.debug(f"Setting starting agent to: {agent.name}")
         self.starting_agent = agent
+
+    def determine_active_agent(self, context_variables: Optional[Dict[str, Any]] = None) -> Any:
+        """
+        Determine the active agent based on context variables or fallback to the starting agent.
+
+        Args:
+            context_variables (Optional[Dict[str, Any]]): The current context variables.
+
+        Returns:
+            Any: The active agent instance.
+        """
+        if context_variables:
+            self.active_agent_name = context_variables.get("active_agent_name", self.active_agent_name)
+
+        agents = self.swarm.agents
+        if self.active_agent_name and self.active_agent_name in agents:
+            logger.debug(f"Active agent determined: {self.active_agent_name}")
+            return agents[self.active_agent_name]
+
+        logger.debug("Falling back to the starting agent as the active agent.")
+        return self.starting_agent
+
+    def run_with_context(self, messages: list, context_variables: dict) -> dict:
+        # Determine active agent
+        active_agent = self.determine_active_agent(context_variables)
+
+        # Run Swarm execution
+        response = self.swarm.run(
+            agent=active_agent,
+            messages=messages,
+            context_variables=context_variables,
+            stream=False,
+            debug=True,
+        )
+
+        # Log the full response for debugging
+        logger.debug(f"Swarm response: {response}")
+
+        # Update context variables with the response
+        context_variables["active_agent_name"] = response.agent.name
+        if hasattr(response, "tool_calls") and response.tool_calls:
+            context_variables["last_tool_call"] = response.tool_calls[-1]
+
+        logger.debug(f"Updated context variables: {context_variables}")
+
+        return {
+            "response": response,
+            "context_variables": context_variables,
+        }
+
+    def set_active_agent(self, agent_name: str) -> None:
+        """
+        Set the active agent explicitly.
+
+        Args:
+            agent_name (str): The name of the agent to set as active.
+        """
+        if agent_name in self.swarm.agents:
+            logger.debug(f"Active agent set to: {agent_name}")
+            self.active_agent_name = agent_name
+        else:
+            logger.error(f"Agent '{agent_name}' not found. Cannot set as active agent.")
 
     def interactive_mode(self, stream: bool = False) -> None:
         """

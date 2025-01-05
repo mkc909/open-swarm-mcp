@@ -98,12 +98,11 @@
             const content = document.createElement("p");
         
             if (role === "tool") {
-                const toolName = metadata?.tool_name || "Unknown Tool";
-                const toolOutput = message?.content || "No output.";
+                // Simplified display for tool messages
+                const toolOutput = message?.content ? JSON.parse(message.content) : {};
                 content.innerHTML = `
-                    <strong>Tool Name:</strong> ${toolName}<br/>
-                    <strong>Tool Call ID:</strong> ${metadata?.tool_call_id || "N/A"}<br/>
-                    <strong>Output:</strong><pre>${JSON.stringify(toolOutput, null, 2)}</pre>
+                    <strong>Tool Name:</strong> ${metadata.tool_name || "Unknown"}<br/>
+                    <strong>Output:</strong> ${JSON.stringify(toolOutput, null, 2)}
                 `;
             } else {
                 content.textContent = message?.content || "No content provided.";
@@ -111,6 +110,7 @@
         
             container.appendChild(content);
         
+            const messageHistory = document.getElementById("messageHistory");
             if (!messageHistory) {
                 console.error("Message history element not found!");
                 return;
@@ -121,8 +121,7 @@
         
             console.log("Message rendered successfully");
         };
-                        
-
+        
     /**
      * Appends raw message data to the Raw Messages pane.
      * @param {string} role - The role of the sender.
@@ -134,16 +133,11 @@
         const rawMessage = document.createElement("div");
         rawMessage.className = "raw-message";
     
-        const finalSender = sender || (role === "tool" ? "Tool" : "Unknown");
-        const toolCallId = metadata?.tool_call_id || null;
-        const toolName = metadata?.tool_name || "Unknown";
-    
         const rawData = {
             role: role,
-            sender: finalSender,
-            tool_call_id: toolCallId,
-            tool_name: toolName,
-            content: content.content || "No content provided."
+            sender: sender || "Unknown",
+            content: content.content || "No content provided.",
+            metadata: metadata // Retain full metadata for backend processing
         };
     
         const pre = document.createElement("pre");
@@ -161,7 +155,7 @@
     
         console.log("Appended Raw Message:", rawData);
     };
-    
+            
     /**
      * Renders debug information in the Debug pane.
      * Replaces existing content with the latest debug info.
@@ -248,16 +242,22 @@
     }
 
     /**
-     * Toggles the visibility of the Raw Messages pane.
+     * Toggles the visibility of the Raw Messages pane and logs raw messages to the console if enabled.
      */
     window.toggleRawMessages = function() {
         if (rawToggle.checked) {
             rawMessagesPane.style.display = "block";
+
+            // Log all raw messages in chatHistory to the console
+            console.log("Raw Messages Pane Toggled On. Printing all raw messages:");
+            chatHistory.forEach((msg, index) => {
+                console.log(`Message #${index + 1}:`, msg);
+            });
         } else {
             rawMessagesPane.style.display = "none";
             rawMessagesContent.innerHTML = ""; // Clear raw messages when hidden
         }
-    }
+    };
 
     /**
      * Toggles the visibility of the Debug pane.
@@ -279,90 +279,95 @@
     async function handleSubmit(messageText = null) {
         const userInput = document.getElementById("userInput");
         const userMessageContent = messageText ? messageText : userInput.value.trim();
+    
         if (!userMessageContent) return;
     
-        if (!messageText) userInput.value = ""; // Clear input if manually entered
+        // Clear the input field
+        if (!messageText) userInput.value = "";
     
         const userMessage = {
             role: "user",
             content: userMessageContent,
             sender: "User",
-            metadata: {}
+            metadata: {}, // Add any extra metadata if needed
         };
     
+        // Append the user's message to the chat history
         chatHistory.push(userMessage);
+    
+        // Render the message in the UI
         renderMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
         appendRawMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
     
-        if (debugToggle.checked) {
-            renderDebugInfo(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
-        }
-    
         try {
-            const urlPath = window.location.pathname;
-            const blueprintId = urlPath.split("/").filter(Boolean).pop();
-            if (!blueprintId) throw new Error("Blueprint ID missing in URL.");
-    
             const response = await fetch("/v1/chat/completions", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-CSRFToken": csrfToken
+                    "X-CSRFToken": csrfToken,
                 },
                 body: JSON.stringify({
-                    model: blueprintId,
-                    messages: chatHistory.map(msg => ({
-                        role: msg.role,
-                        content: msg.content,
-                        sender: msg.sender,
-                        tool_calls: msg.metadata.tool_calls || undefined
-                    }))
-                })
+                    model: "filesystem",
+                    messages: chatHistory, // Send the full chat history
+                }),
             });
     
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-            const data = await response.json();
     
-            if (data?.choices?.length > 0) {
-                processAssistantResponse(data.choices);
-            } else {
-                renderMessage("assistant", { content: "No response received." }, "Assistant", {});
-            }
+            const data = await response.json();
+            processAssistantResponse(data.choices);
         } catch (error) {
-            console.error("Error during submission:", error);
-            renderMessage("assistant", { content: "Error occurred. Please try again." }, "Assistant", {});
+            console.error("Error submitting message:", error);
         }
     }
-    
+            
 
     function processAssistantResponse(choices) {
+        if (!choices || !Array.isArray(choices)) {
+            console.error("Invalid choices array:", choices);
+            return;
+        }
+    
+        console.log("Processing assistant response with choices:", choices);
+    
         choices.forEach(choice => {
-            const content = choice.message?.content || "No response.";
-            const sender = choice.message?.sender || "Assistant";
-            const toolCalls = choice.message?.tool_calls || [];
+            const message = choice.message || {};
+            const content = message.content || "No response.";
+            const sender = message.sender || "Assistant";
+            const toolCalls = choice.tool_calls || [];
+    
+            console.log("Choice details:", { content, sender, toolCalls });
     
             const assistantMessage = {
                 role: "assistant",
                 content: content,
                 sender: sender,
-                metadata: choice.message || {}
+                metadata: {
+                    tool_calls: toolCalls, // Include tool calls metadata
+                    ...message, // Pass all additional message metadata
+                },
             };
     
             chatHistory.push(assistantMessage);
+    
             renderMessage(assistantMessage.role, { content: assistantMessage.content }, assistantMessage.sender, assistantMessage.metadata);
             appendRawMessage(assistantMessage.role, { content: assistantMessage.content }, assistantMessage.sender, assistantMessage.metadata);
     
-            if (debugToggle.checked) {
+            if (debugToggle && debugToggle.checked) {
                 renderDebugInfo(assistantMessage.role, { content: assistantMessage.content }, assistantMessage.sender, assistantMessage.metadata);
             }
     
-            // Process tool calls if present
-            toolCalls.forEach(toolCall => processToolCall(toolCall));
+            toolCalls.forEach(toolCall => {
+                console.log("Processing tool call:", toolCall);
+                processToolCall(toolCall);
+            });
         });
-    }
     
+        console.log("Assistant response processed successfully.");
+    }
+                    
     function processToolCall(toolCall) {
-        const content = toolCall.content || "No tool output.";
+        const content = toolCall.content || "No content.";
         const toolCallId = toolCall.id || toolCall.tool_call_id || "N/A";
         const toolName = toolCall.function?.name || toolCall.tool_name || "Unknown Tool";
     
@@ -372,7 +377,7 @@
             role: "tool",
             content: content,
             sender: `Tool: ${toolName}`,
-            metadata: toolCall
+            metadata: toolCall // Pass entire toolCall object as metadata
         };
     
         chatHistory.push(toolMessage);
@@ -383,7 +388,7 @@
             renderDebugInfo(toolMessage.role, { content: toolMessage.content }, toolMessage.sender, toolMessage.metadata);
         }
     }
-    
+        
 
     /**
      * Handles user decision on tool calls (Approve or Deny).

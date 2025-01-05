@@ -22,9 +22,17 @@ class Agent(BaseModel):
     env_vars: Optional[Dict[str, str]] = None  # Environment variables required
 
 class Response(BaseModel):
+    id: Optional[str] = None  # id needed for REST
     messages: List = []
     agent: Optional[Agent] = None
     context_variables: dict = {}
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Automatically generate an ID if not provided
+        if not self.id:
+            import uuid
+            self.id = f"response-{uuid.uuid4()}"
 
 
 class Result(BaseModel):

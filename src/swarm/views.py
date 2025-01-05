@@ -64,69 +64,127 @@ except ValueError as e:
     logger.critical(f"Failed to load LLM configuration: {e}")
     raise e
 
-def construct_openai_response(response: Any, openai_model: str) -> Dict[str, Any]:
-    logger.debug("Constructing OpenAI-like response.")
+# def construct_openai_response(response: Any, openai_model: str) -> Dict[str, Any]:
+#     logger.debug("Constructing OpenAI-like response.")
 
-    if response is None:
-        logger.error("Invalid response: response is None.")
-        raise ValueError("Invalid response: response is None.")
+#     if response is None:
+#         logger.error("Invalid response: response is None.")
+#         raise ValueError("Invalid response: response is None.")
 
-    # Extract messages
+#     # Extract messages
+#     messages = response.get("messages", []) if isinstance(response, dict) else getattr(response, "messages", [])
+#     if not isinstance(messages, list):
+#         logger.error("Invalid response: 'messages' is not a list.")
+#         raise ValueError("Invalid response: 'messages' is not a list.")
+
+#     # Initialize result containers
+#     structured_messages = []
+#     tool_calls_buffer = []
+
+#     for msg in messages:
+#         if msg.get("role") == "assistant":
+#             # Ensure tool_calls are properly structured with all required fields
+#             if tool_calls_buffer:
+#                 for tool_call in tool_calls_buffer:
+#                     tool_call["id"] = tool_call.get("tool_call_id", f"call_{uuid.uuid4()}")  # Assign id if missing
+#                     tool_call["type"] = tool_call.get("type", "function")  # Assign default type
+#             structured_message = {
+#                 "role": "assistant",
+#                 "content": msg.get("content"),
+#                 "tool_calls": tool_calls_buffer if tool_calls_buffer else None,
+#                 "sender": msg.get("sender", "Assistant"),
+#             }
+#             tool_calls_buffer = []  # Reset buffer
+#             structured_messages.append(structured_message)
+#         elif msg.get("role") == "tool":
+#             tool_calls_buffer.append({
+#                 "role": "tool",
+#                 "tool_call_id": msg.get("tool_call_id"),
+#                 "tool_name": msg.get("tool_name"),
+#                 "content": msg.get("content"),
+#                 "type": "function",  # Explicitly set type
+#             })
+#             structured_messages.append(tool_calls_buffer[-1])  # Add tool message immediately after
+#         else:
+#             structured_messages.append(msg)
+
+#     assistant_messages = [m for m in structured_messages if m.get("role") == "assistant"]
+#     if not assistant_messages:
+#         assistant_message = {
+#             "role": "assistant",
+#             "content": "No response.",
+#             "sender": "Assistant",
+#         }
+#         structured_messages.append(assistant_message)
+
+#     assistant_message = assistant_messages[-1] if assistant_messages else structured_messages[-1]
+
+#     response_id = f"swarm-chat-completion-{uuid.uuid4()}"
+#     logger.debug(f"Generated response ID: {response_id}")
+
+#     prompt_tokens = sum(len((msg.get("content") or "").split()) for msg in structured_messages if msg.get("role") in ["user", "system"])
+#     completion_tokens = sum(len((msg.get("content") or "").split()) for msg in structured_messages if msg.get("role") not in ["user", "system"])
+#     total_tokens = prompt_tokens + completion_tokens
+
+#     logger.debug(f"Token counts - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens}")
+
+#     return {
+#         "id": response_id,
+#         "object": "chat.completion",
+#         "created": int(time.time()),
+#         "model": openai_model,
+#         "choices": [
+#             {
+#                 "index": 0,
+#                 "message": assistant_message,
+#                 "tool_calls": assistant_message.get("tool_calls"),
+#                 "finish_reason": "stop",
+#             }
+#         ],
+#         "usage": {
+#             "prompt_tokens": prompt_tokens,
+#             "completion_tokens": completion_tokens,
+#             "total_tokens": total_tokens,
+#         },
+#     }
+
+def serialize_swarm_response(response: Any, model_name: str) -> Dict[str, Any]:
+    """
+    Serialize the raw Swarm response to OpenAI-like format.
+    """
+    # Extract the last message and active agent
     messages = response.get("messages", []) if isinstance(response, dict) else getattr(response, "messages", [])
-    if not isinstance(messages, list):
-        logger.error("Invalid response: 'messages' is not a list.")
-        raise ValueError("Invalid response: 'messages' is not a list.")
+    active_agent = getattr(response, "agent", None)
 
-    # Filter assistant and tool messages
-    assistant_messages = [m for m in messages if m.get("role") == "assistant" and m.get("content") is not None]
-    tool_calls = [m for m in messages if m.get("role") == "tool"]
+    if messages:
+        # Update the agent context if necessary
+        last_message = messages[-1]
+        context_variables["active_agent"] = active_agent.name
 
-    # Default if no assistant message
-    if not assistant_messages:
-        assistant_messages = [{"content": "No response.", "role": "assistant", "sender": "Assistant"}]
-        logger.debug("No assistant messages found; defaulting to 'No response.'")
-
-    # Use the last assistant message
-    assistant_message = assistant_messages[-1]
-
-    # Generate unique response ID
+    # Format the response for OpenAI
     response_id = f"swarm-chat-completion-{uuid.uuid4()}"
-    logger.debug(f"Generated response ID: {response_id}")
-
-    # Calculate token counts
-    prompt_tokens = sum(len((msg.get("content") or "").split()) for msg in messages if msg.get("role") in ["user", "system"])
-    completion_tokens = sum(len((msg.get("content") or "").split()) for msg in messages if msg.get("role") not in ["user", "system"])
-    total_tokens = prompt_tokens + completion_tokens
-
-    logger.debug(f"Token counts - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens}")
-
-    # Format the response
     return {
         "id": response_id,
         "object": "chat.completion",
         "created": int(time.time()),
-        "model": openai_model,
+        "model": model_name,
         "choices": [
             {
                 "index": 0,
-                "message": assistant_message,
-                "tool_calls": tool_calls,  # Include tool calls explicitly
+                "message": last_message,
+                "tool_calls": last_message.get("tool_calls", []),
                 "finish_reason": "stop",
             }
         ],
         "usage": {
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "total_tokens": total_tokens,
+            "prompt_tokens": sum(len((msg.get("content") or "").split()) for msg in messages),
+            "completion_tokens": sum(len((msg.get("content") or "").split()) for msg in messages if msg.get("role") == "assistant"),
+            "total_tokens": len(messages),
         },
     }
 
-
 @csrf_exempt
 def chat_completions(request):
-    """
-    Handles chat completion requests, interacting with blueprints and agents.
-    """
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed. Use POST."}, status=405)
 
@@ -134,61 +192,54 @@ def chat_completions(request):
         body = json.loads(request.body)
         model = body.get("model", "default")
         messages = body.get("messages", [])
+        context_variables = body.get("context_variables", {})  # Pass full context
+
         if not messages:
             return JsonResponse({"error": "Messages are required."}, status=400)
-        logger.debug(f"Request for model '{model}' with messages: {messages}")
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
-    # Validate blueprint existence
+    # Validate and initialize the blueprint
     blueprint_meta = blueprints_metadata.get(model)
     if not blueprint_meta:
         return JsonResponse({"error": f"Model '{model}' not found."}, status=404)
 
-    # Initialize blueprint
     blueprint_class = blueprint_meta.get("blueprint_class")
     if not blueprint_class:
         return JsonResponse({"error": f"Blueprint class for model '{model}' is not defined."}, status=500)
-    
+
     try:
         blueprint_instance = blueprint_class(config=config)
-        logger.debug(f"Blueprint instance created for '{model}'.")
     except Exception as e:
         logger.error(f"Error initializing blueprint: {e}", exc_info=True)
         return JsonResponse({"error": f"Error initializing blueprint: {e}"}, status=500)
 
-    # Get starting agent
     try:
-        starting_agent = blueprint_instance.starting_agent
-        if not starting_agent:
-            return JsonResponse({"error": "Starting agent is not set for the blueprint."}, status=500)
-        logger.debug(f"Starting agent for '{model}': {starting_agent.name}")
+        # Run the blueprint with the provided messages and context
+        result = blueprint_instance.run_with_context(messages, context_variables)
+        response = result["response"]
+        updated_context = result["context_variables"]
+
+        # Construct the choices array for frontend compatibility
+        choices = [
+            {
+                "index": i,
+                "message": message,
+                "tool_calls": message.get("tool_calls", []),
+                "finish_reason": "stop",
+            }
+            for i, message in enumerate(response.messages)
+        ]
+
+        # Safely use the response ID
+        return JsonResponse({
+            "id": getattr(response, "id", "unknown"),
+            "choices": choices,
+            "context_variables": updated_context,
+        }, status=200)
     except Exception as e:
-        logger.error(f"Error retrieving starting agent: {e}", exc_info=True)
-        return JsonResponse({"error": f"Error retrieving starting agent: {e}"}, status=500)
-
-    # Execute Swarm
-    try:
-        swarm_instance = blueprint_instance.swarm
-        response = swarm_instance.run(
-            agent=starting_agent,
-            messages=messages,
-            context_variables={},
-            model_override=llm_model,
-            debug=True,
-            max_turns=10,
-            execute_tools=True,
-        )
-        logger.debug(f"Raw Swarm response: {response}")
-
-        # Use construct_openai_response to format the response
-        formatted_response = construct_openai_response(response, llm_model)
-        logger.debug(f"Constructed OpenAI response: {formatted_response}")
-
-        return JsonResponse(formatted_response, status=200)
-    except Exception as e:
-        logger.error(f"Error during Swarm execution: {e}", exc_info=True)
-        return JsonResponse({"error": f"Error during Swarm execution: {e}"}, status=500)
+        logger.error(f"Error during execution: {e}", exc_info=True)
+        return JsonResponse({"error": f"Error during execution: {e}"}, status=500)
 
 @csrf_exempt
 def list_models(request):

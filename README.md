@@ -219,11 +219,7 @@ These references let you quickly switch providers based on environment or agent 
 
     * To see a demo of Open WebUI with the University Blueprint with expressive voice output, please see the following demonstration video:
 
-       <video controls width="70%">
-         <source src="assets/images/20250105-Swarm-Openwebui-Voice-Demo.mp4" type="video/mp4">
-          Your browser does not support the video tag.
-        </video>
-
+https://github.com/user-attachments/assets/a4688100-5737-479f-91e5-974db98296d7
 
 5.  **Access the REST Endpoints Directly:**
    You can also interact with the API using a tool like `curl`. For example:

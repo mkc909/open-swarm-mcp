@@ -1,4 +1,4 @@
-# Development Documentation
+# (WIP) Development Documentation
 
 This document provides an in-depth look at the **Swarm Framework**’s internal architecture, component interactions, and sequence flows for various operational modes. It is intended for developers and contributors who wish to modify or extend the framework.
 
@@ -56,7 +56,7 @@ sequenceDiagram
     end
     BlueprintBase ->> APIClient: Initialize HTTP Clients
     BlueprintBase -->> Developer: Blueprint Ready
-    ```
+```
 
 ### 2. Agent Interaction Flow
 
@@ -77,25 +77,26 @@ sequenceDiagram
 
 ### 3. REST API Mode Interaction
 
-```plantuml
-@startuml
-actor Client as HTTPClient
-participant APIServer
-participant Swarm
-participant Agent
-participant ToolRegistry
-participant Inference as InferenceEngine
+Below is a simplified sequence diagram of the REST API interaction using Mermaid:
 
-HTTPClient -> APIServer: POST /query (JSON)
-APIServer -> Swarm: Process Request
-Swarm -> Agent: Process Query
-Agent -> ToolRegistry: Identify Tools
-ToolRegistry --> Agent: Return Tools
-Agent -> InferenceEngine: Generate Final Output
-InferenceEngine --> Agent: Formatted Response
-Swarm --> APIServer: JSON Response
-APIServer --> HTTPClient: Final Answer
-@enduml
+```mermaid
+sequenceDiagram
+    actor Client as HTTPClient
+    participant APIServer
+    participant Swarm
+    participant Agent
+    participant ToolRegistry
+    participant InferenceEngine
+
+    HTTPClient->>APIServer: POST /query (JSON)
+    APIServer->>Swarm: Process Request
+    Swarm->>Agent: Process Query
+    Agent->>ToolRegistry: Identify Tools
+    ToolRegistry-->>Agent: Return Tools
+    Agent->>InferenceEngine: Generate Final Output
+    InferenceEngine-->>Agent: Formatted Response
+    Swarm-->>APIServer: JSON Response
+    APIServer-->>HTTPClient: Final Answer
 ```
 
 ---

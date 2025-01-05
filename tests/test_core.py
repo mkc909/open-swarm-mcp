@@ -195,6 +195,10 @@ def set_env_vars(monkeypatch):
 #         assert kwargs["model"] == "grok-2-1212", "Model does not match config."
 #         assert kwargs["temperature"] == 0.0, "Temperature does not match config."
 
+@pytest.mark.skipif(
+    os.getenv("CI", "").lower() in ["true", "1"],
+    reason="Skipping test in CI environment due to missing OPENAI_API_KEY."
+)
 def test_load_configuration_invalid():
     """
     Test Swarm initialization with an invalid configuration dictionary.

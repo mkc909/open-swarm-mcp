@@ -1,7 +1,7 @@
 import logging
 import os
 import sqlite3
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from swarm.types import Agent
 from swarm.extensions.blueprint import BlueprintBase
@@ -22,7 +22,7 @@ COURSE_ADVISOR_TABLE = "courses"
 
 class UniversitySupportBlueprint(BlueprintBase):
     """
-    University Support System with agent orchestration and database-backed tools.
+    University Support System with multi-agent orchestration and SQLite-backed tools.
     """
 
     @property
@@ -32,8 +32,8 @@ class UniversitySupportBlueprint(BlueprintBase):
         """
         return {
             "title": "University Support System",
-            "description": "Multi-agent system for university support using MCP tools.",
-            "required_mcp_servers": ["sqlite"],
+            "description": "Multi-agent system for university support using SQLite tools.",
+            "required_mcp_servers": [],
             "env_vars": ["SQLITE_DB_PATH"],
         }
 
@@ -46,111 +46,104 @@ class UniversitySupportBlueprint(BlueprintBase):
 
     def _ensure_database_setup(self) -> None:
         """
-        Set up the SQLite database and load sample data if it does not exist.
+        Ensure the SQLite database is set up and populated with sample data if necessary.
         """
         sqlite_db_path = os.getenv("SQLITE_DB_PATH")
         if not sqlite_db_path:
             raise EnvironmentError("Environment variable SQLITE_DB_PATH is not set.")
 
-        # Check if the database file already exists
+        logger.info(f"Using SQLite database at: {sqlite_db_path}")
         db_exists = os.path.isfile(sqlite_db_path)
-        if not db_exists:
-            logger.info("Database does not exist. Setting up the database.")
-            os.makedirs(os.path.dirname(sqlite_db_path), exist_ok=True)
-            conn = sqlite3.connect(sqlite_db_path)
-            cursor = conn.cursor()
 
-            # Create tables
-            cursor.execute(f"""
-                CREATE TABLE IF NOT EXISTS {COURSE_ADVISOR_TABLE} (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    course_name TEXT NOT NULL,
-                    description TEXT NOT NULL,
-                    discipline TEXT NOT NULL
-                );
-            """)
-            cursor.execute(f"""
-                CREATE TABLE IF NOT EXISTS {SCHEDULER_TABLE} (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    course_name TEXT NOT NULL,
-                    class_time TEXT NOT NULL,
-                    exam_date TEXT NOT NULL
-                );
-            """)
+        conn = sqlite3.connect(sqlite_db_path)
+        cursor = conn.cursor()
 
-            conn.commit()
+        # Create tables if they don't exist
+        logger.info("Ensuring tables exist...")
+        cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS {COURSE_ADVISOR_TABLE} (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                course_name TEXT NOT NULL,
+                description TEXT NOT NULL,
+                discipline TEXT NOT NULL
+            );
+        """)
+        cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS {SCHEDULER_TABLE} (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                course_name TEXT NOT NULL,
+                class_time TEXT NOT NULL,
+                exam_date TEXT NOT NULL
+            );
+        """)
+        conn.commit()
 
-            # Check for and load sample data
+        # Check if the tables are empty
+        logger.info("Checking if tables need sample data...")
+        cursor.execute(f"SELECT COUNT(*) FROM {COURSE_ADVISOR_TABLE}")
+        course_count = cursor.fetchone()[0]
+
+        cursor.execute(f"SELECT COUNT(*) FROM {SCHEDULER_TABLE}")
+        schedule_count = cursor.fetchone()[0]
+
+        if course_count == 0 or schedule_count == 0:
+            logger.info("Tables are empty. Loading sample data...")
             sample_data_path = os.path.join(os.path.dirname(__file__), "sample_data.sql")
             if os.path.isfile(sample_data_path):
-                logger.info(f"Loading sample data from {sample_data_path}.")
                 try:
                     with open(sample_data_path, 'r') as file:
-                        sample_data = file.read()
-                        cursor.executescript(sample_data)
-                        logger.info("Sample data loaded successfully.")
+                        cursor.executescript(file.read())
+                    logger.info("Sample data loaded successfully.")
                 except Exception as e:
                     logger.error(f"Failed to load sample data: {e}", exc_info=True)
-                    raise e
-
-            conn.commit()
-            conn.close()
-            logger.info("SQLite database setup completed.")
+            else:
+                logger.warning(f"Sample data file {sample_data_path} not found. Skipping data population.")
         else:
-            logger.info("Database already exists. Skipping setup.")
+            logger.info("Tables already contain data. Skipping sample data loading.")
 
-    def _load_instructions(self, agent_name: str) -> str:
+        conn.commit()
+        conn.close()
+        logger.info("Database setup completed.")
+
+    def search_courses(self, query: str) -> List[Dict[str, Any]]:
         """
-        Load agent instructions from an external `.txt` file if available.
-        Fallback to hardcoded instructions otherwise.
-
-        Args:
-            agent_name (str): Name of the agent.
-
-        Returns:
-            str: Instructions for the agent.
+        Query the courses table for relevant courses based on a search term.
         """
-        blueprint_dir = os.path.dirname(__file__)
-        instruction_filename = f"instructions_{agent_name.replace(' ', '_')}.txt"
-        instruction_path = os.path.join(blueprint_dir, instruction_filename)
+        sqlite_db_path = os.getenv("SQLITE_DB_PATH")
+        conn = sqlite3.connect(sqlite_db_path)
+        cursor = conn.cursor()
 
-        if os.path.isfile(instruction_path):
-            try:
-                logger.info(f"Loading instructions for {agent_name} from {instruction_filename}.")
-                with open(instruction_path, 'r') as file:
-                    return file.read()
-            except Exception as e:
-                logger.error(f"Error reading {instruction_filename}: {e}", exc_info=True)
+        cursor.execute(f"""
+            SELECT course_name, description, discipline
+            FROM {COURSE_ADVISOR_TABLE}
+            WHERE course_name LIKE ? OR
+                  description LIKE ? OR
+                  discipline LIKE ?;
+        """, (f"%{query}%", f"%{query}%", f"%{query}%"))
 
-        logger.warning(f"Instruction file not found for {agent_name}. Using hardcoded instructions.")
-        return self._default_instructions(agent_name)
+        results = cursor.fetchall()
+        conn.close()
+        return [{"course_name": row[0], "description": row[1], "discipline": row[2]} for row in results]
 
-    def _default_instructions(self, agent_name: str) -> str:
+    def search_schedules(self, query: str) -> List[Dict[str, Any]]:
         """
-        Provide hardcoded instructions as a fallback.
-
-        Args:
-            agent_name (str): Name of the agent.
-
-        Returns:
-            str: Default instructions for the agent.
+        Query the schedules table for relevant schedules based on a search term.
         """
-        instructions = {
-            "TriageAgent": (
-                "You are the Triage Agent. Analyze user queries and direct them to the appropriate specialized agent. "
-                "Use tools like `triage_to_course_advisor` to handoff queries."
-            ),
-            "CourseAdvisor": (
-                "You are the Course Advisor. Provide course recommendations based on user interests."
-            ),
-            "UniversityPoet": (
-                "You are the University Poet. Respond creatively to user queries with haikus or poetic advice."
-            ),
-            "SchedulingAssistant": (
-                "You are the Scheduling Assistant. Manage and provide information about schedules and exams."
-            ),
-        }
-        return instructions.get(agent_name, "Default agent instructions.")
+        sqlite_db_path = os.getenv("SQLITE_DB_PATH")
+        conn = sqlite3.connect(sqlite_db_path)
+        cursor = conn.cursor()
+
+        cursor.execute(f"""
+            SELECT course_name, class_time, exam_date
+            FROM {SCHEDULER_TABLE}
+            WHERE course_name LIKE ? OR
+                  class_time LIKE ? OR
+                  exam_date LIKE ?;
+        """, (f"%{query}%", f"%{query}%", f"%{query}%"))
+
+        results = cursor.fetchall()
+        conn.close()
+        return [{"course_name": row[0], "class_time": row[1], "exam_date": row[2]} for row in results]
 
     def create_agents(self) -> Dict[str, Agent]:
         """
@@ -158,6 +151,7 @@ class UniversitySupportBlueprint(BlueprintBase):
         """
         agents = {}
 
+        # Triage functions
         def triage_to_course_advisor() -> Agent:
             return agents["CourseAdvisor"]
 
@@ -167,23 +161,49 @@ class UniversitySupportBlueprint(BlueprintBase):
         def triage_to_scheduling_assistant() -> Agent:
             return agents["SchedulingAssistant"]
 
+        # Course Advisor functions
+        def course_advisor_search(context_variables: dict) -> List[Dict[str, Any]]:
+            """
+            Search courses based on context variables.
+            """
+            query = context_variables.get("search_query", "")
+            results = self.search_courses(query)
+            logger.info(f"Course search results for query '{query}': {results}")
+            return results
+
+        # Scheduling Assistant functions
+        def scheduling_assistant_search(context_variables: dict) -> List[Dict[str, Any]]:
+            """
+            Search schedules based on context variables.
+            """
+            query = context_variables.get("search_query", "")
+            results = self.search_schedules(query)
+            logger.info(f"Schedule search results for query '{query}': {results}")
+            return results
+
         # Create agents
         triage_agent = Agent(
             name="TriageAgent",
-            instructions=self._load_instructions("TriageAgent"),
+            instructions=(
+                "You are the Triage Agent. Analyze user queries and direct them to the appropriate specialized agent. "
+                "Use tools like `triage_to_course_advisor` to handoff queries."
+            ),
             functions=[triage_to_course_advisor, triage_to_university_poet, triage_to_scheduling_assistant],
         )
         course_advisor = Agent(
             name="CourseAdvisor",
-            instructions=self._load_instructions("CourseAdvisor"),
+            instructions="You are the Course Advisor. Provide course recommendations based on user interests.",
+            functions=[course_advisor_search, triage_to_university_poet, triage_to_scheduling_assistant],
         )
         university_poet = Agent(
             name="UniversityPoet",
-            instructions=self._load_instructions("UniversityPoet"),
+            instructions="You are the University Poet. Respond creatively to user queries with haikus or poetic advice.",
+            functions=[triage_to_course_advisor, triage_to_scheduling_assistant],
         )
         scheduling_assistant = Agent(
             name="SchedulingAssistant",
-            instructions=self._load_instructions("SchedulingAssistant"),
+            instructions="You are the Scheduling Assistant. Manage and provide information about schedules and exams.",
+            functions=[scheduling_assistant_search, triage_to_course_advisor, triage_to_university_poet],
         )
 
         # Register agents

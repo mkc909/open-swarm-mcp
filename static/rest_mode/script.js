@@ -110,9 +110,9 @@
             header.className = "sender-header";
             container.appendChild(header);
         
-            // Handle content rendering with fallback
+            // Handle content rendering with newlines as <br>
             const content = document.createElement("p");
-            content.textContent = message?.content || "No content provided."; // Fallback for undefined content
+            content.innerHTML = (message?.content || "No content provided.").replace(/\n/g, "<br>");
             container.appendChild(content);
         
             const messageHistory = document.getElementById("messageHistory");

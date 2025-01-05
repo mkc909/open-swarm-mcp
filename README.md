@@ -288,8 +288,9 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
  │                 Open Swarm REST API Service (Django)                │
  │        (Exposes /v1/models, /v1/chat/completions, /admin)           │
  └─────────────────────────────────────────────────────────────────────┘
-                     |                        |                
-       (Mandatory)   |                        | GPT Actions and/or MCP Servers    
+                     |                        | 
+                     |                        | MCP Servers and 
+       (Mandatory)   |                        | GPT Actions (TODO) 
        LLM Inference |                        | (filesystem,    
                      |                        | database, etc.)           
                      ▼                        ▼                
@@ -328,11 +329,15 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
   - [ ] Publish Python module to PyPI  
 
 - **Example Blueprints**  
-  - [x] `echo`
   - [x] `university`  
+  - [x] `echo`
+  - [x] `weather`  
   - [ ] `database_and_web` (SQLite & Brave Search)  
   - [ ] `filesystem`  
-  - [ ] `weather`  
+
+- **Security**  
+  - [ ] Securing REST completions endpoint with API_KEY
+  - [ ] CORS access control
 
 ---
 

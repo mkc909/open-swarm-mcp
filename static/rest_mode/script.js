@@ -1,5 +1,6 @@
-        // Initialize chat history
+        // Initialize chat history and context variables
         let chatHistory = [];
+        let contextVariables = { active_agent_name: null };
 
         const messageHistory = document.getElementById("messageHistory");
         const rawMessagesContent = document.getElementById("rawMessagesContent");
@@ -9,6 +10,18 @@
         const debugToggle = document.getElementById("debugToggle");
         const debugPane = document.getElementById("debugPane");
         const debugContent = document.getElementById("debugContent");
+
+        /**
+         * Renders the active agent in the debug pane.
+         */
+        function renderActiveAgentInDebug() {
+            const activeAgent = contextVariables.active_agent_name || "Unknown";
+            const activeAgentElement = document.createElement("div");
+            activeAgentElement.className = "debug-active-agent";
+            activeAgentElement.innerHTML = `<strong>Active Agent:</strong> ${activeAgent}`;
+            debugContent.appendChild(activeAgentElement);
+            debugContent.scrollTop = debugContent.scrollHeight;
+        }
 
         /**
          * Generates a unique tool_call_id.
@@ -147,58 +160,36 @@
     
         console.log("Appended Raw Message:", rawData);
     };
-            
+                
     /**
      * Renders debug information in the Debug pane.
-     * Replaces existing content with the latest debug info.
      * @param {string} role - The role of the sender.
      * @param {object} content - The message content.
      * @param {string} sender - The display name of the sender.
      * @param {object} metadata - The metadata associated with the message.
      */
     window.renderDebugInfo = function (role, content, sender, metadata) {
-        // Clear the debug pane before adding new debug info
-        debugContent.innerHTML = "";
+        debugContent.innerHTML = ""; // Clear the debug pane before adding new debug info
 
         const debugMessage = document.createElement("div");
         debugMessage.className = "debug-message";
 
         const roleSpan = document.createElement("span");
-        if (role === "user") {
-            roleSpan.className = "debug-role-user";
-            roleSpan.textContent = "User";
-        } else if (role === "assistant") {
-            roleSpan.className = "debug-role-assistant";
-            roleSpan.textContent = "Assistant";
-        } else if (role === "tool") {
-            roleSpan.className = "debug-role-tool";
-            roleSpan.textContent = "Tool";
-        } else {
-            roleSpan.textContent = role;
-        }
+        roleSpan.className = role === "user" ? "debug-role-user" : "debug-role-assistant";
+        roleSpan.textContent = role;
 
-        // Assign a default sender if missing
-        const finalSender = sender || (role === "tool" ? "Tool" : "Unknown");
+        const finalSender = sender || "Unknown";
 
-        // Parse metadata
-        const parsedMetadata = parseMetadata(metadata);
-
-        // Format boolean fields with colors
-        const refusalFormatted = formatBoolean(parsedMetadata.refusal);
-        const audioFormatted = parsedMetadata.audio !== null ? (parsedMetadata.audio ? formatBoolean(true) : formatBoolean(false)) : "N/A";
-        const functionCallFormatted = parsedMetadata.function_call || "None";
-        const toolCallsFormatted = parsedMetadata.tool_calls ? JSON.stringify(parsedMetadata.tool_calls, null, 2) : "None";
-
+        const metadataContent = metadata ? JSON.stringify(metadata, null, 2) : "None";
         debugMessage.innerHTML = `<strong>Role:</strong> ${roleSpan.outerHTML}<br/>
                                     <strong>Sender:</strong> ${finalSender}<br/>
-                                    <strong>Refusal:</strong> ${refusalFormatted}<br/>
-                                    <strong>Audio:</strong> ${audioFormatted}<br/>
-                                    <strong>Function Call:</strong> ${functionCallFormatted}<br/>
-                                    <strong>Tool Calls:</strong> ${toolCallsFormatted}<br/>`;
+                                    <strong>Content:</strong> ${content.content || "No content"}<br/>
+                                    <strong>Metadata:</strong><pre>${metadataContent}</pre>`;
 
         debugContent.appendChild(debugMessage);
-        debugContent.scrollTop = debugContent.scrollHeight;
 
+        // Render the active agent as part of debug info
+        renderActiveAgentInDebug();
         console.log(`Rendered debug info for message - Role: ${role}, Sender: ${finalSender}`);
     };
 
@@ -265,32 +256,32 @@
 
     /**
      * Handles the submission of a user message.
-     * Sends the entire chat history to the server and displays the assistant's response.
+     * Sends the entire chat history and context variables to the server.
      * @param {string|null} messageText - Optional text to send instead of user input.
      */
     async function handleSubmit(messageText = null) {
         const userInput = document.getElementById("userInput");
         const userMessageContent = messageText ? messageText : userInput.value.trim();
-    
+
         if (!userMessageContent) return;
-    
+
         // Clear the input field
         if (!messageText) userInput.value = "";
-    
+
         const userMessage = {
             role: "user",
             content: userMessageContent,
             sender: "User",
-            metadata: {}, // Add any extra metadata if needed
+            metadata: {},
         };
-    
+
         // Append the user's message to the chat history
         chatHistory.push(userMessage);
-    
+
         // Render the message in the UI
         renderMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
         appendRawMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
-    
+
         try {
             const response = await fetch("/v1/chat/completions", {
                 method: "POST",
@@ -301,49 +292,58 @@
                 body: JSON.stringify({
                     model: "filesystem",
                     messages: chatHistory, // Send the full chat history
+                    context_variables: contextVariables, // Include context variables
                 }),
             });
-    
+
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-    
+
             const data = await response.json();
-            processAssistantResponse(data.choices);
+            processAssistantResponse(data.choices, data.context_variables); // Pass updated context variables
         } catch (error) {
             console.error("Error submitting message:", error);
         }
     }
-        
-    function processAssistantResponse(choices) {
+
+    /**
+     * Processes the assistant's response and updates context variables.
+     * @param {Array} choices - The choices from the assistant's response.
+     * @param {object} updatedContextVariables - Updated context variables from the server.
+     */
+    function processAssistantResponse(choices, updatedContextVariables) {
         if (!choices || !Array.isArray(choices)) {
             console.error("Invalid choices array:", choices);
             return;
         }
-    
+
+        // Update the local context variables
+        contextVariables = { ...contextVariables, ...updatedContextVariables };
+
         console.log("Processing assistant response with choices:", choices);
-    
+
         choices.forEach(choice => {
             const rawMessage = { ...choice.message }; // Store the raw message
             chatHistory.push(rawMessage);
-    
+
             const role = rawMessage.role || "assistant";
             const content = rawMessage.content ?? "No content"; // Ensure fallback
             const sender = rawMessage.sender || (role === "user" ? "User" : "Assistant");
             const metadata = { ...rawMessage };
-    
+
             console.log("Rendering message with:", { role, content, sender, metadata });
-    
+
             // Render and log messages
             renderMessage(role, { content }, sender, metadata);
             appendRawMessage(role, { content }, sender, metadata);
-    
+
             if (debugToggle && debugToggle.checked) {
                 renderDebugInfo(role, { content }, sender, metadata);
             }
         });
-    
+
         console.log("Assistant response processed successfully.");
-    }
-                                
+    }              
+
     function processToolCall(toolCall) {
         let content = toolCall.content || "No content.";
         const toolCallId = toolCall.id || toolCall.tool_call_id || "N/A";

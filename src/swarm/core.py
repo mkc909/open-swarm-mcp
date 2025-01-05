@@ -322,25 +322,12 @@ class Swarm:
         context_variables: dict,
         debug: bool,
     ) -> Response:
-        """
-        Execute tool calls and collect responses.
-
-        Args:
-            tool_calls (List[ChatCompletionMessageToolCall]): List of tool calls to execute.
-            functions (List[AgentFunction]): List of agent functions.
-            context_variables (dict): Current context variables.
-            debug (bool): Debug flag for verbose output.
-
-        Returns:
-            Response: The aggregated response from all tool calls.
-        """
         function_map = {f.__name__: f for f in functions}
         partial_response = Response(messages=[], agent=None, context_variables={})
 
         for tool_call in tool_calls:
             name = tool_call.function.name
             if name not in function_map:
-                debug_print(debug, f"Tool {name} not found in function map.")
                 partial_response.messages.append(
                     {
                         "role": "tool",
@@ -354,29 +341,30 @@ class Swarm:
             args = json.loads(tool_call.function.arguments)
             func = function_map[name]
 
-            # Pass context_variables to agent functions if required
+            # Pass context variables if required
             if __CTX_VARS_NAME__ in func.__code__.co_varnames:
                 args[__CTX_VARS_NAME__] = context_variables
 
+            # Execute the function
             try:
                 raw_result = func(**args)
                 result: Result = self.handle_function_result(raw_result, debug)
 
-                # Ensure tool response includes tool_call_id and tool_name
-                tool_message = {
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "tool_name": name,
-                    "content": result.value if result.value is not None else None,
-                }
-                partial_response.messages.append(tool_message)
+                if isinstance(raw_result, Agent):  # Check if the result is an agent
+                    partial_response.agent = raw_result  # Set the new active agent
+
+                # Add the tool response
+                partial_response.messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "tool_name": name,
+                        "content": result.value if isinstance(result.value, str) else json.dumps(result.value),
+                    }
+                )
                 partial_response.context_variables.update(result.context_variables)
 
-                if result.agent:
-                    partial_response.agent = result.agent
-
             except Exception as e:
-                debug_print(debug, f"Error executing tool {name}: {e}")
                 partial_response.messages.append(
                     {
                         "role": "tool",
@@ -387,6 +375,7 @@ class Swarm:
                 )
 
         return partial_response
+
 
     def run_and_stream(
         self,

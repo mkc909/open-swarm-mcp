@@ -274,19 +274,19 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
 
 ```
  ┌─────────────────────────────────────────────────────────────────────┐
- │        OpenAI-Compatible Client Tools (AnythingLLM, LibreChat)      │
- │                           or Open-WebUI, etc.                       │
+ │        OpenAI-Compatible Client Tools that displays sender          │
+ │                            e.g. Open-WebUI                          │
  └────────────┬────────────────────────────────────────────────────────┘
               |                             
-              |   (HTTP: /v1/chat/completions, /v1/models, etc.)
+              |   (HTTP: /v1/chat/completions, /v1/models)
               ▼                             
  ┌─────────────────────────────────────────────────────────────────────┐
  │                 Open Swarm REST API Service (Django)                │
- │        (Exposes /v1/models, /v1/chat/completions, /admin)           │
+ │  (Exposes /v1/models, /v1/chat/completions, /admin, /<blueprint>    │
  └─────────────────────────────────────────────────────────────────────┘
                      |                        | 
                      |                        | MCP Servers and 
-       (Mandatory)   |                        | GPT Actions (TODO) 
+                     |                        | GPT Actions (WIP) 
        LLM Inference |                        | (filesystem,    
                      |                        | database, etc.)           
                      ▼                        ▼                
@@ -314,13 +314,16 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
   - [x] Blueprint Runner  
 
 - **Multiple LLM Providers**  
-  - [ ] Assign different providers/models per agent in one blueprint  
+  - [ ] Assign different models per agent in one blueprint  
 
-- **Docker**  
+- **Tooling Integration Frameworks**  
+  - [ ] MCP Servers
+   - [x] Raw JSONRPC POC
+  - [ ] GPT Actions
+
+- **Deployment**  
   - [x] Dockerfile and docker-compose.yaml  
   - [ ] Publish to Docker Registry  
-
-- **PyPI Publishing**  
   - [ ] Publish Python module to PyPI  
 
 - **Example Blueprints**  

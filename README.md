@@ -1,6 +1,8 @@
 # Open Swarm
 
-<img src="assets/images/openswarm-project-image.jpg" alt="Project Logo" width="512"/>
+<div align="center">
+<img src="assets/images/openswarm-project-image.jpg" alt="Project Logo" width="70%"/>
+</div>
 
 **Open Swarm** is a versatile, modular framework for building intelligent, multi-agent systems. It's meant as a **drop-in alternative** to the [OpenAI Swarm](https://github.com/openai/swarm) framework—accepting new pull requests and actively maintained with additional features for agentic workflows. 
 

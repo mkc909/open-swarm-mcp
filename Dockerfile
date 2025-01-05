@@ -17,5 +17,5 @@ RUN uv venv .venv && uv sync --frozen
 # Expose the application port (default 8000, configurable via $PORT)
 EXPOSE 8000
 
-# Define the command to run the Django development server
-CMD ["uv", "run", "manage.py", "runserver", "0.0.0.0:${PORT:-8000}"]
+# Use shell form to allow environment variable substitution
+CMD uv run manage.py runserver 0.0.0.0:$PORT

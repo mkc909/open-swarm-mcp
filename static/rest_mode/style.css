@@ -21,6 +21,8 @@ body {
     background: white;
     border: 1px solid #ccc;
     border-radius: 5px;
+    max-height: 90vh; /* Ensure the container respects viewport height */
+    overflow: hidden; /* Prevent children from overflowing */
 }
 
 /* Chat Pane Styling */
@@ -74,7 +76,8 @@ body {
 /* Message History Styling */
 #messageHistory {
     flex: 1;
-    height: 80vh;
+    height: auto;
+    max-height: 80vh; /* Constrain to 80% of viewport height */
     overflow-y: auto;
     padding-right: 10px;
     border: 1px solid #ddd;

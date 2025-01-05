@@ -159,8 +159,8 @@ These references let you quickly switch providers based on environment or agent 
    ```
 2. **Install Dependencies**  
    ```bash
-   # Get 'uv' here => https://docs.astral.sh/uv/
-   uv python install
+   # Install 'uv' => https://docs.astral.sh/uv/
+   uv python install 3.12
    uv venv
    source .venv/bin/activate
    uv sync
@@ -173,30 +173,11 @@ These references let you quickly switch providers based on environment or agent 
 
 ## Running Open Swarm
 
-### Running with the CLI
-
-1. **Run the Setup Wizard (Optional):**
-    ```bash
-    uv run src/swarm/main.py --wizard
-    ```
-    *   This will allow you to configure the default LLM model and blueprint you wish to use.
-
-2.  **Execute a Specific Blueprint:**
-    ```bash
-    uv run blueprints/university/blueprint_university.py
-    ```
-    *   This will execute the `UniversitySupportBlueprint` in interactive mode, starting with the `TriageAgent`.
-    *   You can then enter a query at the prompt, and the system will automatically route this through the appropriate agent, with any handoffs between agents done automatically by the Swarm framework.
-    *  Try entering queries like:
-        *   `"What courses should I take next semester if I’m interested in data science?"` to test the handoff to the `CourseAdvisor`
-        *   `"Write me a poem about the university cafeteria,"` to test the handoff to the `UniversityPoet`
-        *  `"What time is the Artificial Intelligence exam?"` to test the handoff to the `SchedulingAssistant`
-     * Please note that using the CLI will only show the default text responses. To experience the multi-agent orchestration with a full UI, and with voice, it is recommended to use Open WebUI (see the REST instructions below)
-
 ### Running with the REST API
 
 1.  **Start the Django REST API Server:**
     ```bash
+    uv run manage.py migrate
     uv run manage.py runserver 0.0.0.0:8000
     ```
 
@@ -231,6 +212,26 @@ https://github.com/user-attachments/assets/a4688100-5737-479f-91e5-974db98296d7
     *   You will see a JSON response, containing the `sender` field within the response (in `data.choices[0].message.sender`).
 
 ---
+
+### Running with the CLI
+
+1. **(WIP) Run the Setup Wizard (Optional):**
+    ```bash
+    uv run src/swarm/main.py --wizard
+    ```
+    *   This will allow you to configure the default LLM model and blueprint you wish to use.
+
+2.  **(WIP) Execute a Specific Blueprint:**
+    ```bash
+    uv run blueprints/university/blueprint_university.py
+    ```
+    *   This will execute the `UniversitySupportBlueprint` in interactive mode, starting with the `TriageAgent`.
+    *   You can then enter a query at the prompt, and the system will automatically route this through the appropriate agent, with any handoffs between agents done automatically by the Swarm framework.
+    *  Try entering queries like:
+        *   `"What courses should I take next semester if I’m interested in data science?"` to test the handoff to the `CourseAdvisor`
+        *   `"Write me a poem about the university cafeteria,"` to test the handoff to the `UniversityPoet`
+        *  `"What time is the Artificial Intelligence exam?"` to test the handoff to the `SchedulingAssistant`
+     * Please note that using the CLI will only show the default text responses. To experience the multi-agent orchestration with a full UI, and with voice, it is recommended to use Open WebUI (see the REST instructions below)
 
 ## Deploying with Docker
 

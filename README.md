@@ -147,9 +147,9 @@ Different agents in a single blueprint can reference different LLM providers. Fo
       "api_key": "${XAI_API_KEY}"
     },
     "ollama": {
-      "provider": "ollama",
-      "model": "base-model",
-      "base_url": "https://api.ollama.ai/v1",
+      "provider": "openai",
+      "model": "llama3.2",
+      "base_url": "http://localhost:11434/v1",
       "api_key": ""
     }
   }

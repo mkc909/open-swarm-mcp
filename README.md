@@ -171,25 +171,63 @@ These references let you quickly switch providers based on environment or agent 
 
 ## Running Open Swarm
 
-```bash
-# Option A - Run the CLI wizard (setup / blueprint runner)
-uv run src/swarm/main.py
+### Running with the CLI
 
-# Option B - Execute a specific blueprint in CLI mode
-uv run blueprints/echo/blueprint_default.py
+1. **Run the Setup Wizard (Optional):**
+    ```bash
+    uv run src/swarm/main.py --wizard
+    ```
+    *   This will allow you to configure the default LLM model and blueprint you wish to use.
 
-# Option C - Start the REST API on port 8000
-uv run manage.py runserver 0.0.0.0:8000
+2.  **Execute a Specific Blueprint:**
+    ```bash
+    uv run blueprints/university/blueprint_university.py
+    ```
+    *   This will execute the `UniversitySupportBlueprint` in interactive mode, starting with the `TriageAgent`.
+    *   You can then enter a query at the prompt, and the system will automatically route this through the appropriate agent, with any handoffs between agents done automatically by the Swarm framework.
+    *  Try entering queries like:
+        *   `"What courses should I take next semester if I’m interested in data science?"` to test the handoff to the `CourseAdvisor`
+        *   `"Write me a poem about the university cafeteria,"` to test the handoff to the `UniversityPoet`
+        *  `"What time is the Artificial Intelligence exam?"` to test the handoff to the `SchedulingAssistant`
+     * Please note that using the CLI will only show the default text responses. To experience the multi-agent orchestration with a full UI, and with voice, it is recommended to use Open WebUI (see the REST instructions below)
 
-# After launching the REST endpoint, open a browser and visit:
-# - http://localhost:8000/<blueprint_name>/ (e.g., http://localhost:8000/university/)
-# This will load an interactive webpage to test the blueprint functionality.
+### Running with the REST API
 
-# Alternatively use the completions endpoint directly with cURL:
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{"model":"echo","messages":[{"role":"user","content":"Hello!"}]}'
-```
+1.  **Start the Django REST API Server:**
+    ```bash
+    uv run manage.py runserver 0.0.0.0:8000
+    ```
+2.  **Access the Interactive Blueprint Pages:**
+    *   Open your web browser and visit:
+        *   `http://localhost:8000/<blueprint_name>/` (e.g., `http://localhost:8000/university/`)
+
+    *   You will see a text input where you can type queries.
+    *   The `sender` of the response (the name of the agent that responded) will be shown above each response.
+        *  You can see a demo of the voice mode using this UI and the `university` blueprint in the video below.
+
+3.  **Integrate with Open WebUI:**
+    *    Open Swarm has full compatibility with OpenAI API-compatible UIs, such as [Open WebUI](https://github.com/open-webui/open-webui). By using a client like Open WebUI you will not only see the `sender` field, but also experience a more engaging chat UI with other features.
+    *   To configure Open WebUI to use Open Swarm:
+        *   Start the REST API server via `uv run manage.py runserver 0.0.0.0:8000`
+        *   Install the custom function from the [Open WebUI Functions Hub](https://openwebui.com/f/matthewh/swarm_manifold).
+        *   In the custom function valve settings, change the API Base URL if different to the default, `http://host.docker.internal:8000`
+
+    * To see a demo of Open WebUI with the University Blueprint with expressive voice output, please see the following demonstration video:
+
+       <video controls width="70%">
+         <source src="assets/images/20250105-Swarm-Openwebui-Voice-Demo.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+
+
+5.  **Access the REST Endpoints Directly:**
+   You can also interact with the API using a tool like `curl`. For example:
+    ```bash
+    curl -X POST http://localhost:8000/v1/chat/completions \
+        -H "Content-Type: application/json" \
+        -d '{"model":"university","messages":[{"role":"user","content":"What courses should I take next semester if I’m interested in data science?"}]}'
+    ```
+    *   You will see a JSON response, containing the `sender` field within the response (in `data.choices[0].message.sender`).
 
 ---
 
@@ -260,14 +298,18 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
 
 ## Progress Tracker
 
+- **REST Mode**  
+  - [x] Inference via `/v1/chat/completions`  
+  - [x] Blueprints listed via `/v1/models/`  
+  - [x] Execute blueprints via `/<blueprint>` i.e. http://localhost:8000/university
+  - [x] Simple HTML page
+  - [ ] Application management via `/admin`  
+   - [x] User management
+   - [ ] Blueprint management
+
 - **CLI Mode**  
   - [x] Setup Wizard  
   - [x] Blueprint Runner  
-
-- **REST Mode**  
-  - [x] Inference via `/v1/chat/completions`  
-  - [x] Blueprints listed via `/v1/models`  
-  - [ ] Application management via `/admin`  
 
 - **Multiple LLM Providers**  
   - [x] Switch providers per environment  
@@ -282,13 +324,10 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
 
 - **Example Blueprints**  
   - [x] `echo`
-  - [x] `database_and_web` (SQLite & Brave Search)  
-  - [x] `filesystem`  
   - [x] `university`  
-  - [x] `weather`  
-
-- **Define all components under 'swarm'**  
-  - [ ] Refactor code
+  - [ ] `database_and_web` (SQLite & Brave Search)  
+  - [ ] `filesystem`  
+  - [ ] `weather`  
 
 ---
 

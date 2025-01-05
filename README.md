@@ -35,7 +35,7 @@
    - Encourages reusable, modular patterns for different use cases.
 
 3. **Optional MCP or GPT Actions**  
-   - Integrate with external tools (e.g., databases, web search, filesystems) through **MCP servers**.
+   - (WIP) Integrate with external tools (e.g., databases, web search, filesystems) through **MCP servers**.
    - (TODO) Use **GPT Actions** as an alternative for agent expansions without dedicated MCP infrastructure.
 
 4. **CLI & REST Interface**  
@@ -50,7 +50,7 @@
      - While the framework is compatible with OpenAI-like API clients, it assumes the client application maintains the `sender` field and, ideally, displays it in the user interface.
      - **Note:** Most OpenAI API-compatible applications will ignore the `sender` field by default and not display the agent name. Custom UI or logic is required to utilise and present this information.
 
-6. **Configurable LLM Providers**  
+6. **(WIP) Configurable LLM Providers**  
    - Supports multiple OpenAI-compatible providers in a single environment (e.g., `openai`, `grok`, `ollama`).
    - Allows specifying different models/providers for different agents—even within the same blueprint.
    - Use environment variable `LLM` to specify default llm model provider used by blueprints, ie `LLM=ollama`
@@ -314,7 +314,6 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
   - [x] Blueprint Runner  
 
 - **Multiple LLM Providers**  
-  - [x] Switch providers per environment  
   - [ ] Assign different providers/models per agent in one blueprint  
 
 - **Docker**  

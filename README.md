@@ -167,6 +167,10 @@ These references let you quickly switch providers based on environment or agent 
    ```
 3. **Environment Setup**  
    - Copy `.env.example` to `.env` and fill in sensitive details (`OPENAI_API_KEY`, etc.).
+   ```bash
+   cp .env.example .env
+   vi .env
+   ```
    - *(Optional)* Update `swarm_config.json` to add or modify LLM providers, MCP servers, etc.
 
 ---
@@ -183,7 +187,7 @@ These references let you quickly switch providers based on environment or agent 
 
 2.  **Access the Interactive Blueprint Pages:**
     *   Open your web browser and visit:
-        *   `http://localhost:8000/<blueprint_name>/` (e.g., `http://localhost:8000/university/`)
+        *   `http://localhost:8000/<blueprint_name>` (e.g., `http://localhost:8000/university`)
 
         *   You will see a text input where you can type queries.
         *   The `sender` of the response (the name of the agent that responded) will be shown above each response.

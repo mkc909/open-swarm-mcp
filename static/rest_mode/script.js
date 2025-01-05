@@ -283,6 +283,13 @@
         appendRawMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
 
         try {
+
+            // Extract the model name from the current URL
+            const urlPath = window.location.pathname;
+            const modelName = urlPath.split("/").filter(Boolean).pop(); // Get the last segment of the URL
+
+            console.log("Submitting message to model:", modelName);
+
             const response = await fetch("/v1/chat/completions", {
                 method: "POST",
                 headers: {
@@ -290,7 +297,7 @@
                     "X-CSRFToken": csrfToken,
                 },
                 body: JSON.stringify({
-                    model: "filesystem",
+                    model: modelName, // Dynamically pass the model name
                     messages: chatHistory, // Send the full chat history
                     context_variables: contextVariables, // Include context variables
                 }),

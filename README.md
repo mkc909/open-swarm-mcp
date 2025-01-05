@@ -197,13 +197,16 @@ These references let you quickly switch providers based on environment or agent 
     ```bash
     uv run manage.py runserver 0.0.0.0:8000
     ```
+
 2.  **Access the Interactive Blueprint Pages:**
     *   Open your web browser and visit:
         *   `http://localhost:8000/<blueprint_name>/` (e.g., `http://localhost:8000/university/`)
 
-    *   You will see a text input where you can type queries.
-    *   The `sender` of the response (the name of the agent that responded) will be shown above each response.
-        *  You can see a demo of the voice mode using this UI and the `university` blueprint in the video below.
+        *   You will see a text input where you can type queries.
+        *   The `sender` of the response (the name of the agent that responded) will be shown above each response.
+        *   Below is a screenshot showing an example of the interactive HTML page:
+
+            <img src="assets/images/20250105-Open-Swarm-HTML-Page.png" alt="Interactive Chat Interface" width="70%"/>
 
 3.  **Integrate with Open WebUI:**
     *    Open Swarm has full compatibility with OpenAI API-compatible UIs, such as [Open WebUI](https://github.com/open-webui/open-webui). By using a client like Open WebUI you will not only see the `sender` field, but also experience a more engaging chat UI with other features.

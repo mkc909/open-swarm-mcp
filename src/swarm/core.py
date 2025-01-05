@@ -410,7 +410,7 @@ class Swarm:
         while len(history) - init_len < max_turns:
             message = {
                 "content": "",
-                "sender": agent.name,  # Include 'sender'
+                "sender": agent.name,
                 "role": "assistant",
                 "function_call": None,
                 "tool_calls": defaultdict(

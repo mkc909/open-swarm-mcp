@@ -14,7 +14,7 @@ def favicon(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('v1/chat/completions', views.chat_completions, name='chat_completions'),
-    path('v1/models', views.list_models, name='list_models'),
-    path('<str:blueprint_name>/', views.blueprint_webpage, name='blueprint_webpage'),
+    path('v1/models/', views.list_models, name='list_models'),
+    path('<str:blueprint_name>', views.blueprint_webpage, name='blueprint_webpage'),
     path('favicon.ico', favicon, name='favicon'),
 ]

@@ -188,7 +188,7 @@ body {
     padding: 10px;
     overflow-y: auto;
     display: none; /* Hidden by default */
-    height: 200px; /* Adjust height as needed */
+    height: 30vw; /* Adjust height as needed */
     
     /* Set the width to 30% of the entire viewport width */
     width: 30vw; /* 30% of the viewport width */

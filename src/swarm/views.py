@@ -64,89 +64,6 @@ except ValueError as e:
     logger.critical(f"Failed to load LLM configuration: {e}")
     raise e
 
-# def construct_openai_response(response: Any, openai_model: str) -> Dict[str, Any]:
-#     logger.debug("Constructing OpenAI-like response.")
-
-#     if response is None:
-#         logger.error("Invalid response: response is None.")
-#         raise ValueError("Invalid response: response is None.")
-
-#     # Extract messages
-#     messages = response.get("messages", []) if isinstance(response, dict) else getattr(response, "messages", [])
-#     if not isinstance(messages, list):
-#         logger.error("Invalid response: 'messages' is not a list.")
-#         raise ValueError("Invalid response: 'messages' is not a list.")
-
-#     # Initialize result containers
-#     structured_messages = []
-#     tool_calls_buffer = []
-
-#     for msg in messages:
-#         if msg.get("role") == "assistant":
-#             # Ensure tool_calls are properly structured with all required fields
-#             if tool_calls_buffer:
-#                 for tool_call in tool_calls_buffer:
-#                     tool_call["id"] = tool_call.get("tool_call_id", f"call_{uuid.uuid4()}")  # Assign id if missing
-#                     tool_call["type"] = tool_call.get("type", "function")  # Assign default type
-#             structured_message = {
-#                 "role": "assistant",
-#                 "content": msg.get("content"),
-#                 "tool_calls": tool_calls_buffer if tool_calls_buffer else None,
-#                 "sender": msg.get("sender", "Assistant"),
-#             }
-#             tool_calls_buffer = []  # Reset buffer
-#             structured_messages.append(structured_message)
-#         elif msg.get("role") == "tool":
-#             tool_calls_buffer.append({
-#                 "role": "tool",
-#                 "tool_call_id": msg.get("tool_call_id"),
-#                 "tool_name": msg.get("tool_name"),
-#                 "content": msg.get("content"),
-#                 "type": "function",  # Explicitly set type
-#             })
-#             structured_messages.append(tool_calls_buffer[-1])  # Add tool message immediately after
-#         else:
-#             structured_messages.append(msg)
-
-#     assistant_messages = [m for m in structured_messages if m.get("role") == "assistant"]
-#     if not assistant_messages:
-#         assistant_message = {
-#             "role": "assistant",
-#             "content": "No response.",
-#             "sender": "Assistant",
-#         }
-#         structured_messages.append(assistant_message)
-
-#     assistant_message = assistant_messages[-1] if assistant_messages else structured_messages[-1]
-
-#     response_id = f"swarm-chat-completion-{uuid.uuid4()}"
-#     logger.debug(f"Generated response ID: {response_id}")
-
-#     prompt_tokens = sum(len((msg.get("content") or "").split()) for msg in structured_messages if msg.get("role") in ["user", "system"])
-#     completion_tokens = sum(len((msg.get("content") or "").split()) for msg in structured_messages if msg.get("role") not in ["user", "system"])
-#     total_tokens = prompt_tokens + completion_tokens
-
-#     logger.debug(f"Token counts - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens}")
-
-#     return {
-#         "id": response_id,
-#         "object": "chat.completion",
-#         "created": int(time.time()),
-#         "model": openai_model,
-#         "choices": [
-#             {
-#                 "index": 0,
-#                 "message": assistant_message,
-#                 "tool_calls": assistant_message.get("tool_calls"),
-#                 "finish_reason": "stop",
-#             }
-#         ],
-#         "usage": {
-#             "prompt_tokens": prompt_tokens,
-#             "completion_tokens": completion_tokens,
-#             "total_tokens": total_tokens,
-#         },
-#     }
 
 def serialize_swarm_response(response: Any, model_name: str) -> Dict[str, Any]:
     """
@@ -220,21 +137,21 @@ def chat_completions(request):
         response = result["response"]
         updated_context = result["context_variables"]
 
-        # Construct the choices array for frontend compatibility
-        choices = [
-            {
-                "index": i,
-                "message": message,
-                "tool_calls": message.get("tool_calls", []),
-                "finish_reason": "stop",
-            }
-            for i, message in enumerate(response.messages)
-        ]
-
-        # Safely use the response ID
+        # Construct the response to match OpenAI format
         return JsonResponse({
-            "id": getattr(response, "id", "unknown"),
-            "choices": choices,
+            "id": getattr(response, "id", f"swarm-response-{uuid.uuid4()}"),
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": model,
+            "choices": [
+                {
+                    "index": i,
+                    "message": msg,
+                    "tool_calls": msg.get("tool_calls", []),
+                    "finish_reason": "stop",
+                }
+                for i, msg in enumerate(response.messages)
+            ],
             "context_variables": updated_context,
         }, status=200)
     except Exception as e:

@@ -47,6 +47,58 @@ formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(name)s - %(messag
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
+def repair_message_payload(messages: List[Dict[str, Any]], debug: bool = False) -> List[Dict[str, Any]]:
+    """
+    Repair the message payload to ensure 'tool' messages have corresponding 'assistant' messages with 'tool_calls'.
+
+    Args:
+        messages (List[Dict[str, Any]]): The conversation history messages.
+        debug (bool): Whether to enable debug logging.
+
+    Returns:
+        List[Dict[str, Any]]: The repaired message list.
+    """
+    tool_call_map = {}
+    repaired_messages = []
+
+    for i, message in enumerate(messages):
+        # Collect tool_calls from assistant messages
+        if message["role"] == "assistant" and message.get("tool_calls"):
+            for tool_call in message["tool_calls"]:
+                tool_call_map[tool_call["id"]] = message
+
+        repaired_messages.append(message)
+
+        if message["role"] == "tool":
+            tool_call_id = message.get("tool_call_id")
+            tool_name = message.get("tool_name")
+
+            if not tool_call_id:
+                debug_print(debug, f"Skipping tool message at index {i}: Missing 'tool_call_id'.")
+                continue
+
+            if not tool_name:
+                debug_print(debug, f"Skipping tool message at index {i}: Missing 'tool_name'.")
+                continue
+
+            if tool_call_id not in tool_call_map:
+                # Add a placeholder assistant message if it doesn't exist
+                repaired_message = {
+                    "role": "assistant",
+                    "content": None,  # Content can be left blank
+                    "tool_calls": [
+                        {
+                            "id": tool_call_id,
+                            "function": {"name": tool_name, "arguments": "{}"},
+                        }
+                    ],
+                }
+                debug_print(debug, f"Repairing: Adding missing assistant message for tool_call_id {tool_call_id}.")
+                repaired_messages.insert(-1, repaired_message)
+
+    debug_print(debug, "Repaired message payload:", repaired_messages)
+    return repaired_messages
+
 class Swarm:
     def __init__(self, client=None, config: Optional[dict] = None):
         """
@@ -141,6 +193,8 @@ class Swarm:
         all_functions = agent.functions + discovered_tools
         return all_functions
 
+
+
     def get_chat_completion(
         self,
         agent: Agent,
@@ -164,24 +218,38 @@ class Swarm:
         Returns:
             ChatCompletionMessage: The response from the OpenAI API.
         """
+        # Ensure the context variables default to strings
         context_variables = defaultdict(str, context_variables)
+
+        # Agent-specific instructions
         instructions = (
             agent.instructions(context_variables)
             if callable(agent.instructions)
             else agent.instructions
         )
-        messages = [{"role": "system", "content": instructions}] + history
-        debug_print(debug, "Getting chat completion for...", messages)
 
-        # Serialize agent functions to 'tools'
+        # Begin the message list with the agent's instructions
+        messages = [{"role": "system", "content": instructions}] + history
+
+        # Repair message payload before validation
+        messages = repair_message_payload(messages, debug=debug)
+
+        # Validate the sequence of messages
+        for i in range(1, len(messages)):
+            if messages[i]["role"] == "tool" and not messages[i - 1].get("tool_calls"):
+                raise ValueError(
+                    f"Invalid message sequence: 'tool' message at index {i} must follow an 'assistant' message with 'tool_calls'."
+                )
+
+        # Serialize agent functions into 'tools'
         serialized_functions = [function_to_json(f) for f in agent.functions]
         tools = [func_dict for func_dict in serialized_functions]
 
-        # Debug: Inspect serialized tools
+        # Debug: Log serialized tools
         debug_print(debug, "Serialized tools:", tools)
         print(f"[DEBUG] Serialized tools: {json.dumps(tools, indent=2)}")
 
-        # Remove context_variables from the tools' parameters
+        # Adjust tools to remove any reference to 'context_variables'
         for tool in tools:
             params = tool.get("parameters", {})
             properties = params.get("properties", {})
@@ -191,7 +259,7 @@ class Swarm:
             if __CTX_VARS_NAME__ in required:
                 required.remove(__CTX_VARS_NAME__)
 
-        # Construct payload with 'tools' instead of 'functions'
+        # Construct the payload
         create_params = {
             "model": model_override or agent.model,
             "messages": messages,
@@ -200,15 +268,20 @@ class Swarm:
             "stream": stream,
         }
 
-        # Include 'parallel_tool_calls' only if 'tools' are specified
+        # Include parallel tool calls only if tools are provided
         if tools:
             create_params["parallel_tool_calls"] = agent.parallel_tool_calls
 
-        # Debug: Print the payload being sent to OpenAI
+        # Debug: Log the payload before sending
         debug_print(debug, "Chat completion payload:", create_params)
         print(f"[DEBUG] Chat completion payload: {json.dumps(create_params, indent=2)}")
 
-        return self.client.chat.completions.create(**create_params)
+        # Send the request to the OpenAI API
+        try:
+            return self.client.chat.completions.create(**create_params)
+        except Exception as e:
+            debug_print(debug, f"Error in chat completion request: {e}")
+            raise
 
     def handle_function_result(self, result, debug) -> Result:
         """
@@ -266,7 +339,6 @@ class Swarm:
 
         for tool_call in tool_calls:
             name = tool_call.function.name
-            # Handle missing tool case, skip to next tool
             if name not in function_map:
                 debug_print(debug, f"Tool {name} not found in function map.")
                 partial_response.messages.append(
@@ -278,28 +350,41 @@ class Swarm:
                     }
                 )
                 continue
-            args = json.loads(tool_call.function.arguments)
-            debug_print(
-                debug, f"Processing tool call: {name} with arguments {args}")
 
+            args = json.loads(tool_call.function.arguments)
             func = function_map[name]
+
             # Pass context_variables to agent functions if required
             if __CTX_VARS_NAME__ in func.__code__.co_varnames:
                 args[__CTX_VARS_NAME__] = context_variables
-            raw_result = func(**args)
 
-            result: Result = self.handle_function_result(raw_result, debug)
-            partial_response.messages.append(
-                {
+            try:
+                raw_result = func(**args)
+                result: Result = self.handle_function_result(raw_result, debug)
+
+                # Ensure tool response includes tool_call_id and tool_name
+                tool_message = {
                     "role": "tool",
                     "tool_call_id": tool_call.id,
                     "tool_name": name,
-                    "content": result.value,
+                    "content": result.value if result.value is not None else None,
                 }
-            )
-            partial_response.context_variables.update(result.context_variables)
-            if result.agent:
-                partial_response.agent = result.agent
+                partial_response.messages.append(tool_message)
+                partial_response.context_variables.update(result.context_variables)
+
+                if result.agent:
+                    partial_response.agent = result.agent
+
+            except Exception as e:
+                debug_print(debug, f"Error executing tool {name}: {e}")
+                partial_response.messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "tool_name": name,
+                        "content": f"Error: {str(e)}",
+                    }
+                )
 
         return partial_response
 

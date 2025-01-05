@@ -84,30 +84,22 @@
          * @param {string} sender - The display name of the sender.
          * @param {object|null} metadata - Optional debug information.
          */
-        window.renderMessage = function(role, message, sender = "Unknown", metadata = {}) {
+        window.renderMessage = function (role, message, sender = null, metadata = {}) {
             console.log("Rendering message:", { role, message, sender, metadata });
         
             const container = document.createElement("div");
             container.className = `message ${role}`;
         
+            // Determine the sender (default to Assistant for non-user roles)
+            const finalSender = sender || (role === "user" ? "User" : "Assistant");
             const header = document.createElement("h4");
-            header.textContent = sender;
+            header.textContent = finalSender;
             header.className = "sender-header";
             container.appendChild(header);
         
+            // Handle content rendering with fallback
             const content = document.createElement("p");
-        
-            if (role === "tool") {
-                // Simplified display for tool messages
-                const toolOutput = message?.content ? JSON.parse(message.content) : {};
-                content.innerHTML = `
-                    <strong>Tool Name:</strong> ${metadata.tool_name || "Unknown"}<br/>
-                    <strong>Output:</strong> ${JSON.stringify(toolOutput, null, 2)}
-                `;
-            } else {
-                content.textContent = message?.content || "No content provided.";
-            }
-        
+            content.textContent = message?.content || "No content provided."; // Fallback for undefined content
             container.appendChild(content);
         
             const messageHistory = document.getElementById("messageHistory");
@@ -121,7 +113,7 @@
         
             console.log("Message rendered successfully");
         };
-        
+                                                
     /**
      * Appends raw message data to the Raw Messages pane.
      * @param {string} role - The role of the sender.
@@ -320,8 +312,7 @@
             console.error("Error submitting message:", error);
         }
     }
-            
-
+        
     function processAssistantResponse(choices) {
         if (!choices || !Array.isArray(choices)) {
             console.error("Invalid choices array:", choices);
@@ -331,53 +322,49 @@
         console.log("Processing assistant response with choices:", choices);
     
         choices.forEach(choice => {
-            const message = choice.message || {};
-            const content = message.content || "No response.";
-            const sender = message.sender || "Assistant";
-            const toolCalls = choice.tool_calls || [];
+            const rawMessage = { ...choice.message }; // Store the raw message
+            chatHistory.push(rawMessage);
     
-            console.log("Choice details:", { content, sender, toolCalls });
+            const role = rawMessage.role || "assistant";
+            const content = rawMessage.content ?? "No content"; // Ensure fallback
+            const sender = rawMessage.sender || (role === "user" ? "User" : "Assistant");
+            const metadata = { ...rawMessage };
     
-            const assistantMessage = {
-                role: "assistant",
-                content: content,
-                sender: sender,
-                metadata: {
-                    tool_calls: toolCalls, // Include tool calls metadata
-                    ...message, // Pass all additional message metadata
-                },
-            };
+            console.log("Rendering message with:", { role, content, sender, metadata });
     
-            chatHistory.push(assistantMessage);
-    
-            renderMessage(assistantMessage.role, { content: assistantMessage.content }, assistantMessage.sender, assistantMessage.metadata);
-            appendRawMessage(assistantMessage.role, { content: assistantMessage.content }, assistantMessage.sender, assistantMessage.metadata);
+            // Render and log messages
+            renderMessage(role, { content }, sender, metadata);
+            appendRawMessage(role, { content }, sender, metadata);
     
             if (debugToggle && debugToggle.checked) {
-                renderDebugInfo(assistantMessage.role, { content: assistantMessage.content }, assistantMessage.sender, assistantMessage.metadata);
+                renderDebugInfo(role, { content }, sender, metadata);
             }
-    
-            toolCalls.forEach(toolCall => {
-                console.log("Processing tool call:", toolCall);
-                processToolCall(toolCall);
-            });
         });
     
         console.log("Assistant response processed successfully.");
     }
-                    
+                                
     function processToolCall(toolCall) {
-        const content = toolCall.content || "No content.";
+        let content = toolCall.content || "No content.";
         const toolCallId = toolCall.id || toolCall.tool_call_id || "N/A";
         const toolName = toolCall.function?.name || toolCall.tool_name || "Unknown Tool";
     
-        console.log(`Processing tool call - ID: ${toolCallId}, Name: ${toolName}, Content: ${content}`);
+        // Parse content safely
+        try {
+            if (typeof content === "string") {
+                content = JSON.parse(content); // Parse only if it's a string
+            }
+        } catch (error) {
+            console.error(`Failed to parse tool call content: ${content}`, error);
+        }
+    
+        console.log(`Processing tool call - ID: ${toolCallId}, Name: ${toolName}, Content:`, content);
     
         const toolMessage = {
             role: "tool",
-            content: content,
+            content: JSON.stringify(content, null, 2), // Render as a readable JSON string
             sender: `Tool: ${toolName}`,
-            metadata: toolCall // Pass entire toolCall object as metadata
+            metadata: toolCall // Pass the entire toolCall object as metadata
         };
     
         chatHistory.push(toolMessage);
@@ -388,8 +375,7 @@
             renderDebugInfo(toolMessage.role, { content: toolMessage.content }, toolMessage.sender, toolMessage.metadata);
         }
     }
-        
-
+    
     /**
      * Handles user decision on tool calls (Approve or Deny).
      * Sends the decision to the backend for processing.
@@ -527,6 +513,8 @@ const welcomeMessage = {
     sender: "Assistant",
     metadata: {}
 };
+
+let rawHistory = [];
 
 document.addEventListener("DOMContentLoaded", () => {
     console.log("DOM fully loaded");

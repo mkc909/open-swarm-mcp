@@ -122,7 +122,7 @@ Open Swarm showcases a growing library of **Blueprint** examples:
 
 Open Swarm uses:
 - **`.env`** files for API keys or critical environment variables (e.g., `OPENAI_API_KEY`).  
-- **`mcp_server_config.json`** (or custom JSON) for advanced settings:
+- **`swarm_config.json`** (or custom JSON) for advanced settings:
   - **`llm_providers`**: Define multiple OpenAI-compatible endpoints (e.g., `openai`, `grok`, `ollama`).
   - **`mcp_servers`**: Tools/services that agents can call.
   - **`gpt_actions`**: (TODO) More tools/services that agents can call.
@@ -167,7 +167,7 @@ These references let you quickly switch providers based on environment or agent 
    ```
 3. **Environment Setup**  
    - Copy `.env.example` to `.env` and fill in sensitive details (`OPENAI_API_KEY`, etc.).
-   - *(Optional)* Update `mcp_server_config.json` to add or modify LLM providers, MCP servers, etc.
+   - *(Optional)* Update `swarm_config.json` to add or modify LLM providers, MCP servers, etc.
 
 ---
 
@@ -244,9 +244,9 @@ These references let you quickly switch providers based on environment or agent 
    ```bash
    wget https://raw.githubusercontent.com/matthewhand/open-swarm/refs/heads/main/docker-compose.yaml
    ```
-2. **Configure `.env` & (Optional) `mcp_server_config.json`**  
+2. **Configure `.env` & (Optional) `swarm_config.json`**  
    - Ensure `.env` has `OPENAI_API_KEY`.  
-   - Adjust `mcp_server_config.json` if you want to use local LLM endpoints or different providers. 
+   - Adjust `swarm_config.json` if you want to use local LLM endpoints or different providers. 
 
 3. **Start the Service**  
    ```bash

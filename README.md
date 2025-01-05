@@ -4,7 +4,7 @@
 <img src="assets/images/openswarm-project-image.jpg" alt="Project Logo" width="70%"/>
 </div>
 
-**Open Swarm** is a versatile, modular framework for building intelligent, multi-agent systems. It's meant as a **drop-in alternative** to the [OpenAI Swarm](https://github.com/openai/swarm) framework—accepting new pull requests and actively maintained with additional features for agentic workflows. 
+**Open Swarm** is a versatile, modular framework for building intelligent, multi-agent systems. It's a **fork and actively maintained extension** of the [OpenAI Swarm](https://github.com/openai/swarm) framework. It includes modifications to support stateless RESTful operations and a plugin system for custom extensions that enhance agentic workflows.
 
 ---
 
@@ -345,3 +345,7 @@ For advanced usage, sequence diagrams, or in-depth tooling examples, see [DEVELO
 ## License
 
 Open Swarm is provided under the MIT License. Refer to the [LICENSE](LICENSE) file for full details.
+
+## Acknowledgements
+
+This project is based on the [OpenAI Swarm](https://github.com/openai/swarm) framework. We would like to acknowledge the original authors and contributors of this project for their work.

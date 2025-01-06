@@ -109,13 +109,5 @@ class FilesystemBlueprint(BlueprintBase):
         self.set_starting_agent(triage_agent)  # Set TriageAgent as the starting agent
         return agents
 
-    def run(self):
-        """
-        Run the blueprint interactively using the Swarm client.
-        """
-        logger.info("Starting FilesystemBlueprint.")
-        # Start interactive mode with TriageAgent as the starting agent
-        self.interactive_mode()
-
 if __name__ == "__main__":
     FilesystemBlueprint.main()

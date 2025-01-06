@@ -228,13 +228,7 @@ https://github.com/user-attachments/assets/a4688100-5737-479f-91e5-974db98296d7
 
 ### Running with the CLI
 
-1. **(WIP) Run the Setup Wizard (Optional):**
-    ```bash
-    uv run src/swarm/main.py --wizard
-    ```
-    *   This will allow you to configure the default LLM model and blueprint you wish to use.
-
-2.  **(WIP) Execute a Specific Blueprint:**
+1.  **Execute a Specific Blueprint:**
     ```bash
     uv run blueprints/university/blueprint_university.py
     ```
@@ -332,7 +326,7 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
    - [ ] Blueprint management
 
 - **CLI Mode**  
-  - [x] Setup Wizard  
+  - [ ] Setup Wizard  
   - [x] Blueprint Runner  
 
 - **Multiple LLM Providers**  

@@ -233,7 +233,5 @@ class UniversitySupportBlueprint(BlueprintBase):
         logger.info("Interaction completed.")
         return result
 
-
 if __name__ == "__main__":
-    blueprint = UniversitySupportBlueprint(config={})
-    blueprint.execute()
+    UniversitySupportBlueprint.main()

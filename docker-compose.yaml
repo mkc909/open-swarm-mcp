@@ -19,5 +19,5 @@ services:
       # Map the blueprints directory
       - ./blueprints:/app/blueprints
       # Map the configuration JSON
-      - ./src/swarm/mcp_server_config.json:/app/src/swarm/mcp_server_config.json
+      - ./src/swarm/swarm_config.json:/app/src/swarm/swarm_config.json
     restart: unless-stopped

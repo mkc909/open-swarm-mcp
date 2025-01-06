@@ -4,7 +4,33 @@ import logging
 from typing import Dict, Optional
 from swarm.utils.color_utils import color_text
 
+import os
+
 logger = logging.getLogger(__name__)
+
+def find_project_root(current_path: str, marker: str = ".git") -> str:
+    """
+    Recursively search for the project root by looking for a specific marker file or directory.
+
+    Args:
+        current_path (str): Starting path for the search.
+        marker (str): Marker file or directory to identify the project root.
+
+    Returns:
+        str: Path to the project root.
+
+    Raises:
+        FileNotFoundError: If the project root cannot be found.
+    """
+    while True:
+        if os.path.exists(os.path.join(current_path, marker)):
+            return current_path
+        new_path = os.path.dirname(current_path)
+        if new_path == current_path:
+            break
+        current_path = new_path
+    logger.error(f"Project root with marker '{marker}' not found.")
+    raise FileNotFoundError(f"Project root with marker '{marker}' not found.")
 
 def display_message(message: str, message_type: str = "info") -> None:
     """

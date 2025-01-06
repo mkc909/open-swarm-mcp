@@ -216,22 +216,5 @@ class UniversitySupportBlueprint(BlueprintBase):
         self.set_starting_agent(triage_agent)
         return agents
 
-    def execute(self) -> Dict[str, Any]:
-        """
-        Main execution logic for the blueprint.
-        """
-        try:
-            user_query = input("How can I assist you today? ")
-        except KeyboardInterrupt:
-            logger.info("User terminated the session.")
-            return {"status": "terminated"}
-
-        messages = [{"role": "user", "content": user_query}]
-        context_variables = {}
-
-        result = self.run_with_context(messages, context_variables)
-        logger.info("Interaction completed.")
-        return result
-
 if __name__ == "__main__":
     UniversitySupportBlueprint.main()

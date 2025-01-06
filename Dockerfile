@@ -1,6 +1,15 @@
 # Use an Astral uv image with Python 3.13
 FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
+# Install Node.js and npm
+RUN apt-get update && apt-get install -y \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/*[1]
+
+# Copy uvx alongside uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uvx /bin/[7][8]
+
 # Set working directory inside the container
 WORKDIR /app
 

@@ -97,22 +97,5 @@ class DatabaseAndWebBlueprint(BlueprintBase):
         self.swarm.create_agent(sqlite_agent)
         self.swarm.create_agent(brave_search_agent)
 
-    def run(self):
-        """
-        Run the blueprint interactively using the Swarm client.
-        """
-        logger.info("Starting Database and Web Integration Blueprint.")
-        # Example initial message
-        initial_messages = [
-            {"role": "user", "content": "Find AI research topics in the database."}
-        ]
-        response = self.swarm.run(
-            agent=self.swarm.agents.get("SQLiteAgent"),
-            messages=initial_messages,
-        )
-        logger.info("Run completed. Final response:")
-        logger.info(response.messages[-1]["content"])
-
-
 if __name__ == "__main__":
     DatabaseAndWebBlueprint.main()

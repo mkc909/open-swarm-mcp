@@ -345,7 +345,7 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
 
 - **Deployment**  
   - [x] Dockerfile and docker-compose.yaml  
-  - [ ] Publish to Docker Registry  
+  - [x] Publish to Docker Registry  
   - [ ] Publish Python module to PyPI  
 
 - **Example Blueprints**  

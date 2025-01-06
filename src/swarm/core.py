@@ -162,11 +162,22 @@ class Swarm:
         logger.info("Swarm initialized successfully.")
 
     async def discover_and_merge_agent_tools(self, agent: Agent, debug: bool = False):
+        """
+        Discover and merge tools for the given agent from assigned MCP servers.
+
+        Args:
+            agent (Agent): The agent for which to discover and merge tools.
+            debug (bool): Whether to enable additional debug logging.
+
+        Returns:
+            List[AgentFunction]: Combined list of agent's existing functions and newly discovered tools.
+        """
         if not agent.mcp_servers:
             logger.debug(f"Agent '{agent.name}' has no assigned MCP servers.")
             return agent.functions
 
         discovered_tools = []
+        logger.debug(f"Starting tool discovery for agent '{agent.name}' with MCP servers: {agent.mcp_servers}")
 
         for server_name in agent.mcp_servers:
             logger.debug(f"Looking up MCP server '{server_name}' for agent '{agent.name}'.")
@@ -184,16 +195,26 @@ class Swarm:
 
                 # Pass the agent to the discover_tools method
                 tools = await tool_provider.discover_tools(agent)
-                discovered_tools.extend(tools)
+                if tools:
+                    logger.info(f"Discovered {len(tools)} tools from server '{server_name}' for agent '{agent.name}': {[tool.name for tool in tools]}")
+                    discovered_tools.extend(tools)
+                else:
+                    logger.warning(f"No tools discovered from server '{server_name}' for agent '{agent.name}'.")
 
             except Exception as e:
                 logger.error(f"Error discovering tools for server '{server_name}': {e}", exc_info=True)
+                if debug:
+                    print(f"[DEBUG] Exception during tool discovery for server '{server_name}': {e}")
 
         # Combine existing agent functions with discovered tools
         all_functions = agent.functions + discovered_tools
+        logger.debug(f"Total functions for agent '{agent.name}': {len(all_functions)} (Existing: {len(agent.functions)}, Discovered: {len(discovered_tools)})")
+        if debug:
+            print(f"[DEBUG] Existing functions: {[func.name for func in agent.functions]}")
+            print(f"[DEBUG] Discovered tools: {[tool.name for tool in discovered_tools]}")
+            print(f"[DEBUG] Combined functions: {[func.name for func in all_functions]}")
+
         return all_functions
-
-
 
     def get_chat_completion(
         self,

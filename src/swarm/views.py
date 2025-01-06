@@ -8,7 +8,6 @@ Endpoints:
     - POST /v1/chat/completions: Handles chat completion requests.
     - GET /v1/models: Lists available blueprints as models.
 """
-
 import os
 import json
 import uuid
@@ -22,13 +21,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.shortcuts import render
 
-
 from swarm.extensions.blueprint import discover_blueprints
 from swarm.extensions.config.config_loader import (
     load_server_config,
     load_llm_config,
 )
-from swarm.utils.logger import setup_logger
+from swarm.utils.logger_setup import setup_logger
+from swarm.utils.redact import redact_sensitive_data
 
 # Initialize logger for this module
 logger = setup_logger(__name__)
@@ -37,7 +36,8 @@ logger = setup_logger(__name__)
 CONFIG_PATH = Path(settings.BASE_DIR) / "swarm_config.json"
 try:
     config = load_server_config(str(CONFIG_PATH))
-    logger.debug(f"Loaded configuration from {CONFIG_PATH}: {config}")
+    redacted_config = redact_sensitive_data(config)  # Redact before logging
+    logger.debug(f"Loaded configuration from {CONFIG_PATH}: {redacted_config}")
 except Exception as e:
     logger.critical(f"Failed to load configuration from {CONFIG_PATH}: {e}")
     raise e
@@ -46,7 +46,8 @@ except Exception as e:
 BLUEPRINTS_DIR = (Path(settings.BASE_DIR) / "blueprints").resolve()
 try:
     blueprints_metadata = discover_blueprints([str(BLUEPRINTS_DIR)])
-    logger.debug(f"Discovered blueprints metadata: {blueprints_metadata}")
+    redacted_blueprints_metadata = redact_sensitive_data(blueprints_metadata)  # Redact before logging
+    logger.debug(f"Discovered blueprints metadata: {redacted_blueprints_metadata}")
 except Exception as e:
     logger.error(f"Error discovering blueprints: {e}", exc_info=True)
     raise e
@@ -84,7 +85,7 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
     if messages:
         # Update the agent context if necessary
         last_message = messages[-1]
-        context_variables["active_agent"] = active_agent.name
+        context_variables["active_agent"] = active_agent.name if active_agent else "unknown"
 
     # Format the response for OpenAI
     response_id = f"swarm-chat-completion-{uuid.uuid4()}"
@@ -106,8 +107,9 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
             "completion_tokens": sum(len((msg.get("content") or "").split()) for msg in messages if msg.get("role") == "assistant"),
             "total_tokens": len(messages),
         },
-        "context_variables": context_variables, 
+        "context_variables": redact_sensitive_data(context_variables),  # Redact context variables
     }
+
 
 @csrf_exempt
 def chat_completions(request):
@@ -137,8 +139,8 @@ def chat_completions(request):
     try:
         blueprint_instance = blueprint_class(config=config)
     except Exception as e:
-        logger.error(f"Error initializing blueprint: {e}", exc_info=True)
-        return JsonResponse({"error": f"Error initializing blueprint: {e}"}, status=500)
+        logger.error(f"Error initializing blueprint: {redact_sensitive_data(e)}", exc_info=True)
+        return JsonResponse({"error": f"Error initializing blueprint: {redact_sensitive_data(str(e))}"}, status=500)
 
     try:
         # Run the blueprint with the provided messages and context
@@ -152,8 +154,9 @@ def chat_completions(request):
             status=200
         )
     except Exception as e:
-        logger.error(f"Error during execution: {e}", exc_info=True)
-        return JsonResponse({"error": f"Error during execution: {e}"}, status=500)
+        logger.error(f"Error during execution: {redact_sensitive_data(e)}", exc_info=True)
+        return JsonResponse({"error": f"Error during execution: {redact_sensitive_data(str(e))}"}, status=500)
+
 
 @csrf_exempt
 def list_models(request):
@@ -173,10 +176,12 @@ def list_models(request):
             }
             for key, meta in blueprints_metadata.items()
         ]
-        return JsonResponse({"object": "list", "data": data}, status=200)
+        redacted_data = redact_sensitive_data(data)  # Redact model descriptions if necessary
+        return JsonResponse({"object": "list", "data": redacted_data}, status=200)
     except Exception as e:
-        logger.error(f"Error listing models: {e}", exc_info=True)
+        logger.error(f"Error listing models: {redact_sensitive_data(e)}", exc_info=True)
         return JsonResponse({"error": "Internal Server Error"}, status=500)
+
 
 @csrf_exempt
 def blueprint_webpage(request, blueprint_name):

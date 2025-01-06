@@ -6,7 +6,8 @@ import json
 from unittest.mock import patch, Mock
 from swarm.core import Swarm
 from swarm.types import Agent, Tool, Result
-import openai  # Import openai to fix NameError
+import openai
+
 
 # Helper function to create a mock response
 def mock_chat_completion_create(**kwargs):

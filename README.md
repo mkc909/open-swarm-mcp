@@ -53,7 +53,7 @@
 6. **(WIP) Configurable LLM Providers**  
    - Supports multiple OpenAI-compatible providers in a single environment (e.g., `openai`, `grok`, `ollama`).
    - Allows specifying different models/providers for different agents—even within the same blueprint.
-   - Use environment variable `LLM` to specify default llm model provider used by blueprints, ie `LLM=ollama`
+   - Use environment variable `DEFAULT_LLM` to specify default llm model provider used by blueprints, ie `DEFAULT_LLM=ollama`
 
 ---
 

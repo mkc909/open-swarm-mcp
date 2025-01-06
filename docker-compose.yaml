@@ -1,6 +1,6 @@
 services:
   open-swarm:
-    image: openswarm:latest
+    image: mhand79/open-swarm:latest
     build:
       context: .
       dockerfile: Dockerfile

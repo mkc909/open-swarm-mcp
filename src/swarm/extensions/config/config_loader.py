@@ -1,3 +1,5 @@
+# src/swarm/extensions/config/config_loader.py
+
 """
 Configuration Loader for Open Swarm MCP Framework.
 
@@ -178,31 +180,62 @@ def validate_api_keys(config: Dict[str, Any], selected_llm: str = "default") -> 
     logger.info(f"API key validation successful for LLM profile '{selected_llm}'. Key: {redact_sensitive_data(api_key)}")
     return config
 
-def are_required_mcp_servers_configured(
-    required_servers: List[str], config: Dict[str, Any]
-) -> Tuple[bool, List[str]]:
+def are_required_mcp_servers_configured(required_servers: List[str], config: dict) -> Tuple[bool, List[str]]:
     """
-    Checks if all required MCP servers are configured.
+    Checks if all required MCP servers are configured in the given configuration.
 
     Args:
-        required_servers (List[str]): A list of required MCP server names.
+        required_servers (List[str]): List of required MCP server names.
+        config (dict): Configuration dictionary.
+
+    Returns:
+        Tuple[bool, List[str]]: A tuple where the first element is True if all servers are configured,
+                                 and the second element is a list of missing servers.
+    """
+    configured_servers = config.get("mcpServers", {}).keys()
+    missing_servers = [server for server in required_servers if server not in configured_servers]
+    if missing_servers:
+        logger.error(f"Missing MCP servers in configuration: {missing_servers}")
+        return False, missing_servers
+    return True, []
+
+def validate_and_select_llm_provider(config: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Validates the selected LLM provider and returns its configuration.
+
+    Args:
         config (Dict[str, Any]): The configuration dictionary.
 
     Returns:
-        Tuple[bool, List[str]]: A tuple containing:
-            - A boolean indicating if all required servers are present.
-            - A list of missing server names.
+        Dict[str, Any]: The validated LLM provider configuration.
+
+    Raises:
+        ValueError: If validation fails.
     """
-    logger.debug(f"Checking required MCP servers: {required_servers}.")
-    mcp_servers = config.get("mcpServers", {})
-    missing_servers = [server for server in required_servers if server not in mcp_servers]
+    logger.debug("Validating and selecting LLM provider.")
+    try:
+        selected_llm = get_default_llm_config(config)
+        validate_api_keys(config, selected_llm)
+        return selected_llm
+    except ValueError as e:
+        logger.error(f"LLM provider validation failed: {e}")
+        raise
 
-    if missing_servers:
-        logger.warning(f"Missing MCP servers: {missing_servers}.")
-        return False, missing_servers
+def inject_env_vars(config: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Injects environment variables into the configuration where placeholders exist.
 
-    logger.info("All required MCP servers are configured.")
-    return True, []
+    Args:
+        config (Dict[str, Any]): The configuration dictionary.
+
+    Returns:
+        Dict[str, Any]: The configuration with environment variables injected.
+    """
+    logger.debug("Injecting environment variables into configuration.")
+    # This function is already handled by resolve_placeholders in load_server_config
+    # If additional environment variable injection is needed, implement here.
+    # For now, we'll assume placeholders are resolved during load.
+    return config
 
 def load_llm_config(config: Dict[str, Any], llm_name: Optional[str] = None) -> Dict[str, Any]:
     """
@@ -223,7 +256,7 @@ def load_llm_config(config: Dict[str, Any], llm_name: Optional[str] = None) -> D
     # Determine LLM name
     if not llm_name:
         llm_name = os.getenv("DEFAULT_LLM", "default")
-        logger.debug(f"No LLM name provided, using DEFAULT_LLM or fallback to 'default': {llm_name}")
+        logger.debug(f"No LLM name provided, using DEFAULT_LLM env variable or fallback to 'default': {llm_name}")
 
     # Load the specific LLM configuration
     llm_config = config.get("llm", {}).get(llm_name)

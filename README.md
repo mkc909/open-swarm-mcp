@@ -264,7 +264,7 @@ https://github.com/user-attachments/assets/a4688100-5737-479f-91e5-974db98296d7
    Replace `your_openai_api_key_here` with your actual OpenAI API key.
 
 3. **(Optional) Adjust `swarm_config.json`**  
-   Modify `swarm_config.json` if you plan to use local LLM endpoints or different providers.
+   Download and modify `swarm_config.json` if you plan to use local LLM endpoints or different providers.
 
 4. **Start the Service**  
    ```bash
@@ -278,15 +278,21 @@ https://github.com/user-attachments/assets/a4688100-5737-479f-91e5-974db98296d7
 5. **Access the Application**  
    - Visit [http://localhost:8000](http://localhost:8000) for the interactive blueprint pages.
 
-### Deploy Standalone (TODO) 
+### Deploy Standalone 
 
+1. Configure `.env` (mandatory) and `swarm_config.json` (optional) as above
+
+2. Run following cmd:
 ```bash
 docker run \
   --env-file .env \
-  -p 8000:8000 \
-  open-swarm:latest
+  -p ${PORT:-8000}:${PORT:-8000} \
+  -v ./blueprints:/app/blueprints \
+  -v ./swarm_config.json:/app/src/swarm/swarm_config.json \
+  --name open-swarm \
+  --restart unless-stopped \
+  mhand79/open-swarm:latest
 ```
-*(An official Docker image is planned for registry release.)*
 
 ---
 

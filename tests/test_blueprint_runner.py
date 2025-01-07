@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import patch, MagicMock
-from swarm.extensions.blueprint.modes.cli_mode.blueprint_runner import (
+from swarm.extensions.cli.blueprint_runner import (
     load_blueprint,
     run_blueprint_framework,
     run_blueprint_interactive,
@@ -47,25 +47,25 @@ def test_run_blueprint_interactive():
         mock_print.assert_not_called()  # No output expected unless there's an error
 
 
-@patch("swarm.extensions.blueprint.modes.cli_mode.blueprint_runner.load_blueprint")
-@patch("swarm.extensions.blueprint.modes.cli_mode.blueprint_runner.run_blueprint_framework")
+@patch("swarm.extensions.cli.blueprint_runner.load_blueprint")
+@patch("swarm.extensions.cli.blueprint_runner.run_blueprint_framework")
 @patch("os.path.isfile", return_value=True)
 @patch("sys.argv", ["blueprint_runner.py", "/path/to/blueprint_valid.py"])
 def test_main_framework_mode(mock_isfile, mock_run_framework, mock_load_blueprint):
     """Test the CLI for framework mode."""
-    from swarm.extensions.blueprint.modes.cli_mode.blueprint_runner import main
+    from swarm.extensions.cli.blueprint_runner import main
     main()
     mock_load_blueprint.assert_called_once_with("/path/to/blueprint_valid.py")
     mock_run_framework.assert_called_once()
 
 
-@patch("swarm.extensions.blueprint.modes.cli_mode.blueprint_runner.load_blueprint")
-@patch("swarm.extensions.blueprint.modes.cli_mode.blueprint_runner.run_blueprint_interactive")
+@patch("swarm.extensions.cli.blueprint_runner.load_blueprint")
+@patch("swarm.extensions.cli.blueprint_runner.run_blueprint_interactive")
 @patch("os.path.isfile", return_value=True)
 @patch("sys.argv", ["blueprint_runner.py", "/path/to/blueprint_valid.py", "--interactive"])
 def test_main_interactive_mode(mock_isfile, mock_run_interactive, mock_load_blueprint):
     """Test the CLI for interactive mode."""
-    from swarm.extensions.blueprint.modes.cli_mode.blueprint_runner import main
+    from swarm.extensions.cli.blueprint_runner import main
     main()
     mock_load_blueprint.assert_called_once_with("/path/to/blueprint_valid.py")
     mock_run_interactive.assert_called_once()

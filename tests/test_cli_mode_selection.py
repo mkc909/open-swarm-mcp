@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from swarm.extensions.blueprint.modes.cli_mode.selection import prompt_user_to_select_blueprint
+from swarm.extensions.cli.selection import prompt_user_to_select_blueprint
 
 @patch("builtins.input", return_value="1")
 def test_valid_input(mock_input):

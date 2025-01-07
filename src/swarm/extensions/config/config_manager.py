@@ -11,7 +11,7 @@ from swarm.extensions.config.config_loader import (
     resolve_placeholders
 )
 from swarm.utils.color_utils import color_text
-from swarm.extensions.blueprint.modes.cli_mode.utils import (
+from swarm.extensions.cli.utils import (
     prompt_user,
     log_and_exit,
     display_message

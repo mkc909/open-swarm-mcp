@@ -109,18 +109,18 @@ Open Swarm showcases a growing library of **Blueprint** examples:
 
 ## Operational Modes
 
-1. **CLI Mode**  
-   - Run `uv run src/swarm/main.py --wizard` to configure blueprints interactively.  
-   - Execute specific blueprint files (e.g., `uv run blueprints/university/blueprint_university.py`).  
-   - Great for local testing, debugging, and iterative development.
-
-2. **REST Mode**  
+1. **REST Mode**  
    - Launch Django with `uv run manage.py runserver 0.0.0.0:8000`.  
    - Access endpoints:
      - `POST /v1/chat/completions`: Chat-style agent interactions (OpenAI-compatible).
      - `GET /v1/models`: Lists available blueprints.
      - `http://localhost:8000/<blueprint_name>/`: Interactive, web-based blueprint tester.
    - (TODO) Optionally integrate with Django Admin at `/admin`.
+
+2. **CLI Mode**  
+   - Execute specific blueprint files (e.g., `uv run blueprints/university/blueprint_university.py`).  
+   - (WIP) Run `uv run src/swarm/extensions/cli/main.py --wizard` to configure blueprints interactively.  
+   - Great for local testing, debugging, and iterative development.
 
 ---
 

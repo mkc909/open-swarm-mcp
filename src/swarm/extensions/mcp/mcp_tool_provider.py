@@ -33,24 +33,23 @@ class MCPToolProvider:
     them into `Tool` instances that can be utilized by agents within the Open-Swarm framework.
     """
 
-    def __init__(self, server_name: str, server_config: Dict[str, Any]):
+    def __init__(self, server_name: str, server_config: dict):
         """
-        Initialize the MCPToolProvider with server-specific configurations.
-
+        Initialize an MCPToolProvider instance.
+        
         Args:
-            server_name (str): The name identifier for the MCP server.
-            server_config (Dict[str, Any]): Configuration dictionary for the MCP server.
-                Expected keys:
-                    - 'url': The MCP server endpoint.
-                    - 'auth_token': (Optional) Authentication token for the MCP server.
+            server_name (str): The name of the MCP server.
+            server_config (dict): Configuration dictionary for the specific server.
         """
         self.server_name = server_name
-        self.server_config = server_config
-        self.client = MCPClient(
-            url=server_config.get("url"),
-            auth_token=server_config.get("auth_token")
-        )
-        logger.debug(f"MCPToolProvider initialized for server '{self.server_name}' with config: {self.server_config}")
+        self.command = server_config.get("command", "npx")
+        self.args = server_config.get("args", [])
+        self.env = server_config.get("env", {})
+        self.timeout = server_config.get("timeout", 30)
+        self.config = server_config
+        self.client = None
+        self.initialize_client()
+        logger.debug(f"Initialized MCPToolProvider for server '{self.server_name}' with config: {server_config}")
 
     async def discover_tools(self, agent: 'Agent') -> List[Tool]:
         """

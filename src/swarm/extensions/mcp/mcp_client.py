@@ -1,5 +1,3 @@
-# src/swarm/extensions/mcp/mcp_client.py
-
 """
 MCP Client Manager for JSON-RPC
 -------------------------------
@@ -37,20 +35,22 @@ class MCPClient:
         command: str = "npx",
         args: Optional[List[str]] = None,
         env: Optional[Dict[str, str]] = None,
-        timeout: int = 30,  # Increased default timeout for robustness
+        timeout: int = 10,
     ):
         self.command = command
         self.args = [os.path.expandvars(arg) for arg in (args or [])]
         self.env = {**os.environ.copy(), **(env or {})}
         self.timeout = timeout
         self._tools_cache: Optional[List[Tool]] = None  # Cache for discovered tools
+
         logger.debug(
             f"Initialized MCPClient with command='{self.command}', args={self.args}, timeout={self.timeout}"
         )
+        logger.debug(f"SQLITE_DB_PATH environment variable: {self.env.get('SQLITE_DB_PATH')}")
 
     async def _send_request(self, process: asyncio.subprocess.Process, request: dict):
         """
-        Sends a JSON-RPC request to the MCP server.
+        Sends a JSON-RPC request to the server.
 
         Args:
             process (asyncio.subprocess.Process): The running MCP server process.
@@ -59,10 +59,8 @@ class MCPClient:
         request_str = json.dumps(request) + "\n"
         logger.debug(f"Sending request: {request}")
         try:
-            # Write asynchronously to the process's stdin
             process.stdin.write(request_str.encode())
             await asyncio.wait_for(process.stdin.drain(), timeout=self.timeout)
-            logger.debug("Request sent successfully.")
         except asyncio.TimeoutError:
             logger.error("Timeout while sending request to MCP server.")
             raise
@@ -74,7 +72,7 @@ class MCPClient:
         self, process: asyncio.subprocess.Process, count: int
     ) -> List[dict]:
         """
-        Reads JSON-RPC responses from the MCP server.
+        Reads JSON-RPC responses from the server.
 
         Args:
             process (asyncio.subprocess.Process): The running MCP server process.
@@ -89,7 +87,6 @@ class MCPClient:
             while len(responses) < count:
                 chunk = await asyncio.wait_for(process.stdout.read(1024), timeout=self.timeout)
                 if not chunk:
-                    logger.warning("No more data from MCP server.")
                     break
                 buffer += chunk.decode()
                 logger.debug(f"Read chunk from stdout: {chunk}")
@@ -107,10 +104,8 @@ class MCPClient:
                         break
         except asyncio.TimeoutError:
             logger.error("Timeout while reading responses from MCP server.")
-            raise
         except Exception as e:
             logger.error(f"Error reading responses: {e}")
-            raise
         logger.debug(f"Final parsed responses: {responses}")
         return responses
 
@@ -126,11 +121,10 @@ class MCPClient:
 
         Raises:
             asyncio.TimeoutError: If the entire process takes too long.
-            Exception: For any unexpected errors.
         """
         try:
-            # Define a single timeout for the entire operation
-            timeout = self.timeout * 2  # Allow double the timeout for safety
+            # We double the timeout relative to the number of requests
+            total_timeout = self.timeout * 2
 
             async def process_runner():
                 process = await asyncio.create_subprocess_exec(
@@ -145,20 +139,37 @@ class MCPClient:
 
                 try:
                     # Read stderr in the background
-                    asyncio.create_task(
-                        self._read_stream(
-                            process.stderr,
-                            lambda line: logger.debug(f"MCP Server stderr: {line}"),
-                        )
-                    )
+                    stderr_buffer = []
 
-                    # Send requests
-                    for request in requests:
-                        await self._send_request(process, request)
+                    async def stderr_reader():
+                        while True:
+                            line = await process.stderr.readline()
+                            if not line:
+                                break
+                            decoded_line = line.decode().strip()
+                            stderr_buffer.append(decoded_line)
+                            logger.debug(f"MCP Server stderr: {decoded_line}")
 
-                    # Read responses
+                    asyncio.create_task(stderr_reader())
+
+                    # Short delay to let the server start
+                    await asyncio.sleep(1)
+
+                    # Send all requests
+                    for req in requests:
+                        await self._send_request(process, req)
+
+                    # Collect responses
                     responses = await self._read_responses(process, len(requests))
                     logger.debug(f"Received responses: {responses}")
+
+                    # Wait a moment for stderr_reader to finish
+                    await asyncio.sleep(0.5)
+
+                    # Log any stderr output
+                    if stderr_buffer:
+                        logger.error(f"MCP Server stderr output: {' | '.join(stderr_buffer)}")
+
                     return responses
                 finally:
                     try:
@@ -171,13 +182,12 @@ class MCPClient:
                         await process.wait()
                         logger.debug("Process killed.")
 
-            # Run the process runner within the timeout
-            return await asyncio.wait_for(process_runner(), timeout=timeout)
+            # Run with a single overarching timeout
+            return await asyncio.wait_for(process_runner(), timeout=total_timeout)
 
         except asyncio.TimeoutError:
-            logger.error(f"Operation exceeded timeout of {timeout} seconds.")
+            logger.error(f"Operation exceeded timeout of {total_timeout} seconds.")
             raise
-
         except Exception as e:
             logger.error(f"Unexpected error during _run_with_process: {e}")
             raise
@@ -219,7 +229,7 @@ class MCPClient:
                         name=tool_info.get("name", "UnnamedTool"),
                         description=tool_info.get("description", "No description provided."),
                         func=self._create_tool_callable(tool_info.get("name")),
-                        input_schema=tool_info.get("input_schema", {}),
+                        input_schema=tool_info.get("inputSchema", {}),
                     )
                     tools.append(tool)
             elif "error" in response:
@@ -229,26 +239,7 @@ class MCPClient:
         return tools
 
     def _create_tool_callable(self, tool_name: str) -> Callable[..., Any]:
-        """
-        Creates a callable function for the given tool name.
-
-        Args:
-            tool_name (str): The name of the tool.
-
-        Returns:
-            Callable[..., Any]: The function to execute the tool.
-        """
-
-        async def tool_callable(**kwargs) -> Any:
-            """
-            A generic tool callable that sends a JSON-RPC request to call the tool.
-
-            Args:
-                **kwargs: Arguments for the tool.
-
-            Returns:
-                Any: The result from the tool.
-            """
+        async def dynamic_tool_func(**kwargs) -> Any:
             call_tool_request = {
                 "jsonrpc": "2.0",
                 "id": 3,
@@ -263,14 +254,50 @@ class MCPClient:
 
             for response in responses:
                 if "result" in response:
-                    return response["result"]
-                elif "error" in response:
-                    logger.error(
-                        f"Error in tool call '{tool_name}': {response['error']}"
-                    )
-                    raise Exception(f"Tool call error: {response['error']}")
+                    result = response["result"]
 
-        return tool_callable
+                    # (1) Check for errors
+                    if result.get("isError"):
+                        error_content = result.get("content", [])
+                        if error_content and isinstance(error_content[0], dict):
+                            error_message = error_content[0].get("text", "Unknown error.")
+                        else:
+                            error_message = "Unknown error."
+                        logger.error(f"Error executing tool '{tool_name}': {error_message}")
+                        raise RuntimeError(f"Execution of tool '{tool_name}' failed: {error_message}")
+
+                    # (2) Parse the content if no 'isError'
+                    content = result.get("content", [])
+                    if content and isinstance(content, list) and len(content) > 0:
+                        text_payload = content[0].get("text", "").strip()
+
+                        # Check specifically if the content is "[]"
+                        # i.e. an empty JSON array => treat it as "Success" for writes
+                        if text_payload == "[]":
+                            return "Success"
+
+                        # If the payload starts with "[" but isn't "[]", parse as JSON
+                        if text_payload.startswith("["):
+                            try:
+                                parsed = json.loads(text_payload)
+                                return parsed
+                            except json.JSONDecodeError:
+                                # If JSON parsing fails for some reason, we do nothing special here;
+                                # it will fall back to `result.get("result")` below.
+                                pass
+
+                    # (3) Fallback to 'result' object if no recognized content
+                    return result.get("result")
+
+                elif "error" in response:
+                    logger.error(f"Error in tool call '{tool_name}': {response['error']}")
+                    raise RuntimeError(f"Tool call error: {response['error']}")
+
+            # If no valid responses
+            logger.error("Invalid tool response structure.")
+            raise RuntimeError("Invalid tool response structure.")
+
+        return dynamic_tool_func
 
     async def call_tool(self, tool: Tool, arguments: Dict[str, Any]) -> Any:
         """
@@ -363,5 +390,5 @@ class MCPClient:
 
         logger.debug("No cached tools found. Discovering tools now.")
         tools = await self.discover_tools()
-        self._tools_cache = tools  # Cache the discovered tools
+        self._tools_cache = tools
         return tools

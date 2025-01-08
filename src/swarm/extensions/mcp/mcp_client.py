@@ -32,7 +32,7 @@ class MCPClientManager:
     A class for interacting with MCP servers using JSON-RPC requests.
     """
 
-    def __init__(self, command: str = "npx", args: Optional[List[str]] = None, env: Optional[Dict[str, str]] = None, timeout: int = 30):
+    def __init__(self, command: str = "npx", args: Optional[List[str]] = None, env: Optional[Dict[str, str]] = None, timeout: int = 10):
         self.command = command
         self.args = [os.path.expandvars(arg) for arg in (args or [])]
         self.env = {**os.environ.copy(), **(env or {})}
@@ -49,8 +49,17 @@ class MCPClientManager:
         """
         request_str = json.dumps(request) + "\n"
         logger.debug(f"Sending request: {request}")
-        process.stdin.write(request_str.encode())
-        await process.stdin.drain()
+        try:
+            # Write synchronously to the process's stdin
+            process.stdin.write(request_str.encode())
+            await asyncio.wait_for(process.stdin.drain(), timeout=self.timeout)
+        except asyncio.TimeoutError:
+            logger.error("Timeout while sending request to MCP server.")
+            raise
+        except Exception as e:
+            logger.error(f"Error while sending request: {e}")
+            raise
+
 
     async def _read_stream(self, stream: asyncio.StreamReader, callback: Callable[[str], None]):
         """
@@ -61,23 +70,27 @@ class MCPClientManager:
             callback (Callable): The function to process each line.
         """
         while True:
-            line = await stream.readline()
-            if not line:
+            try:
+                line = await asyncio.wait_for(stream.readline(), timeout=self.timeout)
+                if not line:
+                    break
+                if isinstance(line, bytes):
+                    decoded = line.decode().strip()
+                    if decoded:
+                        logger.debug(f"Read line from stream: {decoded}")
+                        callback(decoded)
+                else:
+                    logger.error(f"Unexpected line type: {type(line)}")
+            except asyncio.TimeoutError:
+                logger.error("Timeout while reading from stream.")
                 break
-            decoded = line.decode().strip()
-            if decoded:
-                callback(decoded)
+            except Exception as e:
+                logger.error(f"Error reading stream: {e}")
+                break
 
     async def _read_responses(self, process: asyncio.subprocess.Process, count: int) -> List[dict]:
         """
         Reads JSON-RPC responses from the server.
-
-        Args:
-            process (asyncio.subprocess.Process): The running MCP server process.
-            count (int): Number of responses to read.
-
-        Returns:
-            list: Parsed JSON-RPC responses.
         """
         responses = []
         buffer = ""
@@ -87,54 +100,89 @@ class MCPClientManager:
                 if not chunk:
                     break
                 buffer += chunk.decode()
-                logger.debug(f"Read chunk: {chunk}")
+                logger.debug(f"Read chunk from stdout: {chunk}")
 
                 while True:
                     try:
                         json_data, idx = json.JSONDecoder().raw_decode(buffer)
                         responses.append(json_data)
                         buffer = buffer[idx:].lstrip()
+                        logger.debug(f"Parsed JSON-RPC response: {json_data}")
                         if len(responses) == count:
                             break
                     except json.JSONDecodeError:
+                        logger.debug(f"Incomplete JSON detected, awaiting more data.")
                         break
         except asyncio.TimeoutError:
-            logger.error("Timed out waiting for JSON responses.")
+            logger.error("Timeout while reading responses from MCP server.")
+        except Exception as e:
+            logger.error(f"Error reading responses: {e}")
+        logger.debug(f"Final parsed responses: {responses}")
         return responses
+
 
     async def _run_with_process(self, requests: List[dict]) -> List[dict]:
         """
-        Runs the MCP server process and sends requests.
+        Runs the MCP server process and sends requests, with an overarching timeout.
 
         Args:
             requests (list): List of JSON-RPC requests.
 
         Returns:
             list: JSON-RPC responses.
+
+        Raises:
+            asyncio.TimeoutError: If the entire process takes too long.
         """
-        process = await asyncio.create_subprocess_exec(
-            self.command, *self.args,
-            env=self.env,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        logger.debug(f"Started process: {self.command} {' '.join(self.args)}")
-
         try:
-            # Start reading stderr in the background to prevent blocking
-            asyncio.create_task(self._read_stream(process.stderr, lambda line: logger.debug(f"MCP Server stderr: {line}")))
+            # Define a single timeout for the entire operation
+            timeout = self.timeout * 2  # Example: Allow double the timeout per request count
 
-            for request in requests:
-                await self._send_request(process, request)
+            async def process_runner():
+                process = await asyncio.create_subprocess_exec(
+                    self.command, *self.args,
+                    env=self.env,
+                    stdin=asyncio.subprocess.PIPE,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                logger.debug(f"Started process: {self.command} {' '.join(self.args)}")
 
-            responses = await self._read_responses(process, len(requests))
-            logger.debug(f"Received responses: {responses}")
-            return responses
-        finally:
-            process.terminate()
-            await process.wait()
-            logger.debug("Process terminated.")
+                try:
+                    # Read stderr in the background
+                    asyncio.create_task(
+                        self._read_stream(process.stderr, lambda line: logger.debug(f"MCP Server stderr: {line}"))
+                    )
+
+                    # Send requests
+                    for request in requests:
+                        await self._send_request(process, request)
+
+                    # Read responses
+                    responses = await self._read_responses(process, len(requests))
+                    logger.debug(f"Received responses: {responses}")
+                    return responses
+                finally:
+                    try:
+                        process.terminate()
+                        await asyncio.wait_for(process.wait(), timeout=self.timeout)
+                        logger.debug("Process terminated cleanly.")
+                    except asyncio.TimeoutError:
+                        logger.warning("Terminate timeout exceeded; killing process.")
+                        process.kill()
+                        await process.wait()
+                        logger.debug("Process killed.")
+
+            # Run the process runner within the timeout
+            return await asyncio.wait_for(process_runner(), timeout=timeout)
+
+        except asyncio.TimeoutError:
+            logger.error(f"Operation exceeded timeout of {timeout} seconds.")
+            raise
+
+        except Exception as e:
+            logger.error(f"Unexpected error during _run_with_process: {e}")
+            raise
 
     async def discover_tools(self) -> List[Tool]:
         """
@@ -163,6 +211,7 @@ class MCPClientManager:
         }
 
         responses = await self._run_with_process([initialize_request, list_tools_request])
+        logger.debug(f"Raw tool discovery responses: {responses}")
 
         tools = []
         for response in responses:
@@ -172,12 +221,12 @@ class MCPClientManager:
                         name=tool_info.get('name', 'UnnamedTool'),
                         description=tool_info.get('description', 'No description provided.'),
                         func=self._create_tool_callable(tool_info.get('name')),
-                        input_schema=tool_info.get('input_schema')
+                        input_schema=tool_info.get('input_schema', {})
                     )
                     tools.append(tool)
             elif 'error' in response:
                 logger.error(f"Error in tool discovery: {response['error']}")
-        
+
         logger.info(f"Discovered tools: {[tool.name for tool in tools]}")
         return tools
 
@@ -296,9 +345,9 @@ class MCPClientManager:
         await self.test_methods(tools)
 
 
-# if __name__ == "__main__":
-#     client = MCPClientManager(
-#         command="npx",
-#         args=["-y", "mcp-server-sqlite-npx", "./artificial_university.db"]
-#     )
-#     asyncio.run(client.main())
+if __name__ == "__main__":
+    client = MCPClientManager(
+        command="npx",
+        args=["-y", "mcp-server-sqlite-npx", "./artificial_university.db"]
+    )
+    asyncio.run(client.main())

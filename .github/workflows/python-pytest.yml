@@ -1,4 +1,5 @@
 name: Python Tests
+
 on:
   push:
     branches: [ main ]
@@ -8,18 +9,32 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
+      # Checkout the repository
       - uses: actions/checkout@v4
-      
+
+      # Install Node.js and npm (similar to the Dockerfile)
+      - name: Install Node.js and npm
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nodejs npm
+          node -v
+          npm -v
+
+      # Install uv
       - name: Install uv
         uses: astral-sh/setup-uv@v4
         
+      # Set up Python environment with uv
       - name: Set up Python
         run: uv python install
-        
+
+      # Install project dependencies
       - name: Install dependencies
         run: uv sync --all-extras --dev
-        
+
+      # Run tests
       - name: Run tests
         run: uv run pytest
         env:

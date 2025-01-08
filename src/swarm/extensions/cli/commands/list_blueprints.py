@@ -1,23 +1,22 @@
-# Command to list available blueprints
+"""
+Command: list_blueprints
+Description: Lists all blueprints available in the system.
+"""
 
-import logging
-from swarm.extensions.blueprint.blueprint_discovery import discover_blueprints
 from pathlib import Path
+from swarm.extensions.blueprint.blueprint_discovery import discover_blueprints
 
-logger = logging.getLogger(__name__)
+# Metadata for dynamic registration
+description = "Lists all blueprints available in the system."
+usage = "list_blueprints"
 
-def list_blueprints(directories):
-    try:
-        directories = directories or [str(Path.cwd() / "blueprints")]
-        logger.info(f"Discovering blueprints in directories: {directories}")
-        blueprints = discover_blueprints(directories)
-        if not blueprints:
-            print("No blueprints found.")
-            return
+def list_blueprints():
+    """Returns a list of blueprints."""
+    blueprints_dir = Path(__file__).resolve().parent.parent.parent / "blueprints"
+    return discover_blueprints([str(blueprints_dir)])
 
-        print("Discovered Blueprints:")
-        for name, metadata in blueprints.items():
-            print(f"- {metadata['title']} ({name}): {metadata['description']}")
-    except Exception as e:
-        logger.error(f"Error listing blueprints: {e}", exc_info=True)
-        print("An error occurred while listing blueprints.")
+def execute():
+    """Execute the command to list blueprints."""
+    blueprints = list_blueprints()
+    for blueprint_id, metadata in blueprints.items():
+        print(f"Blueprint ID: {blueprint_id}, Title: {metadata.get('title', 'No title')}")

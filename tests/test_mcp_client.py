@@ -4,7 +4,7 @@ import os
 import tempfile
 import sqlite3
 from unittest.mock import AsyncMock
-from swarm.extensions.mcp.mcp_client import MCPClientManager
+from swarm.extensions.mcp.mcp_client import MCPClient
 from swarm.types import Tool
 
 
@@ -59,13 +59,13 @@ def setup_test_database(temp_db_path):
 @pytest.fixture
 def mcp_client_manager(temp_db_path):
     """
-    Initializes MCPClientManager with the real MCP server command and args.
+    Initializes MCPClient with the real MCP server command and args.
 
     Args:
         temp_db_path (str): Path to the temporary SQLite database.
 
     Yields:
-        MCPClientManager: An instance of MCPClientManager configured for testing.
+        MCPClient: An instance of MCPClient configured for testing.
     """
     env = os.environ.copy()
     env.update({
@@ -73,7 +73,7 @@ def mcp_client_manager(temp_db_path):
         "SQLITE_DB_PATH": temp_db_path,
     })
 
-    manager = MCPClientManager(
+    manager = MCPClient(
         command="npx",
         args=["-y", "mcp-server-sqlite-npx", temp_db_path],
         env=env,
@@ -81,7 +81,7 @@ def mcp_client_manager(temp_db_path):
     )
 
     yield manager
-    # No teardown needed since MCPClientManager's methods terminate the subprocess
+    # No teardown needed since MCPClient's methods terminate the subprocess
 
 
 @pytest.mark.skipif(
@@ -95,7 +95,7 @@ async def test_discover_tools(mcp_client_manager):
     Test that discover_tools correctly retrieves available tools.
 
     Args:
-        mcp_client_manager (MCPClientManager): Instance of MCPClientManager.
+        mcp_client_manager (MCPClient): Instance of MCPClient.
     """
     responses = await mcp_client_manager.initialize_and_list_tools()
 
@@ -130,7 +130,7 @@ async def test_call_tool_read_query(mcp_client_manager):
     Test calling the 'read_query' tool to execute a SELECT query.
 
     Args:
-        mcp_client_manager (MCPClientManager): Instance of MCPClientManager.
+        mcp_client_manager (MCPClient): Instance of MCPClient.
     """
     # Create a mock Tool object
     mock_tool = Tool(

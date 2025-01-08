@@ -1,6 +1,6 @@
 import os
 import pytest
-from swarm.extensions.mcp.mcp_client import MCPClientManager
+from swarm.extensions.mcp.mcp_client import MCPClient
 
 @pytest.mark.skipif(
     os.getenv("CI", "").lower() in ["true", "1"],
@@ -9,7 +9,7 @@ from swarm.extensions.mcp.mcp_client import MCPClientManager
 @pytest.mark.asyncio
 async def test_discover_tools():
     """Test the discover_tools method with real subprocess."""
-    client = MCPClientManager(
+    client = MCPClient(
         command="npx",
         args=["-y", "mcp-server-sqlite-npx", "./artificial_university.db"]
     )
@@ -25,7 +25,7 @@ async def test_discover_tools():
 @pytest.mark.asyncio
 async def test_call_tool():
     """Test calling a tool with real subprocess."""
-    client = MCPClientManager(
+    client = MCPClient(
         command="npx",
         args=["-y", "mcp-server-sqlite-npx", "./artificial_university.db"]
     )
@@ -41,7 +41,7 @@ async def test_call_tool():
 # @pytest.mark.asyncio
 # async def test_run_with_process():
 #     """Test the _run_with_process method with real subprocess."""
-#     client = MCPClientManager(
+#     client = MCPClient(
 #         command="npx",
 #         args=["-y", "mcp-server-sqlite-npx", "./artificial_university.db"]
 #     )

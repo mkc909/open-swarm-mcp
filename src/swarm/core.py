@@ -33,7 +33,7 @@ from .types import (
 )
 
 from .extensions.config.config_loader import load_server_config, validate_api_keys, validate_mcp_server_env
-from .extensions.mcp.mcp_client import MCPClientManager
+from .extensions.mcp.mcp_client import MCPClient
 from .extensions.mcp.mcp_tool_provider import MCPToolProvider
 from .utils.redact import redact_sensitive_data
 

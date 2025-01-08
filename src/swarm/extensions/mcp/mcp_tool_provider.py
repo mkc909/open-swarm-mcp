@@ -1,186 +1,161 @@
-import logging
-from typing import Callable, Dict, List, Any, Optional
-from swarm.types import Agent, Tool
-from .mcp_client import MCPClientManager
+'''extensions/mcp_tool_provider.py'''
 
+"""
+MCPToolProvider Module for Open-Swarm
+
+This module is responsible for discovering tools from MCP (Model Context Protocol) servers
+and integrating them into the Open-Swarm framework as `Tool` instances. It handles
+communication with MCP servers, constructs callable functions for dynamic tools, and
+ensures that these tools are properly validated and integrated into the agent's function list.
+"""
+
+import logging
+import json
+from typing import List, Dict, Any, Optional, Callable
+import asyncio
+
+from swarm.types import Tool
+from swarm.extensions.mcp.mcp_client import MCPClient  # Assuming MCPClient handles JSON-RPC or REST calls
+
+# Initialize logger for this module
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+stream_handler = logging.StreamHandler()
+formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(name)s - %(message)s")
+stream_handler.setFormatter(formatter)
+if not logger.handlers:
+    logger.addHandler(stream_handler)
+
 
 class MCPToolProvider:
     """
-    High-level abstraction for dynamically discovering and integrating tools from an MCP server.
-    This class interacts with an MCPClientManager to fetch tool definitions and provides callable functions
-    for each tool with appropriate metadata and input validation.
+    MCPToolProvider is responsible for discovering tools from an MCP server and converting
+    them into `Tool` instances that can be utilized by agents within the Open-Swarm framework.
     """
 
-    def __init__(self, server_name: str, server_config: dict):
+    def __init__(self, server_name: str, server_config: Dict[str, Any]):
         """
-        Initialize an MCPToolProvider instance.
-        
+        Initialize the MCPToolProvider with server-specific configurations.
+
         Args:
-            server_name (str): The name of the MCP server.
-            server_config (dict): Configuration dictionary for the specific server.
+            server_name (str): The name identifier for the MCP server.
+            server_config (Dict[str, Any]): Configuration dictionary for the MCP server.
+                Expected keys:
+                    - 'url': The MCP server endpoint.
+                    - 'auth_token': (Optional) Authentication token for the MCP server.
         """
         self.server_name = server_name
-        self.command = server_config.get("command", "npx")
-        self.args = server_config.get("args", [])
-        self.env = server_config.get("env", {})
-        self.timeout = server_config.get("timeout", 30)
-        self.config = server_config
-        self.client = None
-        self.initialize_client()
-        logger.debug(f"Initialized MCPToolProvider for server '{self.server_name}' with config: {server_config}")
-
-    def initialize_client(self):
-        # Initialize the MCP client
-        self.client = MCPClientManager(
-            command=self.config.get("command", "npx"),
-            args=self.config.get("args", []),
-            env=self.config.get("env", {}),
-            timeout=self.config.get("timeout", 30),
+        self.server_config = server_config
+        self.client = MCPClient(
+            url=server_config.get("url"),
+            auth_token=server_config.get("auth_token")
         )
+        logger.debug(f"MCPToolProvider initialized for server '{self.server_name}' with config: {self.server_config}")
 
-    async def discover_tools(self, agent: Agent) -> list[Tool]:
+    async def discover_tools(self, agent: 'Agent') -> List[Tool]:
         """
-        Discover tools for the given agent using the associated MCP server.
-        
+        Discover tools from the MCP server and return them as a list of `Tool` instances.
+
         Args:
-            agent (Agent): The agent for which to discover tools.
+            agent (Agent): The agent for which tools are being discovered.
 
         Returns:
-            list[Tool]: A list of discovered tools.
-        """
-        try:
-            logger.debug(f"Starting tool discovery for agent '{agent.name}' on MCP server '{self.server_name}'.")
-
-            # Call the correct method on the MCP client
-            raw_responses = await self.client.initialize_and_list_tools()
-
-            logger.debug(f"Raw responses from MCP server '{self.server_name}': {raw_responses}")
-
-            tools_data = [
-                tool for response in raw_responses
-                if "result" in response and "tools" in response["result"]
-                for tool in response["result"]["tools"]
-            ]
-
-            discovered_tools = [
-                Tool(
-                    name=tool_info["name"],
-                    description=tool_info.get("description", "No description provided."),
-                    func=self.client._create_tool_callable(tool_info["name"]),
-                    input_schema=tool_info.get("inputSchema", {}),
-                )
-                for tool_info in tools_data
-            ]
-
-        finally:
-            logger.info(f"Discovered tools for agent '{agent.name}': {[tool.name for tool in discovered_tools]}")
-            return discovered_tools
-
-    def _create_tool_function(self, tool_info: Dict[str, Any]) -> Callable:
-        """
-        Create a callable function for a specific tool based on its metadata.
-
-        Args:
-            tool_info (Dict[str, Any]): Metadata for the tool.
-
-        Returns:
-            Callable: A Python function representing the tool.
-        """
-        tool_name = tool_info.get("name")
-        tool_description = tool_info.get("description", "No description available.")
-        tool_input_schema = tool_info.get("inputSchema", {})
-
-        if not tool_name:
-            raise ValueError("Tool metadata must include a 'name'.")
-
-        logger.debug(f"Creating callable function for tool '{tool_name}' with schema: {tool_input_schema}")
-
-        def tool_function(**kwargs):
-            """
-            Callable representation of the MCP tool.
-
-            Args:
-                **kwargs: Parameters required by the tool.
-
-            Returns:
-                Any: The result from the MCP server.
-            """
-            logger.debug(f"Invoking tool '{tool_name}' with arguments: {kwargs}")
-
-            # Validate input parameters against the schema
-            self._validate_input(tool_name, tool_input_schema, kwargs)
-
-            # Execute the tool via MCPClientManager
-            try:
-                result = self.client.execute_tool(tool_name, params=kwargs)
-                logger.debug(f"Tool '{tool_name}' executed successfully. Result: {result}")
-                return result
-            except Exception as e:
-                logger.error(f"Error executing tool '{tool_name}': {e}")
-                raise
-
-        # Add metadata to the function for documentation
-        tool_function.__name__ = tool_name
-        tool_function.__doc__ = tool_description
-
-        logger.debug(f"Callable function for tool '{tool_name}' created successfully.")
-        return tool_function
-
-    def _validate_input(self, tool_name: str, schema: Dict[str, Any], params: Dict[str, Any]):
-        """
-        Validate input parameters against the tool's schema.
-
-        Args:
-            tool_name (str): The name of the tool being validated.
-            schema (Dict[str, Any]): The JSON schema of the tool's input.
-            params (Dict[str, Any]): The input parameters to validate.
+            List[Tool]: A list of discovered `Tool` instances.
 
         Raises:
-            ValueError: If validation fails.
+            RuntimeError: If tool discovery from the MCP server fails.
         """
-        logger.debug(f"Validating input for tool '{tool_name}' with schema: {schema} and params: {params}")
+        logger.info(f"Starting tool discovery from MCP server '{self.server_name}' for agent '{agent.name}'.")
+        try:
+            # Fetch tool metadata from the MCP server
+            tools_metadata = await self.client.get_tools(agent.name)
+            logger.debug(f"Received tools metadata from MCP server '{self.server_name}': {tools_metadata}")
 
-        required_fields = schema.get("required", [])
-        for field in required_fields:
-            if field not in params:
-                raise ValueError(f"Missing required field '{field}' for tool '{tool_name}'.")
+            tools = []
+            for tool_meta in tools_metadata:
+                tool_name = tool_meta.get("name")
+                tool_description = tool_meta.get("description", "")
+                input_schema = tool_meta.get("input_schema", {})
 
-        additional_properties = schema.get("additionalProperties", True)
-        if not additional_properties:
-            valid_fields = set(schema.get("properties", {}).keys())
-            invalid_fields = [key for key in params if key not in valid_fields]
-            if invalid_fields:
-                raise ValueError(
-                    f"Invalid fields for tool '{tool_name}': {invalid_fields}. Allowed fields: {valid_fields}"
+                if not tool_name:
+                    logger.warning(f"Tool metadata missing 'name' field: {tool_meta}")
+                    continue  # Skip tools without a name
+
+                # Create a callable function that routes the call to the MCP server
+                func = self._create_dynamic_tool_func(tool_meta)
+
+                # Instantiate the Tool with dynamic=True
+                tool = Tool(
+                    name=tool_name,
+                    func=func,
+                    description=tool_description,
+                    input_schema=input_schema,
+                    dynamic=True
                 )
+                logger.debug(f"Created dynamic Tool instance: {tool.name}")
+                tools.append(tool)
 
-        logger.debug(f"Input for tool '{tool_name}' validated successfully.")
+            logger.info(f"Discovered {len(tools)} tools from MCP server '{self.server_name}' for agent '{agent.name}'.")
+            return tools
 
-    def get_tool(self, tool_name: str) -> Optional[Callable]:
+        except Exception as e:
+            logger.error(f"Failed to discover tools from MCP server '{self.server_name}': {e}", exc_info=True)
+            raise RuntimeError(f"Tool discovery failed for MCP server '{self.server_name}': {e}") from e
+
+    def _create_dynamic_tool_func(self, tool_meta: Dict[str, Any]) -> Callable:
         """
-        Retrieve a callable tool function by name.
+        Create a callable function that routes execution to the MCP server for a given tool.
 
         Args:
-            tool_name (str): The name of the tool.
+            tool_meta (Dict[str, Any]): Metadata dictionary for the tool.
 
         Returns:
-            Callable: The callable function for the tool, or None if not found.
+            Callable: A function that executes the tool via the MCP server.
         """
-        tool = self.tools.get(tool_name)
-        if tool:
-            logger.debug(f"Retrieved tool '{tool_name}' from MCPToolProvider.")
-        else:
-            logger.warning(f"Tool '{tool_name}' not found in MCPToolProvider.")
-        return tool
 
-    def list_tools(self) -> List[str]:
-        """
-        List the names of all registered tools.
+        async def dynamic_tool_func(**kwargs) -> Any:
+            """
+            Dynamic tool execution function that forwards the call to the MCP server.
 
-        Returns:
-            List[str]: A list of tool names.
-        """
-        tool_names = list(self.tools.keys())
-        logger.debug(f"Listing tools from MCPToolProvider: {tool_names}")
-        return tool_names
+            Args:
+                **kwargs: Keyword arguments representing the tool's input parameters.
+
+            Returns:
+                Any: The result returned by the MCP server.
+
+            Raises:
+                RuntimeError: If the MCP server call fails.
+            """
+            logger.debug(f"Executing dynamic tool '{tool_meta.get('name')}' with arguments: {kwargs}")
+
+            # Validate input against the input_schema if necessary
+            # (Assuming validation is handled elsewhere or via the MCP server)
+
+            try:
+                # Make the call to the MCP server's tool execution endpoint
+                response = await self.client.execute_tool(tool_meta.get("name"), kwargs)
+                logger.debug(f"Received response from MCP server for tool '{tool_meta.get('name')}': {response}")
+                return response
+            except Exception as e:
+                logger.error(f"Error executing dynamic tool '{tool_meta.get('name')}' on MCP server '{self.server_name}': {e}", exc_info=True)
+                raise RuntimeError(f"Execution of tool '{tool_meta.get('name')}' failed: {e}") from e
+
+        # If the execution needs to be synchronous, wrap the async function
+        def sync_dynamic_tool_func(**kwargs) -> Any:
+            """
+            Synchronous wrapper for the dynamic tool execution function.
+
+            Args:
+                **kwargs: Keyword arguments representing the tool's input parameters.
+
+            Returns:
+                Any: The result returned by the MCP server.
+
+            Raises:
+                RuntimeError: If the MCP server call fails.
+            """
+            return asyncio.run(dynamic_tool_func(**kwargs))
+
+        # Return the appropriate callable based on your application's async handling
+        return sync_dynamic_tool_func
+

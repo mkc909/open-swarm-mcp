@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-class MCPClientManager:
+class MCPClient:
     """
     A class for interacting with MCP servers using JSON-RPC requests.
     """
@@ -37,7 +37,7 @@ class MCPClientManager:
         self.args = [os.path.expandvars(arg) for arg in (args or [])]
         self.env = {**os.environ.copy(), **(env or {})}
         self.timeout = timeout
-        logger.debug(f"Initialized MCPClientManager with command='{self.command}', args={self.args}, timeout={self.timeout}")
+        logger.debug(f"Initialized MCPClient with command='{self.command}', args={self.args}, timeout={self.timeout}")
 
     async def _send_request(self, process: asyncio.subprocess.Process, request: dict):
         """
@@ -316,7 +316,7 @@ class MCPClientManager:
 
     async def test_methods(self, tools: List[Tool]):
         """
-        Tests the MCPClientManager methods by calling a sample tool.
+        Tests the MCPClient methods by calling a sample tool.
 
         Args:
             tools (List[Tool]): List of discovered tools.
@@ -339,14 +339,14 @@ class MCPClientManager:
 
     async def main(self):
         """
-        Main entry point for running the MCPClientManager.
+        Main entry point for running the MCPClient.
         """
         tools = await self.discover_tools()
         await self.test_methods(tools)
 
 
 if __name__ == "__main__":
-    client = MCPClientManager(
+    client = MCPClient(
         command="npx",
         args=["-y", "mcp-server-sqlite-npx", "./artificial_university.db"]
     )

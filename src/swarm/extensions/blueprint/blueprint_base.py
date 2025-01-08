@@ -1,7 +1,9 @@
 import asyncio
+import json
 import logging
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any
+
 from swarm.core import Swarm
 from swarm.repl import run_demo_loop
 from swarm.utils.redact import redact_sensitive_data
@@ -23,7 +25,7 @@ class BlueprintBase(ABC):
 
         Args:
             config (dict): Configuration dictionary.
-            **kwargs: Additional parameters for customization.
+            **kwargs: Additional parameters for customization (e.g., existing swarm_instance).
         """
         logger.debug(f"Initializing BlueprintBase with config: {redact_sensitive_data(config)}")
 
@@ -34,9 +36,17 @@ class BlueprintBase(ABC):
         load_dotenv()
         logger.debug("Environment variables loaded from .env.")
 
-        # Store configuration and initialize Swarm
+        # Store configuration
         self.config = config
-        self.swarm = Swarm(config=self.config)
+
+        # Check if a shared Swarm instance was passed in; otherwise create new
+        self.swarm = kwargs.get('swarm_instance')
+        if self.swarm is not None:
+            logger.info("Using shared swarm instance from kwargs.")
+        else:
+            logger.info("No shared swarm instance provided; creating a new one.")
+            self.swarm = Swarm(config=self.config)
+
         logger.info("Swarm instance created.")
 
         # Initialize context variables for active agent tracking
@@ -162,25 +172,116 @@ class BlueprintBase(ABC):
 
     def interactive_mode(self, stream: bool = False) -> None:
         """
-        Start the interactive REPL loop.
+        Start the interactive REPL loop directly using the blueprint's Swarm instance.
 
         Args:
             stream (bool): Enable streaming mode.
         """
         logger.info("Starting interactive mode.")
+        
         if not self.starting_agent:
             logger.error("Starting agent is not set. Ensure `set_starting_agent` is called.")
             raise ValueError("Starting agent is not set.")
 
+        if not self.swarm:
+            logger.error("Swarm instance is not initialized.")
+            raise ValueError("Swarm instance is not initialized.")
+
         try:
-            run_demo_loop(
-                starting_agent=self.starting_agent,
-                context_variables=self.context_variables,
-                stream=stream,
-                debug=False,
-            )
+            print("Blueprint Interactive Mode 🐝")
+            messages = []
+            agent = self.starting_agent
+
+            while True:
+                # Get user input
+                user_input = input("\033[90mUser\033[0m: ")
+                if user_input.lower() in {"exit", "quit"}:
+                    print("Exiting interactive mode.")
+                    break
+                
+                # Append user input to messages
+                messages.append({"role": "user", "content": user_input})
+
+                # Run Swarm instance with the current agent and messages
+                response = self.swarm.run(
+                    agent=agent,
+                    messages=messages,
+                    context_variables=self.context_variables or {},
+                    stream=stream,
+                    debug=False,
+                )
+
+                # Process and display the response
+                if stream:
+                    self._process_and_print_streaming_response(response)
+                else:
+                    self._pretty_print_response(response.messages)
+
+                # Update messages and agent for the next iteration
+                messages.extend(response.messages)
+                agent = response.agent
+
         except Exception as e:
             logger.error(f"Interactive mode failed: {e}")
+
+    def _process_and_print_streaming_response(self, response):
+        """
+        Process and display the streaming response from Swarm.
+        """
+        content = ""
+        last_sender = ""
+
+        for chunk in response:
+            if "sender" in chunk:
+                last_sender = chunk["sender"]
+
+            if "content" in chunk and chunk["content"] is not None:
+                if not content and last_sender:
+                    print(f"\033[94m{last_sender}:\033[0m", end=" ", flush=True)
+                    last_sender = ""
+                print(chunk["content"], end="", flush=True)
+                content += chunk["content"]
+
+            if "tool_calls" in chunk and chunk["tool_calls"] is not None:
+                for tool_call in chunk["tool_calls"]:
+                    tool_function = tool_call["function"]
+                    name = getattr(tool_function, "name", None)
+                    if not name:
+                        name = tool_function.get("__name__", "Unnamed Tool")
+                    print(f"\033[94m{last_sender}: \033[95m{name}\033[0m()")
+
+            if "delim" in chunk and chunk["delim"] == "end" and content:
+                print()  # End of response message
+                content = ""
+
+            if "response" in chunk:
+                return chunk["response"]
+
+    def _pretty_print_response(self, messages) -> None:
+        """
+        Pretty print the messages returned by the Swarm.
+        """
+        for message in messages:
+            if message["role"] != "assistant":
+                continue
+
+            # Print agent name in blue
+            print(f"\033[94m{message['sender']}\033[0m:", end=" ")
+
+            # Print response, if any
+            if message["content"]:
+                print(message["content"])
+
+            # Print tool calls in purple, if any
+            tool_calls = message.get("tool_calls") or []
+            if len(tool_calls) > 1:
+                print()
+            for tool_call in tool_calls:
+                f = tool_call["function"]
+                name, args = f["name"], f["arguments"]
+                arg_str = json.dumps(json.loads(args)).replace(":", "=")
+                print(f"\033[95m{name}\033[0m({arg_str[1:-1]})")
+
 
     @classmethod
     def main(cls):

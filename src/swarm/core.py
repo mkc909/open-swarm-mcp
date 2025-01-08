@@ -45,7 +45,8 @@ logger.setLevel(logging.DEBUG)
 stream_handler = logging.StreamHandler()
 formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(name)s - %(message)s")
 stream_handler.setFormatter(formatter)
-logger.addHandler(stream_handler)
+if not logger.handlers:
+    logger.addHandler(stream_handler)
 
 def repair_message_payload(messages: List[Dict[str, Any]], debug: bool = False) -> List[Dict[str, Any]]:
     """
@@ -114,7 +115,7 @@ class Swarm:
         self.tool_choice = "sequential"
         self.parallel_tool_calls = False
         self.agents: Dict[str, Agent] = {}
-        self.mcp_tool_providers = {}
+        self.mcp_tool_providers: Dict[str, MCPToolProvider] = {}  # Cache for MCPToolProvider instances
         self.config = config or {}
 
         try:
@@ -188,19 +189,31 @@ class Swarm:
                 logger.warning(f"MCP server '{server_name}' not found in configuration.")
                 continue
 
-            try:
-                # Pass server-specific config to MCPToolProvider
-                tool_provider = MCPToolProvider(server_name, server_config)
-                logger.info(f"Initialized MCPToolProvider for server '{server_name}'.")
+            # Check if MCPToolProvider for this server is already cached
+            if server_name not in self.mcp_tool_providers:
+                try:
+                    # Initialize and cache the MCPToolProvider
+                    tool_provider = MCPToolProvider(server_name, server_config)
+                    self.mcp_tool_providers[server_name] = tool_provider
+                    logger.info(f"Initialized MCPToolProvider for server '{server_name}'.")
+                except Exception as e:
+                    logger.error(f"Failed to initialize MCPToolProvider for server '{server_name}': {e}", exc_info=True)
+                    if debug:
+                        print(f"[DEBUG] Exception during MCPToolProvider initialization for server '{server_name}': {e}")
+                    continue
+            else:
+                # Retrieve the cached MCPToolProvider
+                tool_provider = self.mcp_tool_providers[server_name]
+                logger.debug(f"Using cached MCPToolProvider for server '{server_name}'.")
 
-                # Pass the agent to the discover_tools method
+            try:
+                # Discover tools using the cached MCPToolProvider
                 tools = await tool_provider.discover_tools(agent)
                 if tools:
                     logger.info(f"Discovered {len(tools)} tools from server '{server_name}' for agent '{agent.name}': {[tool.name for tool in tools]}")
                     discovered_tools.extend(tools)
                 else:
                     logger.warning(f"No tools discovered from server '{server_name}' for agent '{agent.name}'.")
-
             except Exception as e:
                 logger.error(f"Error discovering tools for server '{server_name}': {e}", exc_info=True)
                 if debug:
@@ -428,6 +441,10 @@ class Swarm:
         history = copy.deepcopy(messages)
         init_len = len(messages)
 
+        # Discover and merge tools before starting the conversation
+        all_functions = asyncio.run(self.discover_and_merge_agent_tools(agent, debug=debug))
+        agent.functions = all_functions  # Update agent's functions with discovered tools
+
         while len(history) - init_len < max_turns:
             message = {
                 "content": "",
@@ -539,6 +556,11 @@ class Swarm:
         Returns:
             Response: The response from the agent.
         """
+
+        # Discover and merge tools before starting the conversation
+        all_functions = asyncio.run(self.discover_and_merge_agent_tools(agent, debug=debug))
+        agent.functions = all_functions  # Update agent's functions with discovered tools
+
         if stream:
             return self.run_and_stream(
                 agent=agent,

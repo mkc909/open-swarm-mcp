@@ -73,6 +73,15 @@ class Tool:
         self.input_schema = input_schema or {}
         self.dynamic = dynamic
 
+    @property
+    def __name__(self):
+        return self.name
+
+    @property
+    def __code__(self):
+        # Return the __code__ of the actual function, or a mock object if missing
+        return getattr(self.func, "__code__", None)
+
     def __call__(self, *args, **kwargs):
         """
         Make the Tool instance callable.

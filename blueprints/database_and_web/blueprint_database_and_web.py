@@ -1,5 +1,3 @@
-# src/swarm/blueprints/database_and_web.py
-
 """
 Database and Web Integration Blueprint
 
@@ -7,7 +5,7 @@ This blueprint integrates SQLite database querying with Brave Search capabilitie
 """
 
 import logging
-from typing import List, Dict, Callable, Any 
+from typing import List, Dict, Callable, Any
 
 from swarm.extensions.blueprint import BlueprintBase
 from swarm.types import Agent
@@ -40,10 +38,13 @@ class DatabaseAndWebBlueprint(BlueprintBase):
             "env_vars": ["SQLITE_DB_PATH", "BRAVE_API_KEY"],
         }
 
-    def create_agents(self) -> None:
+    def create_agents(self) -> Dict[str, Agent]:
         """
         Create agents for this blueprint, defining their instructions,
         MCP servers, required environment variables, and transfer functions.
+
+        Returns:
+            Dict[str, Agent]: Dictionary containing all created agents.
         """
         import os
 
@@ -56,20 +57,23 @@ class DatabaseAndWebBlueprint(BlueprintBase):
         if not brave_api_key:
             raise EnvironmentError("Environment variable 'BRAVE_API_KEY' is not set.")
 
+        # Define agents dictionary
+        agents = {}
+
         # Define transfer functions
         def transfer_to_brave_search() -> Agent:
             """
             Transfer control from SQLiteAgent to BraveSearchAgent.
             """
             logger.debug("Transferring control from SQLiteAgent to BraveSearchAgent.")
-            return self.swarm.agents.get("BraveSearchAgent")
+            return agents["BraveSearchAgent"]
 
         def transfer_to_sqlite() -> Agent:
             """
             Transfer control from BraveSearchAgent to SQLiteAgent.
             """
             logger.debug("Transferring control from BraveSearchAgent to SQLiteAgent.")
-            return self.swarm.agents.get("SQLiteAgent")
+            return agents["SQLiteAgent"]
 
         # SQLite Agent
         sqlite_agent = Agent(
@@ -77,9 +81,7 @@ class DatabaseAndWebBlueprint(BlueprintBase):
             instructions="You are a SQLite expert. Perform efficient database queries and provide clear results.",
             mcp_servers=["sqlite"],
             env_vars={"SQLITE_DB_PATH": sqlite_db_path},
-            functions=[
-                transfer_to_brave_search,  # Function to transfer to BraveSearchAgent
-            ],
+            functions=[transfer_to_brave_search],
         )
 
         # Brave Search Agent
@@ -88,14 +90,17 @@ class DatabaseAndWebBlueprint(BlueprintBase):
             instructions="You are a web search assistant. Use Brave Search to provide accurate and relevant web results.",
             mcp_servers=["brave-search"],
             env_vars={"BRAVE_API_KEY": brave_api_key},
-            functions=[
-                transfer_to_sqlite,  # Function to transfer back to SQLiteAgent
-            ],
+            functions=[transfer_to_sqlite],
         )
 
-        # Register agents with Swarm
-        self.swarm.create_agent(sqlite_agent)
-        self.swarm.create_agent(brave_search_agent)
+        # Populate agents dictionary
+        agents["SQLiteAgent"] = sqlite_agent
+        agents["BraveSearchAgent"] = brave_search_agent
+
+        logger.info("SQLiteAgent and BraveSearchAgent have been created.")
+        self.set_starting_agent(sqlite_agent)  # Set SQLiteAgent as the starting agent
+        return agents
+
 
 if __name__ == "__main__":
     DatabaseAndWebBlueprint.main()

@@ -9,6 +9,7 @@ of conversations between agents and MCP servers.
 
 # Standard library imports
 import copy
+import inspect
 import json
 import logging
 import uuid
@@ -362,6 +363,7 @@ class Swarm:
         for tool_call in tool_calls:
             name = tool_call.function.name
             if name not in function_map:
+                logger.error(f"Tool {name} not found in function map.")
                 partial_response.messages.append(
                     {
                         "role": "tool",
@@ -372,28 +374,55 @@ class Swarm:
                 )
                 continue
 
-            args = json.loads(tool_call.function.arguments)
             func = function_map[name]
-
-            # Pass context variables if required
-            if __CTX_VARS_NAME__ in func.__code__.co_varnames:
-                args[__CTX_VARS_NAME__] = context_variables
-
-            # Execute the function
-            try:
-                raw_result = func(**args)
-                result: Result = self.handle_function_result(raw_result, debug)
-
-                if isinstance(raw_result, Agent):  # Check if the result is an agent
-                    partial_response.agent = raw_result  # Set the new active agent
-
-                # Add the tool response
+            if not callable(func):
+                logger.error(f"Function {name} is not callable: {func}")
                 partial_response.messages.append(
                     {
                         "role": "tool",
                         "tool_call_id": tool_call.id,
                         "tool_name": name,
-                        "content": result.value if isinstance(result.value, str) else json.dumps(result.value),
+                        "content": f"Error: Function {name} is not callable.",
+                    }
+                )
+                continue
+
+            args = json.loads(tool_call.function.arguments)
+            func = function_map[name]
+
+            # If the function signature expects context_variables, pass them
+            if __CTX_VARS_NAME__ in func.__code__.co_varnames:
+                args[__CTX_VARS_NAME__] = context_variables
+
+            try:
+                # >>> CHECK IF THIS IS A DYNAMIC TOOL OR THE RETURN IS A COROUTINE
+                if getattr(func, "dynamic", False):
+                    # If the Tool was marked dynamic, we must await it
+                    raw_result = asyncio.run(func(**args))
+                else:
+                    # Synchronous call
+                    raw_result = func(**args)
+                    # If the function returned a coroutine anyway, also await it
+                    if inspect.iscoroutine(raw_result):
+                        logger.debug("Got a coroutine from a static tool, calling asyncio.run(...) explicitly.")
+                        raw_result = asyncio.run(raw_result)
+
+                # Convert raw_result -> swarm.core.Result
+                result: Result = self.handle_function_result(raw_result, debug)
+
+                if isinstance(raw_result, Agent):
+                    partial_response.agent = raw_result  # Switch active agent
+
+                # Add the tool response message
+                partial_response.messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "tool_name": name,
+                        "content": (
+                            result.value if isinstance(result.value, str) 
+                            else json.dumps(result.value)
+                        ),
                     }
                 )
                 partial_response.context_variables.update(result.context_variables)
@@ -409,6 +438,7 @@ class Swarm:
                 )
 
         return partial_response
+
 
 
     def run_and_stream(

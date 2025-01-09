@@ -9,6 +9,10 @@ Features:
 - Calls specific tools with arguments.
 - Parses JSON-RPC responses into Tool instances.
 - Configurable command, arguments, and environment variables.
+
+CHANGELOG:
+- Always re-initialize (ID=1) before listing (ID=2) or calling (ID=2) a tool,
+  creating a new process each time. This avoids lock-ups on subsequent calls.
 """
 
 import asyncio
@@ -16,8 +20,8 @@ import json
 import logging
 import os
 from typing import List, Callable, Dict, Any, Optional
-from pydantic import BaseModel
 
+from pydantic import BaseModel
 from swarm.types import Tool  # Ensure this import path is correct
 
 # Configure logging
@@ -28,6 +32,9 @@ logger = logging.getLogger(__name__)
 class MCPClient:
     """
     MCPClient manages the subprocess communication with an MCP server.
+    Each operation (listing or calling a tool) launches a fresh process:
+      1) ID=1 for "initialize"
+      2) ID=2 for either "tools/list" or "tools/call"
     """
 
     def __init__(
@@ -41,7 +48,10 @@ class MCPClient:
         self.args = [os.path.expandvars(arg) for arg in (args or [])]
         self.env = {**os.environ.copy(), **(env or {})}
         self.timeout = timeout
-        self._tools_cache: Optional[List[Tool]] = None  # Cache for discovered tools
+
+        # If you previously cached discovered tools, you can remove or keep this.
+        # In this example, we do not rely on caching because each request spawns a fresh server.
+        self._tools_cache: Optional[List[Tool]] = None
 
         logger.debug(
             f"Initialized MCPClient with command='{self.command}', args={self.args}, timeout={self.timeout}"
@@ -123,8 +133,7 @@ class MCPClient:
             asyncio.TimeoutError: If the entire process takes too long.
         """
         try:
-            # We double the timeout relative to the number of requests
-            total_timeout = self.timeout * 2
+            total_timeout = self.timeout * 2  # e.g. 2 requests => 2 x timeout
 
             async def process_runner():
                 process = await asyncio.create_subprocess_exec(
@@ -152,7 +161,7 @@ class MCPClient:
 
                     asyncio.create_task(stderr_reader())
 
-                    # Short delay to let the server start
+                    # Small delay for the server to come up
                     await asyncio.sleep(1)
 
                     # Send all requests
@@ -163,12 +172,12 @@ class MCPClient:
                     responses = await self._read_responses(process, len(requests))
                     logger.debug(f"Received responses: {responses}")
 
-                    # Wait a moment for stderr_reader to finish
+                    # Wait a moment for any final stderr
                     await asyncio.sleep(0.5)
-
-                    # Log any stderr output
                     if stderr_buffer:
-                        logger.error(f"MCP Server stderr output: {' | '.join(stderr_buffer)}")
+                        logger.error(
+                            f"MCP Server stderr output: {' | '.join(stderr_buffer)}"
+                        )
 
                     return responses
                 finally:
@@ -182,7 +191,6 @@ class MCPClient:
                         await process.wait()
                         logger.debug("Process killed.")
 
-            # Run with a single overarching timeout
             return await asyncio.wait_for(process_runner(), timeout=total_timeout)
 
         except asyncio.TimeoutError:
@@ -194,14 +202,14 @@ class MCPClient:
 
     async def discover_tools(self) -> List[Tool]:
         """
-        Initializes the MCP server and discovers available tools.
+        Initializes a fresh MCP server, requests the tool list, and returns them.
 
         Returns:
             list: List of Tool instances.
         """
         initialize_request = {
             "jsonrpc": "2.0",
-            "id": 1,
+            "id": 1,  # Always init with ID=1
             "method": "initialize",
             "params": {
                 "server_name": "example-client",
@@ -213,7 +221,7 @@ class MCPClient:
 
         list_tools_request = {
             "jsonrpc": "2.0",
-            "id": 2,
+            "id": 2,  # Then 'tools/list' with ID=2
             "method": "tools/list",
             "params": {},
         }
@@ -224,11 +232,13 @@ class MCPClient:
         tools = []
         for response in responses:
             if "result" in response and "tools" in response["result"]:
+                # This response includes a list of tool definitions
                 for tool_info in response["result"]["tools"]:
+                    tool_func = await self._create_tool_callable(tool_info.get("name"))
                     tool = Tool(
                         name=tool_info.get("name", "UnnamedTool"),
                         description=tool_info.get("description", "No description provided."),
-                        func=self._create_tool_callable(tool_info.get("name")),
+                        func=tool_func,
                         input_schema=tool_info.get("inputSchema", {}),
                     )
                     tools.append(tool)
@@ -238,70 +248,104 @@ class MCPClient:
         logger.info(f"Discovered tools: {[tool.name for tool in tools]}")
         return tools
 
-    def _create_tool_callable(self, tool_name: str) -> Callable[..., Any]:
+    async def _create_tool_callable(self, tool_name: str) -> Callable[..., Any]:
         async def dynamic_tool_func(**kwargs) -> Any:
+            logger.debug(f"Creating tool callable for '{tool_name}' with arguments: {kwargs}")
+
+            # 1) ID=1 for initialization
+            init_request = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "server_name": "example-client",
+                    "protocolVersion": "1.0",
+                    "capabilities": {},
+                    "clientInfo": {"name": "tool-call-client", "version": "0.1"},
+                },
+            }
+            logger.debug(f"Initialization request for tool '{tool_name}': {init_request}")
+
+            # 2) ID=2 to call the tool
             call_tool_request = {
                 "jsonrpc": "2.0",
-                "id": 3,
+                "id": 2,
                 "method": "tools/call",
                 "params": {
                     "name": tool_name,
                     "arguments": kwargs,
                 },
             }
+            logger.debug(f"Tool call request for '{tool_name}': {call_tool_request}")
 
-            responses = await self._run_with_process([call_tool_request])
+            # Send both requests in a single invocation
+            responses = await self._run_with_process([init_request, call_tool_request])
+            logger.debug(f"Received responses for tool '{tool_name}': {responses}")
+
+            # Initialize variable to hold tool call response
+            tool_response = None
 
             for response in responses:
-                if "result" in response:
-                    result = response["result"]
+                logger.debug(f"Processing response for tool '{tool_name}': {response}")
+                if "id" in response and response["id"] == 2:
+                    if "result" in response:
+                        result = response["result"]
+                        logger.debug(f"Result found for tool '{tool_name}': {result}")
 
-                    # (1) Check for errors
-                    if result.get("isError"):
-                        error_content = result.get("content", [])
-                        if error_content and isinstance(error_content[0], dict):
-                            error_message = error_content[0].get("text", "Unknown error.")
-                        else:
-                            error_message = "Unknown error."
-                        logger.error(f"Error executing tool '{tool_name}': {error_message}")
-                        raise RuntimeError(f"Execution of tool '{tool_name}' failed: {error_message}")
+                        # Check for errors
+                        if result.get("isError"):
+                            error_msg = result.get("error", "Unknown error.")
+                            logger.error(f"Tool '{tool_name}' returned error: {error_msg}")
+                            raise RuntimeError(f"Tool '{tool_name}' error: {error_msg}")
 
-                    # (2) Parse the content if no 'isError'
-                    content = result.get("content", [])
-                    if content and isinstance(content, list) and len(content) > 0:
-                        text_payload = content[0].get("text", "").strip()
+                        # Extract content
+                        content = result.get("content", [])
+                        logger.debug(f"Content for tool '{tool_name}': {content}")
 
-                        # Check specifically if the content is "[]"
-                        # i.e. an empty JSON array => treat it as "Success" for writes
-                        if text_payload == "[]":
-                            return "Success"
+                        if content and isinstance(content, list) and len(content) > 0:
+                            text_payload = content[0].get("text", "").strip()
+                            logger.debug(f"Text payload for tool '{tool_name}': {text_payload}")
 
-                        # If the payload starts with "[" but isn't "[]", parse as JSON
-                        if text_payload.startswith("["):
-                            try:
-                                parsed = json.loads(text_payload)
-                                return parsed
-                            except json.JSONDecodeError:
-                                # If JSON parsing fails for some reason, we do nothing special here;
-                                # it will fall back to `result.get("result")` below.
-                                pass
+                            if text_payload == "[]":
+                                logger.debug(f"Empty JSON array returned for '{tool_name}', indicating success.")
+                                return "Success"
 
-                    # (3) Fallback to 'result' object if no recognized content
-                    return result.get("result")
+                            if text_payload.startswith("["):
+                                try:
+                                    parsed = json.loads(text_payload)
+                                    logger.debug(f"Parsed JSON array for '{tool_name}': {parsed}")
+                                    return parsed
+                                except json.JSONDecodeError as e:
+                                    logger.error(f"Failed to parse JSON for '{tool_name}': {e}")
 
-                elif "error" in response:
-                    logger.error(f"Error in tool call '{tool_name}': {response['error']}")
-                    raise RuntimeError(f"Tool call error: {response['error']}")
+                            if text_payload:
+                                logger.debug(f"Returning plain text payload for '{tool_name}': {text_payload}")
+                                return text_payload
 
-            # If no valid responses
-            logger.error("Invalid tool response structure.")
-            raise RuntimeError("Invalid tool response structure.")
+                        # Fallback if no recognized content
+                        fallback_result = result.get("result")
+                        logger.debug(f"Fallback result for tool '{tool_name}': {fallback_result}")
+                        return fallback_result
 
+                    elif "error" in response:
+                        logger.error(f"Error in response for tool '{tool_name}': {response['error']}")
+                        raise RuntimeError(f"Tool call error: {response['error']}")
+
+            # If tool_response was not found or processed
+            logger.error(f"No valid responses received for tool '{tool_name}'.")
+            raise RuntimeError(f"Invalid tool response structure for '{tool_name}'.")
+
+        # Mark the function as dynamic for the swarm
+        dynamic_tool_func.dynamic = True
         return dynamic_tool_func
-
+    
     async def call_tool(self, tool: Tool, arguments: Dict[str, Any]) -> Any:
         """
         Calls a specific tool on the MCP server.
+
+        This is just a convenience wrapper around the dynamic_tool_func
+        that was assigned to tool.func. We do not rely on the cache here;
+        each invocation restarts a new process.
 
         Args:
             tool (Tool): The tool to call.
@@ -315,10 +359,12 @@ class MCPClient:
 
     async def initialize_and_list_tools(self) -> List[dict]:
         """
-        Initializes the MCP server and lists available tools.
+        DEPRECATED:
+        For demonstration only. This method does a raw initialize+list
+        but doesn't parse the results into Tool objects.
 
         Returns:
-            list: JSON-RPC responses.
+            list: JSON-RPC responses from server.
         """
         initialize_request = {
             "jsonrpc": "2.0",
@@ -343,14 +389,12 @@ class MCPClient:
         return responses
 
     async def _read_stream(
-        self, stream: asyncio.StreamReader, callback: Callable[[str], None]
+        self,
+        stream: asyncio.StreamReader,
+        callback: Callable[[str], None]
     ):
         """
-        Reads lines from a given stream and processes them with a callback.
-
-        Args:
-            stream (asyncio.StreamReader): The stream to read from.
-            callback (Callable): The function to process each line.
+        Utility for reading lines from a stream. Not used in the current approach.
         """
         while True:
             try:
@@ -373,22 +417,22 @@ class MCPClient:
 
     async def get_tools(self, agent_name: str) -> List[Tool]:
         """
-        Retrieves the list of tools from the MCP server, utilizing caching.
-
-        Args:
-            agent_name (str): The name of the agent requesting tools.
+        Retrieves the list of tools from the MCP server, but due to the new
+        process approach, we just call `discover_tools()` each time.
 
         Returns:
-            list: List of Tool instances.
+            list: The newly discovered tools.
 
         Raises:
             RuntimeError: If tool discovery fails.
         """
+        # If you want to keep a cache, you could store it in self._tools_cache.
+        # But each new call re-initializes the process. Example:
         if self._tools_cache is not None:
             logger.debug("Returning cached tools.")
             return self._tools_cache
 
-        logger.debug("No cached tools found. Discovering tools now.")
+        logger.debug("No cached tools found. Running discover_tools().")
         tools = await self.discover_tools()
         self._tools_cache = tools
         return tools

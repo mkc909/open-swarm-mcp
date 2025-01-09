@@ -1,11 +1,19 @@
 import os
 import sys
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
 
+# SECURITY WARNING: don't run with debug turned on in production!
+#DEBUG = True  # Set to False in production
+DEBUG = False
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-print(f"BASE_DIR resolved to: {BASE_DIR}")
+logger.debug(f"BASE_DIR resolved to: {BASE_DIR}")
 
 # Load environment variables from .env file
 load_dotenv(dotenv_path=BASE_DIR / '.env')
@@ -19,13 +27,11 @@ LOGS_DIR.mkdir(parents=True, exist_ok=True)
 # Add the project root and the app directory to the system path
 sys.path.append(str(BASE_DIR))  # Add the project root
 sys.path.append(str(BASE_DIR / 'src/swarm'))
-print(f"System path updated: {sys.path}")
+logger.debug(f"System path updated: {sys.path}")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-your-secret-key'  # Replace with a strong secret key
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True  # Set to False in production
 ALLOWED_HOSTS = ['*']  # Adjust as needed in production
 
 # Application definition

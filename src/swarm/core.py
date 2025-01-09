@@ -381,7 +381,15 @@ class Swarm:
 
             # Execute the function
             try:
-                raw_result = func(**args)
+                # Check if the tool is dynamic and requires asynchronous handling
+                if getattr(func, "dynamic", False):
+                    # Ensure asyncio handles dynamic tools properly
+                    raw_result = asyncio.run(func(**args))
+                else:
+                    # Handle synchronous tools as usual
+                    raw_result = func(**args)
+
+                # Process the function result
                 result: Result = self.handle_function_result(raw_result, debug)
 
                 if isinstance(raw_result, Agent):  # Check if the result is an agent

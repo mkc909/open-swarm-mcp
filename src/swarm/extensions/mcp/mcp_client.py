@@ -297,6 +297,9 @@ class MCPClient:
             logger.error("Invalid tool response structure.")
             raise RuntimeError("Invalid tool response structure.")
 
+        # Mark the function as dynamic
+        dynamic_tool_func.dynamic = True
+
         return dynamic_tool_func
 
     async def call_tool(self, tool: Tool, arguments: Dict[str, Any]) -> Any:

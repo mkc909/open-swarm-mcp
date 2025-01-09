@@ -117,7 +117,6 @@ Open Swarm showcases a growing library of **Blueprint** examples:
 
 2. **CLI Mode**  
    - Execute specific blueprint files (e.g., `uv run blueprints/university/blueprint_university.py`).  
-   - Run `uv run src/swarm/extensions/cli/main.py --wizard` to configure blueprints interactively.  
    - Great for local testing, debugging, and iterative development.
   
 ![image](https://github.com/user-attachments/assets/8593c382-9f2d-4d7a-ba41-0330449b3f38)

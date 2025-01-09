@@ -11,6 +11,7 @@ from swarm.extensions.config.config_loader import (
     resolve_placeholders
 )
 from swarm.utils.color_utils import color_text
+from swarm.settings import DEBUG
 from swarm.extensions.cli.utils import (
     prompt_user,
     log_and_exit,
@@ -19,7 +20,7 @@ from swarm.extensions.cli.utils import (
 
 # Initialize logger for this module
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 if not logger.handlers:
     stream_handler = logging.StreamHandler()
     formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(name)s - %(message)s")

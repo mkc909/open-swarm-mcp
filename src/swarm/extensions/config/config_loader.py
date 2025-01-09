@@ -18,11 +18,12 @@ import logging
 from typing import Any, Dict, List, Tuple, Union, Optional
 from dotenv import load_dotenv
 from .server_config import save_server_config
+from swarm.settings import DEBUG
 from swarm.utils.redact import redact_sensitive_data
 
 # Initialize logger for this module
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 stream_handler = logging.StreamHandler()
 formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(name)s - %(message)s")
 stream_handler.setFormatter(formatter)
@@ -30,7 +31,7 @@ logger.addHandler(stream_handler)
 
 # Load environment variables from .env
 load_dotenv()
-logger.info("Environment variables loaded from .env file.")
+logger.debug("Environment variables loaded from .env file.")
 
 def resolve_placeholders(obj: Any) -> Any:
     """
@@ -124,7 +125,7 @@ def validate_mcp_server_env(mcp_servers: Dict[str, Any]) -> None:
             if not env_value:
                 logger.error(f"Environment variable '{env_key}' for MCP server '{server_name}' is not set.")
                 raise ValueError(f"Environment variable '{env_key}' for MCP server '{server_name}' is not set.")
-            logger.info(f"Environment variable '{env_key}' for server '{server_name}' is set.")
+            logger.debug(f"Environment variable '{env_key}' for server '{server_name}' is set.")
 
 def get_default_llm_config(config: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -147,7 +148,7 @@ def get_default_llm_config(config: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"LLM profile '{selected_llm}' not found in configuration.")
         raise ValueError(f"LLM profile '{selected_llm}' not found in configuration.")
 
-    logger.info(f"Using LLM profile: '{selected_llm}'")
+    logger.debug(f"Using LLM profile: '{selected_llm}'")
     return llm_config
 
 def validate_api_keys(config: Dict[str, Any], selected_llm: str = "default") -> Dict[str, Any]:
@@ -172,13 +173,13 @@ def validate_api_keys(config: Dict[str, Any], selected_llm: str = "default") -> 
 
     api_key = llm_config.get("api_key")
     if api_key == "":
-        logger.info(f"LLM profile '{selected_llm}' does not require an API key (explicit empty string).")
+        logger.debug(f"LLM profile '{selected_llm}' does not require an API key (explicit empty string).")
         return config
     elif not api_key:
         logger.error(f"API key is missing for LLM profile '{selected_llm}'.")
         raise ValueError(f"API key is missing for LLM profile '{selected_llm}'.")
 
-    logger.info(f"API key validation successful for LLM profile '{selected_llm}'. Key: {redact_sensitive_data(api_key)}")
+    logger.debug(f"API key validation successful for LLM profile '{selected_llm}'. Key: {redact_sensitive_data(api_key)}")
     return config
 
 def are_required_mcp_servers_configured(required_servers: List[str], config: dict) -> Tuple[bool, List[str]]:
@@ -266,5 +267,5 @@ def load_llm_config(config: Dict[str, Any], llm_name: Optional[str] = None) -> D
         logger.error(error_message)
         raise ValueError(error_message)
 
-    logger.info(f"Loaded LLM configuration for '{llm_name}': {redact_sensitive_data(llm_config)}")
+    logger.debug(f"Loaded LLM configuration for '{llm_name}': {redact_sensitive_data(llm_config)}")
     return llm_config

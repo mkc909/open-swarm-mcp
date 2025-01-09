@@ -219,13 +219,7 @@ These references let you quickly switch providers based on environment or agent 
 
     * To see a demo of Open WebUI with the University Blueprint with expressive voice output, please see the following demonstration video:
 
-
-<p>
-    <img src="https://github.com/user-attachments/assets/a4688100-5737-479f-91e5-974db98296d7" width="400" alt>
-</p>
-<p>
-    <em>Database and web blueprint executing from CLI</em>
-</p>
+https://github.com/user-attachments/assets/a4688100-5737-479f-91e5-974db98296d7
 
 5.  **Access the REST Endpoints Directly:**
    You can also interact with the API using a tool like `curl`. For example:
@@ -351,8 +345,8 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
   - [ ] Assign different models per agent in one blueprint  
 
 - **Tooling Integration Frameworks**  
-  - [ ] MCP Servers
-   - [x] Raw JSONRPC POC
+  - [x] MCP Servers
+  - [ ] Use official mcp python sdk
   - [ ] GPT Actions
 
 - **Deployment**  
@@ -364,8 +358,8 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
   - [x] `university`  
   - [x] `echo`
   - [x] `weather`  
-  - [ ] `database_and_web` (SQLite & Brave Search)  
-  - [ ] `filesystem`  
+  - [x] `database_and_web` (SQLite & Brave Search)  
+  - [x] `filesystem`  
 
 - **Security**  
   - [ ] Securing REST completions endpoint with API_KEY

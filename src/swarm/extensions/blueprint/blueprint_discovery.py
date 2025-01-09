@@ -10,9 +10,10 @@ import inspect
 import logging
 from pathlib import Path
 from typing import Dict, List, Any
+from swarm.settings import DEBUG
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 
 # Import BlueprintBase with proper error handling
 try:

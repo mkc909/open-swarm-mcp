@@ -11,11 +11,12 @@ import logging
 from typing import Dict, Any
 
 from swarm.extensions.blueprint import BlueprintBase
+from swarm.settings import DEBUG
 from swarm.types import Agent
 
 # Configure logger
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 
 # Prevent adding multiple handlers if they already exist
 if not logger.handlers:
@@ -105,7 +106,7 @@ class FilesystemBlueprint(BlueprintBase):
         agents["FilesystemAgent"] = filesystem_agent
         agents["TriageAgent"] = triage_agent
 
-        logger.info("FilesystemAgent and TriageAgent have been created.")
+        logger.debug("FilesystemAgent and TriageAgent have been created.")
         self.set_starting_agent(triage_agent)  # Set TriageAgent as the starting agent
         return agents
 

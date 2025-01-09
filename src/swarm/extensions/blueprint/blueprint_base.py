@@ -5,13 +5,15 @@ from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any
 
 from swarm.core import Swarm
-from swarm.repl import run_demo_loop
-from swarm.utils.redact import redact_sensitive_data
 from swarm.extensions.config.config_loader import load_server_config
+from swarm.repl import run_demo_loop
+from swarm.settings import DEBUG
+from swarm.utils.redact import redact_sensitive_data
 from dotenv import load_dotenv
 import argparse
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 
 class BlueprintBase(ABC):
     """
@@ -42,12 +44,12 @@ class BlueprintBase(ABC):
         # Check if a shared Swarm instance was passed in; otherwise create new
         self.swarm = kwargs.get('swarm_instance')
         if self.swarm is not None:
-            logger.info("Using shared swarm instance from kwargs.")
+            logger.debug("Using shared swarm instance from kwargs.")
         else:
-            logger.info("No shared swarm instance provided; creating a new one.")
+            logger.debug("No shared swarm instance provided; creating a new one.")
             self.swarm = Swarm(config=self.config)
 
-        logger.info("Swarm instance created.")
+        logger.debug("Swarm instance created.")
 
         # Initialize context variables for active agent tracking
         self.context_variables: Dict[str, Any] = {}
@@ -56,11 +58,11 @@ class BlueprintBase(ABC):
         self.starting_agent = None
         agents = self.create_agents()
         self.swarm.agents.update(agents)
-        logger.info(f"Agents registered: {list(agents.keys())}")
+        logger.debug(f"Agents registered: {list(agents.keys())}")
 
         # Discover tools asynchronously for agents
         asyncio.run(self.async_discover_agent_tools())
-        logger.info("Tool discovery completed.")
+        logger.debug("Tool discovery completed.")
 
     @property
     @abstractmethod
@@ -83,7 +85,7 @@ class BlueprintBase(ABC):
         """
         Discover and register tools for each agent asynchronously.
         """
-        logger.info("Discovering tools for agents...")
+        logger.debug("Discovering tools for agents...")
         for agent_name, agent in self.swarm.agents.items():
             logger.debug(f"Discovering tools for agent: {agent_name}")
             try:
@@ -177,7 +179,7 @@ class BlueprintBase(ABC):
         Args:
             stream (bool): Enable streaming mode.
         """
-        logger.info("Starting interactive mode.")
+        logger.debug("Starting interactive mode.")
         
         if not self.starting_agent:
             logger.error("Starting agent is not set. Ensure `set_starting_agent` is called.")
@@ -298,9 +300,7 @@ class BlueprintBase(ABC):
         args = parser.parse_args()
 
         # Log CLI arguments
-        logging.basicConfig(level=logging.INFO)
-        logger = logging.getLogger(cls.__name__)
-        logger.info(f"Launching blueprint with configuration file: {args.config}")
+        logger.debug(f"Launching blueprint with configuration file: {args.config}")
 
         # Load configuration and initialize the blueprint
         config = load_server_config(args.config)

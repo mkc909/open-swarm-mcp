@@ -1,5 +1,3 @@
-# Open Swarm
-
 <div align="center">
 <img src="assets/images/openswarm-project-image.jpg" alt="Project Logo" width="70%"/>
 </div>
@@ -119,8 +117,10 @@ Open Swarm showcases a growing library of **Blueprint** examples:
 
 2. **CLI Mode**  
    - Execute specific blueprint files (e.g., `uv run blueprints/university/blueprint_university.py`).  
-   - (WIP) Run `uv run src/swarm/extensions/cli/main.py --wizard` to configure blueprints interactively.  
+   - Run `uv run src/swarm/extensions/cli/main.py --wizard` to configure blueprints interactively.  
    - Great for local testing, debugging, and iterative development.
+  
+![image](https://github.com/user-attachments/assets/8593c382-9f2d-4d7a-ba41-0330449b3f38)
 
 ---
 
@@ -219,7 +219,13 @@ These references let you quickly switch providers based on environment or agent 
 
     * To see a demo of Open WebUI with the University Blueprint with expressive voice output, please see the following demonstration video:
 
-https://github.com/user-attachments/assets/a4688100-5737-479f-91e5-974db98296d7
+
+<p>
+    <img src="https://github.com/user-attachments/assets/a4688100-5737-479f-91e5-974db98296d7" width="400" alt>
+</p>
+<p>
+    <em>Database and web blueprint executing from CLI</em>
+</p>
 
 5.  **Access the REST Endpoints Directly:**
    You can also interact with the API using a tool like `curl`. For example:

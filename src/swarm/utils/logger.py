@@ -18,7 +18,7 @@ def setup_logger(name: str) -> logging.Logger:
         logging.Logger: Configured logger instance.
     """
     logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)  # Set to DEBUG for detailed logs
+    logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)  # Set to DEBUG for detailed logs
 
     # Create console handler
     ch = logging.StreamHandler()

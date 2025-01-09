@@ -21,7 +21,7 @@ import asyncio
 from openai import OpenAI
 
 # Local imports
-from .util import function_to_json, debug_print, merge_chunk
+from .util import function_to_json, merge_chunk
 from .types import (
     Agent,
     AgentFunction,
@@ -36,13 +36,14 @@ from .types import (
 from .extensions.config.config_loader import load_server_config, validate_api_keys, validate_mcp_server_env
 from .extensions.mcp.mcp_client import MCPClient
 from .extensions.mcp.mcp_tool_provider import MCPToolProvider
+from .settings import DEBUG
 from .utils.redact import redact_sensitive_data
 
 __CTX_VARS_NAME__ = "context_variables"
 
 # Initialize logger for this module
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 stream_handler = logging.StreamHandler()
 formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(name)s - %(message)s")
 stream_handler.setFormatter(formatter)
@@ -76,11 +77,11 @@ def repair_message_payload(messages: List[Dict[str, Any]], debug: bool = False) 
             tool_name = message.get("tool_name")
 
             if not tool_call_id:
-                debug_print(debug, f"Skipping tool message at index {i}: Missing 'tool_call_id'.")
+                logger.debug(f"Skipping tool message at index {i}: Missing 'tool_call_id'.")
                 continue
 
             if not tool_name:
-                debug_print(debug, f"Skipping tool message at index {i}: Missing 'tool_name'.")
+                logger.debug(f"Skipping tool message at index {i}: Missing 'tool_name'.")
                 continue
 
             if tool_call_id not in tool_call_map:
@@ -95,10 +96,10 @@ def repair_message_payload(messages: List[Dict[str, Any]], debug: bool = False) 
                         }
                     ],
                 }
-                debug_print(debug, f"Repairing: Adding missing assistant message for tool_call_id {tool_call_id}.")
+                logger.debug(f"Repairing: Adding missing assistant message for tool_call_id {tool_call_id}.")
                 repaired_messages.insert(-1, repaired_message)
 
-    debug_print(debug, "Repaired message payload:", repaired_messages)
+    logger.debug("Repaired message payload:", repaired_messages)
     return repaired_messages
 
 class Swarm:
@@ -122,12 +123,12 @@ class Swarm:
         try:
             # Validate API keys for the selected LLM profile
             validate_api_keys(self.config, selected_llm="default")
-            logger.info("LLM API key validation successful.")
+            logger.debug("LLM API key validation successful.")
 
             # Validate MCP server environment variables
             mcp_servers = self.config.get("mcpServers", {})
             validate_mcp_server_env(mcp_servers)
-            logger.info("MCP server environment validation successful.")
+            logger.debug("MCP server environment validation successful.")
 
             # Override default settings from configuration
             llm_config = self.config.get("llm", {}).get("default", {})
@@ -196,11 +197,11 @@ class Swarm:
                     # Initialize and cache the MCPToolProvider
                     tool_provider = MCPToolProvider(server_name, server_config)
                     self.mcp_tool_providers[server_name] = tool_provider
-                    logger.info(f"Initialized MCPToolProvider for server '{server_name}'.")
+                    logger.debug(f"Initialized MCPToolProvider for server '{server_name}'.")
                 except Exception as e:
                     logger.error(f"Failed to initialize MCPToolProvider for server '{server_name}': {e}", exc_info=True)
                     if debug:
-                        print(f"[DEBUG] Exception during MCPToolProvider initialization for server '{server_name}': {e}")
+                        logger.debug(f"[DEBUG] Exception during MCPToolProvider initialization for server '{server_name}': {e}")
                     continue
             else:
                 # Retrieve the cached MCPToolProvider
@@ -211,22 +212,22 @@ class Swarm:
                 # Discover tools using the cached MCPToolProvider
                 tools = await tool_provider.discover_tools(agent)
                 if tools:
-                    logger.info(f"Discovered {len(tools)} tools from server '{server_name}' for agent '{agent.name}': {[tool.name for tool in tools]}")
+                    logger.debug(f"Discovered {len(tools)} tools from server '{server_name}' for agent '{agent.name}': {[tool.name for tool in tools]}")
                     discovered_tools.extend(tools)
                 else:
                     logger.warning(f"No tools discovered from server '{server_name}' for agent '{agent.name}'.")
             except Exception as e:
                 logger.error(f"Error discovering tools for server '{server_name}': {e}", exc_info=True)
                 if debug:
-                    print(f"[DEBUG] Exception during tool discovery for server '{server_name}': {e}")
+                    logger.debug(f"[DEBUG] Exception during tool discovery for server '{server_name}': {e}")
 
         # Combine existing agent functions with discovered tools
         all_functions = agent.functions + discovered_tools
         logger.debug(f"Total functions for agent '{agent.name}': {len(all_functions)} (Existing: {len(agent.functions)}, Discovered: {len(discovered_tools)})")
         if debug:
-            print(f"[DEBUG] Existing functions: {[func.name for func in agent.functions]}")
-            print(f"[DEBUG] Discovered tools: {[tool.name for tool in discovered_tools]}")
-            print(f"[DEBUG] Combined functions: {[func.name for func in all_functions]}")
+            logger.debug(f"[DEBUG] Existing functions: {[func.name for func in agent.functions]}")
+            logger.debug(f"[DEBUG] Discovered tools: {[tool.name for tool in discovered_tools]}")
+            logger.debug(f"[DEBUG] Combined functions: {[func.name for func in all_functions]}")
 
         return all_functions
 
@@ -281,8 +282,8 @@ class Swarm:
         tools = [func_dict for func_dict in serialized_functions]
 
         # Debug: Log serialized tools
-        debug_print(debug, "Serialized tools:", tools)
-        print(f"[DEBUG] Serialized tools: {json.dumps(tools, indent=2)}")
+        logger.debug("Serialized tools:", tools)
+        logger.debug(f"[DEBUG] Serialized tools: {json.dumps(tools, indent=2)}")
 
         # Adjust tools to remove any reference to 'context_variables'
         for tool in tools:
@@ -308,14 +309,14 @@ class Swarm:
             create_params["parallel_tool_calls"] = agent.parallel_tool_calls
 
         # Debug: Log the payload before sending
-        debug_print(debug, "Chat completion payload:", create_params)
-        print(f"[DEBUG] Chat completion payload: {json.dumps(create_params, indent=2)}")
+        logger.debug("Chat completion payload:", create_params)
+        logger.debug(f"[DEBUG] Chat completion payload: {json.dumps(create_params, indent=2)}")
 
         # Send the request to the OpenAI API
         try:
             return self.client.chat.completions.create(**create_params)
         except Exception as e:
-            debug_print(debug, f"Error in chat completion request: {e}")
+            logger.debug(f"Error in chat completion request: {e}")
             raise
 
     def handle_function_result(self, result, debug) -> Result:
@@ -347,7 +348,7 @@ class Swarm:
                 except Exception as e:
                     error_message = f"Failed to cast response to string: {result}. " \
                                    f"Make sure agent functions return a string or Result object. Error: {str(e)}"
-                    debug_print(debug, error_message)
+                    logger.debug(error_message)
                     raise TypeError(error_message)
 
     def handle_tool_calls(
@@ -506,7 +507,7 @@ class Swarm:
                     # Assuming 'delta' is a dict
                     delta = chunk.choices[0].delta
                 except Exception as e:
-                    print(f"[ERROR] Failed to process chunk: {e}")
+                    logger.debug(f"[ERROR] Failed to process chunk: {e}")
                     continue
 
                 if delta.get("role") == "assistant":
@@ -523,11 +524,11 @@ class Swarm:
                 message.get("tool_calls", {}).values())
             if not message["tool_calls"]:
                 message["tool_calls"] = None
-            debug_print(debug, "Received completion:", message)
+            logger.debug("Received completion:", message)
             history.append(message)
 
             if not message["tool_calls"] or not execute_tools:
-                debug_print(debug, "Ending turn.")
+                logger.debug("Ending turn.")
                 break
 
             # Convert tool_calls to objects
@@ -619,18 +620,18 @@ class Swarm:
             try:
                 message = completion.choices[0].message
             except Exception as e:
-                debug_print(debug, f"Failed to get message from completion: {e}")
-                print(f"[ERROR] Failed to get message from completion: {e}")
+                logger.debug(f"Failed to get message from completion: {e}")
+                logger.debug(f"[ERROR] Failed to get message from completion: {e}")
                 break
 
-            debug_print(debug, "Received completion:", message)
+            logger.debug("Received completion:", message)
             message.sender = active_agent.name
             history.append(
                 json.loads(message.model_dump_json())
             )  # To avoid OpenAI types (?)
 
             if not message.tool_calls or not execute_tools:
-                debug_print(debug, "Ending turn.")
+                logger.debug("Ending turn.")
                 break
 
             # Handle function calls, updating context_variables, and switching agents

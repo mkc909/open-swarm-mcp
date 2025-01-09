@@ -12,12 +12,13 @@ ensures that these tools are properly validated and integrated into the agent's 
 import logging
 from typing import List, Dict, Any, Optional, Callable
 
+from swarm.settings import DEBUG
 from swarm.types import Tool, Agent  # Ensure `Agent` is correctly imported
 from swarm.extensions.mcp.mcp_client import MCPClient  # Ensure correct import
 
 # Initialize logger for this module
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 stream_handler = logging.StreamHandler()
 formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(name)s - %(message)s")
 stream_handler.setFormatter(formatter)
@@ -67,7 +68,7 @@ class MCPToolProvider:
         Raises:
             RuntimeError: If tool discovery from the MCP server fails.
         """
-        logger.info(
+        logger.debug(
             f"Starting tool discovery from MCP server '{self.server_name}' for agent '{agent.name}'."
         )
         try:

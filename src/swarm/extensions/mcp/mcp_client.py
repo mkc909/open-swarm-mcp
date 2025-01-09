@@ -22,11 +22,12 @@ import os
 from typing import List, Callable, Dict, Any, Optional
 
 from pydantic import BaseModel
-from swarm.types import Tool  # Ensure this import path is correct
+from swarm.settings import DEBUG
+from swarm.types import Tool
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 
 
 class MCPClient:
@@ -175,7 +176,7 @@ class MCPClient:
                     # Wait a moment for any final stderr
                     await asyncio.sleep(0.5)
                     if stderr_buffer:
-                        logger.error(
+                        logger.debug(
                             f"MCP Server stderr output: {' | '.join(stderr_buffer)}"
                         )
 
@@ -245,7 +246,7 @@ class MCPClient:
             elif "error" in response:
                 logger.error(f"Error in tool discovery: {response['error']}")
 
-        logger.info(f"Discovered tools: {[tool.name for tool in tools]}")
+        logger.debug(f"Discovered tools: {[tool.name for tool in tools]}")
         return tools
 
     async def _create_tool_callable(self, tool_name: str) -> Callable[..., Any]:
@@ -316,7 +317,7 @@ class MCPClient:
                                     logger.debug(f"Parsed JSON array for '{tool_name}': {parsed}")
                                     return parsed
                                 except json.JSONDecodeError as e:
-                                    logger.error(f"Failed to parse JSON for '{tool_name}': {e}")
+                                    logger.debug(f"Failed to parse JSON for '{tool_name}': {e}") # TODO false positives?
 
                             if text_payload:
                                 logger.debug(f"Returning plain text payload for '{tool_name}': {text_payload}")

@@ -47,11 +47,12 @@
             "args": ["mcp-server-sqlite", "--db-path", "/tmp/test.db"]
         },
 
-        "flowise": {
+        "flowise-mcp": {
             "command": "uvx",
             "args": [
                 "--from", 
-                "git+https://github.com/matthewhand/mcp-flowise",
+		"/mnt/models/flowise-mcp",
+		"--with", "requests",
                 "flowise-mcp"
             ],
             "env": {

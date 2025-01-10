@@ -376,28 +376,8 @@ class Swarm:
                 continue
 
             func = function_map[name]
-
-            # Pass context variables if required
-            if __CTX_VARS_NAME__ in func.__code__.co_varnames:
-                args[__CTX_VARS_NAME__] = context_variables
-
-            # Execute the function
-            try:
-                # Check if the tool is dynamic and requires asynchronous handling
-                if getattr(func, "dynamic", False):
-                    # Ensure asyncio handles dynamic tools properly
-                    raw_result = asyncio.run(func(**args))
-                else:
-                    # Handle synchronous tools as usual
-                    raw_result = func(**args)
-
-                # Process the function result
-                result: Result = self.handle_function_result(raw_result, debug)
-
-                if isinstance(raw_result, Agent):  # Check if the result is an agent
-                    partial_response.agent = raw_result  # Set the new active agent
-
-                # Add the tool response
+            if not callable(func):
+                logger.error(f"Function {name} is not callable: {func}")
                 partial_response.messages.append(
                     {
                         "role": "tool",
@@ -407,16 +387,6 @@ class Swarm:
                     }
                 )
                 continue
-            except Exception as e:
-                partial_response.messages.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "tool_name": name,
-                        "content": f"Error: {str(e)}",
-                    }
-                )
-
 
             args = json.loads(tool_call.function.arguments)
             func = function_map[name]

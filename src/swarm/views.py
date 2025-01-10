@@ -107,7 +107,7 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
             "completion_tokens": sum(len((msg.get("content") or "").split()) for msg in messages if msg.get("role") == "assistant"),
             "total_tokens": len(messages),
         },
-        "context_variables": redact_sensitive_data(context_variables),  # Redact context variables
+        "context_variables": context_variables,
     }
 
 

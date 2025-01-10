@@ -51,8 +51,8 @@
             "command": "uvx",
             "args": [
                 "--from", 
-		"/mnt/models/flowise-mcp",
-		"--with", "requests",
+                "git+https://github.com/matthewhand/mcp-flowise",
+                "--with", "requests",
                 "flowise-mcp"
             ],
             "env": {
@@ -73,11 +73,8 @@
             "args": [
               "-y",
               "@modelcontextprotocol/server-filesystem",
-              "$ALLOWED_PATHS"
-            ],
-            "env": {
-                "ALLOWED_PATHS": "${ALLOWED_PATHS}"
-            }
+              "/path/to/your/exposed/folder/"
+            ]
         }
 
     }

@@ -176,10 +176,9 @@ def list_models(request):
             }
             for key, meta in blueprints_metadata.items()
         ]
-        redacted_data = redact_sensitive_data(data)  # Redact model descriptions if necessary
-        return JsonResponse({"object": "list", "data": redacted_data}, status=200)
+        return JsonResponse({"object": "list", "data": data}, status=200)
     except Exception as e:
-        logger.error(f"Error listing models: {redact_sensitive_data(e)}", exc_info=True)
+        logger.error(f"Error listing models: {e}", exc_info=True)
         return JsonResponse({"error": "Internal Server Error"}, status=500)
 
 

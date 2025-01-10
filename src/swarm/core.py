@@ -99,7 +99,7 @@ def repair_message_payload(messages: List[Dict[str, Any]], debug: bool = False) 
                 logger.debug(f"Repairing: Adding missing assistant message for tool_call_id {tool_call_id}.")
                 repaired_messages.insert(-1, repaired_message)
 
-    logger.debug("Repaired message payload:", repaired_messages)
+    logger.debug(f"Repaired message payload: {repaired_messages}")
     return repaired_messages
 
 class Swarm:
@@ -282,7 +282,7 @@ class Swarm:
         tools = [func_dict for func_dict in serialized_functions]
 
         # Debug: Log serialized tools
-        logger.debug("Serialized tools:", tools)
+        logger.debug(f"Serialized tools: {tools}")
         logger.debug(f"[DEBUG] Serialized tools: {json.dumps(tools, indent=2)}")
 
         # Adjust tools to remove any reference to 'context_variables'
@@ -524,7 +524,7 @@ class Swarm:
                 message.get("tool_calls", {}).values())
             if not message["tool_calls"]:
                 message["tool_calls"] = None
-            logger.debug("Received completion:", message)
+            logger.debug(f"Received completion: {message}")
             history.append(message)
 
             if not message["tool_calls"] or not execute_tools:
@@ -624,7 +624,7 @@ class Swarm:
                 logger.debug(f"[ERROR] Failed to get message from completion: {e}")
                 break
 
-            logger.debug("Received completion:", message)
+            logger.debug(f"Received completion: {message}")
             message.sender = active_agent.name
             history.append(
                 json.loads(message.model_dump_json())

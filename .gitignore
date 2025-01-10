@@ -174,3 +174,4 @@ cython_debug/
 uv.lock
 test.db
 *.bak
+uvx

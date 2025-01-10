@@ -1,9 +1,7 @@
-# blueprints/filesystem/blueprint_filesystem.py
-
 """
-FilesystemBlueprint Class for Open Swarm (MCP).
+FlowiseBlueprint Class for Open Swarm MCP.
 
-This blueprint defines agents related to filesystem interactions.
+This blueprint defines agents related to Flowise MCP server interactions.
 It leverages the BlueprintBase to handle all configuration and MCP session management.
 """
 
@@ -26,34 +24,31 @@ if not logger.handlers:
     logger.addHandler(stream_handler)
 
 
-class FilesystemBlueprint(BlueprintBase):
+class FlowiseBlueprint(BlueprintBase):
     """
     A blueprint that defines two agents:
-      - FilesystemAgent: Interacts with the filesystem via the 'filesystem' MCP server.
+      - FlowiseAgent: Interacts with the Flowise API via the 'flowise-mcp' MCP server.
       - TriageAgent: Performs triage tasks without accessing any MCP server.
     """
-
-    # def __init__(self, config: dict, **kwargs):
-    #     super().__init__(config=config, **kwargs)
 
     @property
     def metadata(self) -> Dict[str, Any]:
         """
-        Metadata for the FilesystemBlueprint.
+        Metadata for the FlowiseBlueprint.
 
         Returns:
             Dict[str, Any]: Dictionary containing title, description, required MCP servers, and environment variables.
         """
         return {
-            "title": "Filesystem Integration Blueprint",
-            "description": "Enables interaction with the filesystem via MCP server tools and includes a triage agent.",
-            "required_mcp_servers": ["filesystem"],
-            "env_vars": ["ALLOWED_PATHS"],
+            "title": "Flowise Integration Blueprint",
+            "description": "Enables interaction with Flowise via MCP server tools and includes a triage agent.",
+            "required_mcp_servers": ["flowise-mcp"],
+            "env_vars": ["FLOWISE_API_KEY", "FLOWISE_API_ENDPOINT"],
         }
 
     def create_agents(self) -> Dict[str, Agent]:
         """
-        Create agents for the FilesystemBlueprint.
+        Create agents for the FlowiseBlueprint.
 
         Returns:
             Dict[str, Agent]: Dictionary containing all created agents.
@@ -61,30 +56,35 @@ class FilesystemBlueprint(BlueprintBase):
         import os
 
         # Retrieve environment variables
-        allowed_paths = os.getenv("ALLOWED_PATHS")
-        if not allowed_paths:
-            raise EnvironmentError("Environment variable 'ALLOWED_PATHS' is not set.")
+        flowise_api_key = os.getenv("FLOWISE_API_KEY")
+        flowise_api_endpoint = os.getenv("FLOWISE_API_ENDPOINT", "http://localhost:3000")
+
+        if not flowise_api_key:
+            raise EnvironmentError("Environment variable 'FLOWISE_API_KEY' is not set.")
 
         # Define agents dictionary
         agents = {}
 
         # Define transfer function with explicit reference to `agents`
-        def transfer_to_filesystem() -> Agent:
+        def transfer_to_flowise() -> Agent:
             """
-            Transfer control from TriageAgent to FilesystemAgent.
+            Transfer control from TriageAgent to FlowiseAgent.
             """
-            logger.debug("Transferring control from TriageAgent to FilesystemAgent.")
-            return agents["FilesystemAgent"]
+            logger.debug("Transferring control from TriageAgent to FlowiseAgent.")
+            return agents["FlowiseAgent"]
 
-        # Create Filesystem Agent
-        filesystem_agent = Agent(
-            name="FilesystemAgent",
+        # Create Flowise Agent
+        flowise_agent = Agent(
+            name="FlowiseAgent",
             instructions=(
-                "You are the FilesystemAgent. Manage and interact with the filesystem within the allowed paths. "
-                "Use the available functions provided by your MCP server to perform filesystem operations."
+                "You are the FlowiseAgent. Interact with the Flowise API via the 'flowise-mcp' MCP server. "
+                "Use available functions like 'list_chatflows' or 'create_prediction' to perform operations."
             ),
-            mcp_servers=["filesystem"],
-            env_vars={"ALLOWED_PATHS": allowed_paths},
+            mcp_servers=["flowise-mcp"],
+            env_vars={
+                "FLOWISE_API_KEY": flowise_api_key,
+                "FLOWISE_API_ENDPOINT": flowise_api_endpoint,
+            },
             functions=[],  # Functions are provided by the MCP server
             parallel_tool_calls=False,  # Set based on your framework's requirements
         )
@@ -98,17 +98,19 @@ class FilesystemBlueprint(BlueprintBase):
             ),
             mcp_servers=[],
             env_vars={},
-            functions=[transfer_to_filesystem],  # Pass the closure function
+            functions=[transfer_to_flowise],  # Pass the closure function
             parallel_tool_calls=False,
         )
 
         # Populate agents dictionary
-        agents["FilesystemAgent"] = filesystem_agent
+        agents["FlowiseAgent"] = flowise_agent
         agents["TriageAgent"] = triage_agent
 
-        logger.debug("FilesystemAgent and TriageAgent have been created.")
+        logger.debug("FlowiseAgent and TriageAgent have been created.")
         self.set_starting_agent(triage_agent)  # Set TriageAgent as the starting agent
         return agents
 
+
 if __name__ == "__main__":
-    FilesystemBlueprint.main()
+    FlowiseBlueprint.main()
+

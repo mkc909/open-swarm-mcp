@@ -47,6 +47,21 @@
             "args": ["mcp-server-sqlite", "--db-path", "/tmp/test.db"]
         },
 
+        "flowise-mcp": {
+            "command": "uvx",
+            "args": [
+                "--from", 
+		"/mnt/models/flowise-mcp",
+		"--with", "requests",
+                "flowise-mcp"
+            ],
+            "env": {
+                "FLOWISE_API_KEY": "${FLOWISE_API_KEY}",
+                "FLOWISE_API_ENDPOINT": "${FLOWISE_API_ENDPOINT}",
+                "FLOWISE_CHATFLOW_ID": "${FLOWISE_CHATFLOW_ID}"
+            }
+        },
+
         "everything": {
             "command": "npx",
             "args": ["-y", "@modelcontextprotocol/server-everything"],

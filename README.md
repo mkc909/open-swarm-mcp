@@ -358,8 +358,8 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
   - [x] `university`  
   - [x] `echo`
   - [x] `weather`  
-  - [ ] `database_and_web` (SQLite & Brave Search)  
-  - [ ] `filesystem`  
+  - [x] `filesystem`  
+  - [x] `database_and_web` (SQLite & Brave Search)  
 
 - **Security**  
   - [ ] Securing REST completions endpoint with API_KEY

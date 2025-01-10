@@ -203,11 +203,13 @@ class MCPClient:
 
     async def discover_tools(self) -> List[Tool]:
         """
-        Initializes a fresh MCP server, requests the tool list, and returns them.
+        Initializes a fresh MCP server, sends the initialized notification, 
+        requests the tool list, and returns them.
 
         Returns:
             list: List of Tool instances.
         """
+        # Step 1: Initialize request
         initialize_request = {
             "jsonrpc": "2.0",
             "id": 1,  # Always init with ID=1
@@ -220,6 +222,14 @@ class MCPClient:
             },
         }
 
+        # Step 2: Notifications initialized
+        initialized_notification = {
+            "jsonrpc": "2.0",
+            "method": "notifications/initialized",
+            "params": {}
+        }
+
+        # Step 3: List tools request
         list_tools_request = {
             "jsonrpc": "2.0",
             "id": 2,  # Then 'tools/list' with ID=2
@@ -227,7 +237,12 @@ class MCPClient:
             "params": {},
         }
 
-        responses = await self._run_with_process([initialize_request, list_tools_request])
+        # Send all three requests in sequence
+        responses = await self._run_with_process([
+            initialize_request,
+            initialized_notification,
+            list_tools_request
+        ])
         logger.debug(f"Raw tool discovery responses: {responses}")
 
         tools = []

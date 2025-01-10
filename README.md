@@ -1,5 +1,3 @@
-# Open Swarm
-
 <div align="center">
 <img src="assets/images/openswarm-project-image.jpg" alt="Project Logo" width="70%"/>
 </div>
@@ -119,8 +117,9 @@ Open Swarm showcases a growing library of **Blueprint** examples:
 
 2. **CLI Mode**  
    - Execute specific blueprint files (e.g., `uv run blueprints/university/blueprint_university.py`).  
-   - (WIP) Run `uv run src/swarm/extensions/cli/main.py --wizard` to configure blueprints interactively.  
    - Great for local testing, debugging, and iterative development.
+  
+![image](https://github.com/user-attachments/assets/8593c382-9f2d-4d7a-ba41-0330449b3f38)
 
 ---
 
@@ -345,8 +344,8 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
   - [ ] Assign different models per agent in one blueprint  
 
 - **Tooling Integration Frameworks**  
-  - [ ] MCP Servers
-   - [x] Raw JSONRPC POC
+  - [x] MCP Servers
+  - [ ] Use official mcp python sdk
   - [ ] GPT Actions
 
 - **Deployment**  

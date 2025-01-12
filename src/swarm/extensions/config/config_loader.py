@@ -122,10 +122,15 @@ def validate_mcp_server_env(mcp_servers: Dict[str, Any]) -> None:
         env_vars = server_config.get("env", {})
         for env_key, env_value in env_vars.items():
             logger.debug(f"Checking environment variable '{env_key}' for server '{server_name}' with value '{redact_sensitive_data(env_value)}'")
-            if not env_value:
+            if env_value == "":
+                logger.debug(f"Environment variable '{env_key}' for MCP server '{server_name}' is optional and set to empty string.")
+                # Optional: Do not raise error if env_value is empty string
+                continue
+            elif not env_value:
                 logger.error(f"Environment variable '{env_key}' for MCP server '{server_name}' is not set.")
                 raise ValueError(f"Environment variable '{env_key}' for MCP server '{server_name}' is not set.")
-            logger.debug(f"Environment variable '{env_key}' for server '{server_name}' is set.")
+            else:
+                logger.debug(f"Environment variable '{env_key}' for server '{server_name}' is set.")
 
 def get_default_llm_config(config: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -174,6 +179,7 @@ def validate_api_keys(config: Dict[str, Any], selected_llm: str = "default") -> 
     api_key = llm_config.get("api_key")
     if api_key == "":
         logger.debug(f"LLM profile '{selected_llm}' does not require an API key (explicit empty string).")
+        # Optional: API key is optional if set to empty string
         return config
     elif not api_key:
         logger.error(f"API key is missing for LLM profile '{selected_llm}'.")

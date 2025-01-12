@@ -27,7 +27,7 @@ if not logger.handlers:
 class FlowiseBlueprint(BlueprintBase):
     """
     A blueprint that defines two agents:
-      - FlowiseAgent: Interacts with the Flowise API via the 'flowise-mcp' MCP server.
+      - FlowiseAgent: Interacts with the Flowise API via the 'mcp-flowise' MCP server.
       - TriageAgent: Performs triage tasks without accessing any MCP server.
     """
 
@@ -42,7 +42,7 @@ class FlowiseBlueprint(BlueprintBase):
         return {
             "title": "Flowise Integration Blueprint",
             "description": "Enables interaction with Flowise via MCP server tools and includes a triage agent.",
-            "required_mcp_servers": ["flowise-mcp"],
+            "required_mcp_servers": ["mcp-flowise"],
             "env_vars": ["FLOWISE_API_KEY", "FLOWISE_API_ENDPOINT"],
         }
 
@@ -77,10 +77,10 @@ class FlowiseBlueprint(BlueprintBase):
         flowise_agent = Agent(
             name="FlowiseAgent",
             instructions=(
-                "You are the FlowiseAgent. Interact with the Flowise API via the 'flowise-mcp' MCP server. "
+                "You are the FlowiseAgent. Interact with the Flowise API via the 'mcp-flowise' MCP server. "
                 "Use available functions like 'list_chatflows' or 'create_prediction' to perform operations."
             ),
-            mcp_servers=["flowise-mcp"],
+            mcp_servers=["mcp-flowise"],
             env_vars={
                 "FLOWISE_API_KEY": flowise_api_key,
                 "FLOWISE_API_ENDPOINT": flowise_api_endpoint,

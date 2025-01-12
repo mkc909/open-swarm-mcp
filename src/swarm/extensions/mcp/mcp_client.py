@@ -43,7 +43,7 @@ class MCPClient:
         command: str = "npx",
         args: Optional[List[str]] = None,
         env: Optional[Dict[str, str]] = None,
-        timeout: int = 10,
+        timeout: int = 30,
     ):
         self.command = command
         self.args = [os.path.expandvars(arg) for arg in (args or [])]

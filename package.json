@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@azure/identity": "^4.5.0",
+    "@azure/keyvault-secrets": "^4.9.0"
+  }
+}

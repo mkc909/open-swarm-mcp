@@ -25,14 +25,6 @@
     },
 
     "mcpServers": {
-        "brave-search": {
-            "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-brave-search"],
-            "env": {
-              "BRAVE_API_KEY": "${BRAVE_API_KEY}"
-            }
-          },
-
         "sqlite": {
             "command": "npx",
             "args": ["-y", "mcp-server-sqlite-npx", "${SQLITE_DB_PATH}"],
@@ -76,6 +68,12 @@
               "@modelcontextprotocol/server-filesystem",
               "/path/to/your/exposed/folder/"
             ]
+        },
+
+        "azure-keyvault": {
+            "command": "node",
+            "args": ["mcp-server-azure-keyvault/index.js"],
+            "env": {}
         }
 
     }

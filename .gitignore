@@ -175,3 +175,6 @@ uv.lock
 test.db
 *.bak
 uvx
+
+# Local configuration
+swarm_config.local.json

@@ -212,7 +212,7 @@ class Swarm:
                 # Discover tools using the cached MCPToolProvider
                 tools = await tool_provider.discover_tools(agent)
                 if tools:
-                    logger.debug(f"Discovered {len(tools)} tools from server '{server_name}' for agent '{agent.name}': {[tool.name for tool in tools]}")
+                    logger.debug(f"Discovered {len(tools)} tools from server '{server_name}' for agent '{agent.name}': {[tool.name for tool in tools if hasattr(tool, 'name')]}")
                     discovered_tools.extend(tools)
                 else:
                     logger.warning(f"No tools discovered from server '{server_name}' for agent '{agent.name}'.")
@@ -225,9 +225,9 @@ class Swarm:
         all_functions = agent.functions + discovered_tools
         logger.debug(f"Total functions for agent '{agent.name}': {len(all_functions)} (Existing: {len(agent.functions)}, Discovered: {len(discovered_tools)})")
         if debug:
-            logger.debug(f"[DEBUG] Existing functions: {[func.name for func in agent.functions]}")
-            logger.debug(f"[DEBUG] Discovered tools: {[tool.name for tool in discovered_tools]}")
-            logger.debug(f"[DEBUG] Combined functions: {[func.name for func in all_functions]}")
+            logger.debug(f"[DEBUG] Existing functions: {[func.name for func in agent.functions if hasattr(func, 'name')]}")
+            logger.debug(f"[DEBUG] Discovered tools: {[tool.name for tool in discovered_tools if hasattr(tool, 'name')]}")
+            logger.debug(f"[DEBUG] Combined functions: {[func.name for func in all_functions if hasattr(func, 'name')]}")
 
         return all_functions
 

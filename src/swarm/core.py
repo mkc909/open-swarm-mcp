@@ -119,16 +119,17 @@ class Swarm:
         self.agents: Dict[str, Agent] = {}
         self.mcp_tool_providers: Dict[str, MCPToolProvider] = {}  # Cache for MCPToolProvider instances
         self.config = config or {}
+        
+        # # Validate LLM environment variables based on configuration
+        # for llm_name, llm_config in self.config.get('llm', {}).items():
+        #     api_key = llm_config.get('api_key', '')
+        #     if api_key:
+        #         logger.debug(f"LLM '{llm_name}' API key is set.")
+        #     else:
+        #         logger.debug(f"LLM '{llm_name}' does not require an API key.")
 
         try:
-            # Validate API keys for the selected LLM profile
-            validate_api_keys(self.config, selected_llm="default")
-            logger.debug("LLM API key validation successful.")
-
-            # Validate MCP server environment variables
-            mcp_servers = self.config.get("mcpServers", {})
-            validate_mcp_server_env(mcp_servers)
-            logger.debug("MCP server environment validation successful.")
+            # Removed environment variable validation based on blueprint metadata to delegate to BlueprintBase
 
             # Override default settings from configuration
             llm_config = self.config.get("llm", {}).get("default", {})

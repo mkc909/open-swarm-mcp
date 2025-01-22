@@ -56,8 +56,8 @@
                 "mcp-flowise"
             ],
             "env": {
-                "FLOWISE_API_KEY": "",
-                "FLOWISE_API_ENDPOINT": "",
+                "FLOWISE_API_KEY": "${FLOWISE_API_KEY}",
+                "FLOWISE_API_ENDPOINT": "${FLOWISE_API_ENDPOINT}",
                 "FLOWISE_CHATFLOW_ID": "",
                 "FLOWISE_CHATFLOW_DESCRIPTIONS": ""
             }

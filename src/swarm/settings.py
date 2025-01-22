@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    # 'swarm.extensions.blueprint.modes.rest_mode',
+    'swarm.extensions.blueprint.modes.rest_mode',
 ]
 
 MIDDLEWARE = [

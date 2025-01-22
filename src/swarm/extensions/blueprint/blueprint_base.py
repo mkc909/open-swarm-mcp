@@ -59,6 +59,12 @@ class BlueprintBase(ABC):
         agents = self.create_agents()
         self.swarm.agents.update(agents)
         logger.debug(f"Agents registered: {list(agents.keys())}")
+        # Validate required environment variables based on blueprint metadata
+        required_env_vars = set(self.metadata.get('env_vars', []))
+        missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+        if missing_vars:
+            raise EnvironmentError(f"Missing required environment variables: {', '.join(missing_vars)}")
+        logger.debug("Required environment variables validation successful.")
 
         # Discover tools asynchronously for agents
         asyncio.run(self.async_discover_agent_tools())

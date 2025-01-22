@@ -1,6 +1,5 @@
-# src/swarm/extensions/blueprint/modes/cli_mode/utils.py
-
 import logging
+import sys
 from typing import Dict, Optional
 from swarm.utils.color_utils import color_text
 
@@ -103,4 +102,4 @@ def log_and_exit(message: str, code: int = 1) -> None:
     """
     logger.error(message)
     display_message(message, "error")
-    exit(code)
+    sys.exit(code)

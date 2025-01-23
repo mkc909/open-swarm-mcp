@@ -7,6 +7,8 @@ aligning with OpenAI's Chat Completions API.
 Endpoints:
     - POST /v1/chat/completions: Handles chat completion requests.
     - GET /v1/models: Lists available blueprints as models.
+    - GET /django_chat/: Lists conversations for the logged-in user.
+    - POST /django_chat/start/: Starts a new conversation.
 """
 import os
 import json
@@ -15,12 +17,15 @@ import time
 import logging
 from typing import Any, Dict, List
 from pathlib import Path
-
+from django.shortcuts import redirect, get_object_or_404, render
+from django.urls import reverse
+from django.views.generic import TemplateView
+from django.views import View
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
-from django.shortcuts import render
-
+from django.contrib.auth.mixins import LoginRequiredMixin
+from swarm.models import ChatConversation
 from swarm.extensions.blueprint import discover_blueprints
 from swarm.extensions.config.config_loader import (
     load_server_config,
@@ -47,7 +52,7 @@ BLUEPRINTS_DIR = (Path(settings.BASE_DIR) / "blueprints").resolve()
 try:
     blueprints_metadata = discover_blueprints([str(BLUEPRINTS_DIR)])
     redacted_blueprints_metadata = redact_sensitive_data(blueprints_metadata)  # Redact before logging
-    logger.debug(f"Discovered blueprints metadata: {redacted_blueprints_metadata}")
+    logger.debug(f"Discovered blueprints meta {redacted_blueprints_metadata}")
 except Exception as e:
     logger.error(f"Error discovering blueprints: {e}", exc_info=True)
     raise e
@@ -180,6 +185,43 @@ def list_models(request):
     except Exception as e:
         logger.error(f"Error listing models: {e}", exc_info=True)
         return JsonResponse({"error": "Internal Server Error"}, status=500)
+
+
+class IndexView(LoginRequiredMixin, TemplateView):
+    template_name = 'index.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['conversations'] = ChatConversation.objects.filter(
+            user=self.request.user
+        ).exclude(conversation=[])  # Excluding empty conversations
+        return context
+
+
+class StartConversationView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        conversation = ChatConversation.objects.create(user=request.user)
+        return redirect(reverse('chat_page', args=[conversation.id]))
+
+
+class ChatView(LoginRequiredMixin, TemplateView):
+    template_name = 'chat.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        conversation_id = self.kwargs.get('conversation_id')
+        if conversation_id:
+            conversation = get_object_or_404(ChatConversation, id=conversation_id, user=self.request.user)
+            context['conversation'] = conversation
+        else:
+            context['conversation'] = None
+        return context
+
+
+@csrf_exempt
+def django_chat_webpage(request, blueprint_name):
+    conversation_id = uuid.uuid4().hex
+    return render(request, 'django_chat_webpage.html', {'conversation_id': conversation_id, 'blueprint_name': blueprint_name})
 
 
 @csrf_exempt

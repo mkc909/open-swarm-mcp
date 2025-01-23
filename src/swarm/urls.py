@@ -1,9 +1,10 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, re_path
 from django.http import HttpResponse
 from django.conf import settings
 import os
 from swarm import views
+from swarm import consumers
 
 def favicon(request):
     favicon_path = os.path.join(settings.BASE_DIR, 'assets', 'images', 'favicon.ico')
@@ -15,6 +16,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('v1/chat/completions', views.chat_completions, name='chat_completions'),
     path('v1/models/', views.list_models, name='list_models'),
-    path('<str:blueprint_name>', views.blueprint_webpage, name='blueprint_webpage'),
+    path('django_chat/', views.IndexView.as_view(), name='django_chat_index'),
+    path('django_chat/start/', views.StartConversationView.as_view(), name='django_chat_start'),
+    path('django_chat/<str:conversation_id>/', views.ChatView.as_view(), name='chat_page'),
+    re_path(r'ws/django_chat/(?P<conversation_id>[0-9a-fA-F-]+)/$', consumers.DjangoChatConsumer.as_asgi(), name="ws_django_chat"),
     path('favicon.ico', favicon, name='favicon'),
+    path('<str:blueprint_name>', views.blueprint_webpage, name='blueprint_webpage'),
 ]

@@ -1,3 +1,5 @@
+# Open Swarm
+
 <div align="center">
 <img src="assets/images/openswarm-project-image.jpg" alt="Project Logo" width="70%"/>
 </div>
@@ -25,6 +27,7 @@ https://github.com/user-attachments/assets/1335f7fb-ff61-4e96-881c-7d3154eb9f14
 - [Progress Tracker](#progress-tracker)
 - [Further Documentation](#further-documentation)
 - [License](#license)
+- [Acknowledgements](#acknowledgements)
 
 ---
 
@@ -96,12 +99,12 @@ In practice, this blueprint:
 ### Other Examples
 Open Swarm showcases a growing library of **Blueprint** examples:
 
-| Blueprint Name          | Description                                                                 |
-|-------------------------|-----------------------------------------------------------------------------|
-| **Echo Blueprint**      | A straightforward agent that simply echoes user inputs—ideal for testing or as a starter template. |
+| Blueprint Name               | Description                                                                 |
+|------------------------------|-----------------------------------------------------------------------------|
+| **Echo Blueprint**           | A straightforward agent that simply echoes user inputs—ideal for testing or as a starter template. |
 | **Database and Web Blueprint** | Demonstrates MCP-based integration with an SQLite database and Brave Search, illustrating how to combine data retrieval with real-time web queries. |
-| **Filesystem Blueprint** | Provides agents that can interact with local file directories (read/write operations) through a **filesystem** MCP server. |
-| **Weather Blueprint**   | Fetches current weather and forecasts via external APIs (e.g., OpenWeatherMap), showing how environment variables and requests-based calls can be integrated. |
+| **Filesystem Blueprint**     | Provides agents that can interact with local file directories (read/write operations) through a **filesystem** MCP server. |
+| **Weather Blueprint**        | Fetches current weather and forecasts via external APIs (e.g., OpenWeatherMap), showing how environment variables and requests-based calls can be integrated. |
 
 ---
 
@@ -301,15 +304,15 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
 
 ```
  ┌─────────────────────────────────────────────────────────────────────┐
- │        OpenAI-Compatible Client Tools that displays sender          │
- │                            e.g. Open-WebUI                          │
- └────────────┬────────────────────────────────────────────────────────┘
+ │        OpenAI-Compatible Client Tools that displays sender        │
+ │                      e.g. Open-WebUI                              │
+ └────────────┬───────────────────────────────────────────────────────┘
               |                             
               |   (HTTP: /v1/chat/completions, /v1/models)
               ▼                             
  ┌─────────────────────────────────────────────────────────────────────┐
- │                 Open Swarm REST API Service (Django)                │
- │  (Exposes /v1/models, /v1/chat/completions, /admin, /<blueprint>    │
+ │                 Open Swarm REST API Service (Django)              │
+ │  (Exposes /v1/models, /v1/chat/completions, /admin, /<blueprint>  │
  └─────────────────────────────────────────────────────────────────────┘
                      |                        | 
                      |                        | MCP Servers and 
@@ -335,6 +338,7 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
   - [ ] Application management via `/admin`  
    - [x] User management
    - [ ] Blueprint management
+  - [ ] Streaming chat (django_chat)
 
 - **CLI Mode**  
   - [ ] Setup Wizard  
@@ -345,8 +349,10 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
 
 - **Tooling Integration Frameworks**  
   - [x] MCP Servers
-  - [ ] Use official mcp python sdk
+  - [x] Use official mcp python sdk 
   - [ ] GPT Actions
+  - [ ] Load claude desktop mcp server config
+  - [ ] Load roo-code mcp server config
 
 - **Deployment**  
   - [x] Dockerfile and docker-compose.yaml  
@@ -359,6 +365,7 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
   - [x] `weather`  
   - [x] `filesystem`  
   - [x] `database_and_web` (SQLite & Brave Search)  
+  - [ ] `flowise` (Requires Flowise server or cloud account)
 
 - **Security**  
   - [ ] Securing REST completions endpoint with API_KEY
@@ -378,4 +385,5 @@ Open Swarm is provided under the MIT License. Refer to the [LICENSE](LICENSE) fi
 
 ## Acknowledgements
 
-This project is based on the [OpenAI Swarm](https://github.com/openai/swarm) framework. We would like to acknowledge the original authors and contributors of this project for their work.
+This project is based on the [OpenAI Swarm](https://github.com/openai/swarm) framework. We would like to acknowledge the original authors and contributors of this project for their work.  
+We also wish to credit [django_chatbot](https://github.com/MattiPaivike/django_chatbot) for the Django chatbot view.

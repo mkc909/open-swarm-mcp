@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'channels',
+    'swarm',
     'swarm.extensions.blueprint.modes.rest_mode',
 ]
 
@@ -61,8 +63,8 @@ ROOT_URLCONF = 'swarm.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],  # Updated to use pathlib for consistency
-        'APP_DIRS': True,
+        'DIRS': [BASE_DIR / 'src/swarm/templates'],  # Updated to use pathlib for consistency
+        'APP_DIRS': False,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -75,7 +77,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'swarm.wsgi.application'
-# ASGI_APPLICATION = 'swarm.asgi.application'
+ASGI_APPLICATION = 'swarm.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
@@ -115,7 +117,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'  # Define a root directory for collectstatic
 STATICFILES_DIRS = [
-    BASE_DIR / "static"
+    BASE_DIR / "src/swarm/static"
 ]
 
 # Default primary key field type

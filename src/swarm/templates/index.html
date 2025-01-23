@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Conversations</h1>
+    <ul>
+        {% for conversation in conversations %}
+        <li>
+            <a href="{% url 'chat_page' conversation.id %}">Conversation {{ conversation.id }}</a>
+        </li>
+        {% empty %}
+        <li>No conversations yet.</li>
+        {% endfor %}
+    </ul>
+    <form method="post" action="{% url 'django_chat_start' %}">
+        {% csrf_token %}
+        <button type="submit">Start New Conversation</button>
+    </form>
+</div>
+{% endblock %}

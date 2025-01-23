@@ -1,5 +1,3 @@
-# src/swarm/extensions/mcp/mcp_tool_provider.py
-
 """
 MCPToolProvider Module for Open-Swarm
 
@@ -10,11 +8,11 @@ ensures that these tools are properly validated and integrated into the agent's 
 """
 
 import logging
-from typing import List, Dict, Any, Optional, Callable
+from typing import List, Dict, Any
 
 from swarm.settings import DEBUG
-from swarm.types import Tool, Agent  # Ensure `Agent` is correctly imported
-from swarm.extensions.mcp.mcp_client import MCPClient  # Ensure correct import
+from swarm.types import Tool, Agent
+from swarm.extensions.mcp.mcp_client import MCPClient
 
 # Initialize logger for this module
 logger = logging.getLogger(__name__)
@@ -32,7 +30,7 @@ class MCPToolProvider:
     them into `Tool` instances that can be utilized by agents within the Open-Swarm framework.
     """
 
-    def __init__(self, server_name: str, server_config: dict):
+    def __init__(self, server_name: str, server_config: Dict[str, Any]):
         """
         Initialize an MCPToolProvider instance.
 
@@ -41,19 +39,11 @@ class MCPToolProvider:
             server_config (dict): Configuration dictionary for the specific server.
         """
         self.server_name = server_name
-        self.command = server_config.get("command", "npx")
-        self.args = server_config.get("args", [])
-        self.env = server_config.get("env", {})
-        self.timeout = server_config.get("timeout", 30)
         self.client = MCPClient(
-            command=self.command,
-            args=self.args,
-            env=self.env,
-            timeout=self.timeout
+            server_config=server_config,
+            timeout=server_config.get("timeout", 30),
         )
-        logger.debug(
-            f"Initialized MCPToolProvider for server '{self.server_name}' with config: {server_config}"
-        )
+        logger.debug(f"Initialized MCPToolProvider for server '{self.server_name}'.")
 
     async def discover_tools(self, agent: Agent) -> List[Tool]:
         """
@@ -72,16 +62,12 @@ class MCPToolProvider:
             f"Starting tool discovery from MCP server '{self.server_name}' for agent '{agent.name}'."
         )
         try:
-            # Use the get_tools method with caching
-            tools = await self.client.get_tools(agent.name)
+            tools = await self.client.list_tools()
             logger.debug(
-                f"Received tools from MCP server '{self.server_name}': {[tool.name for tool in tools]}"
+                f"Discovered tools from MCP server '{self.server_name}': {[tool.name for tool in tools]}"
             )
 
-            # Since MCPClient already returns Tool objects with `func` assigned,
-            # there's no need to recreate Tool instances here.
-            # If additional processing is needed, it can be done here.
-
+            # Additional processing or filtering of tools can be done here if needed
             return tools
 
         except Exception as e:
@@ -92,6 +78,3 @@ class MCPToolProvider:
             raise RuntimeError(
                 f"Tool discovery failed for MCP server '{self.server_name}': {e}"
             ) from e
-
-    # If additional functionalities are required, you can implement them here.
-    # For example, merging tools from multiple MCP servers, filtering tools, etc.

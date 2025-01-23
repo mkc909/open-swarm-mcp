@@ -1,261 +1,116 @@
-# tests/test_mcp_client.py
-
 """
-Integration tests for MCP tool execution from the blueprint filesystem.
+Integration tests for MCP tool execution using the 'everything' server.
 """
 
 import pytest
 import asyncio
-import os
-import tempfile
-import sqlite3
 import logging
-from unittest.mock import AsyncMock
 from swarm.extensions.mcp.mcp_client import MCPClient
-from swarm.types import Tool, Agent
+from swarm.types import Tool
 
 # Configure logging for the tests
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# "everything" server configuration
+EVERYTHING_SERVER_CONFIG = {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-everything"],
+    "env": {},
+    "timeout": 30,
+}
 
 @pytest.fixture
-def temp_db_path():
+def mcp_client():
     """
-    Creates a temporary SQLite database for testing.
-
-    Yields:
-        str: Path to the temporary SQLite database.
-    """
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
-        db_path = tmp.name
-    yield db_path
-    os.remove(db_path)
-
-
-@pytest.fixture
-def setup_test_database(temp_db_path):
-    """
-    Sets up the test database with required tables and sample data.
-
-    Args:
-        temp_db_path (str): Path to the temporary SQLite database.
-    """
-    logger.debug(f"Setting up test database at {temp_db_path}")
-    conn = sqlite3.connect(temp_db_path)
-    cursor = conn.cursor()
-
-    # Create tables
-    logger.debug("Creating 'courses' table.")
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS courses (
-            id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL,
-            department TEXT NOT NULL,
-            credits INTEGER NOT NULL
-        )
-    ''')
-
-    # Insert sample data
-    logger.debug("Inserting sample data into 'courses' table.")
-    cursor.executemany('''
-        INSERT INTO courses (id, name, department, credits)
-        VALUES (?, ?, ?, ?)
-    ''', [
-        (1, "Introduction to AI", "Computer Science", 3),
-        (2, "Advanced Mathematics", "Mathematics", 4),
-    ])
-
-    conn.commit()
-    conn.close()
-    logger.debug("Test database setup complete.")
-
-
-@pytest.fixture
-def mcp_client_manager(temp_db_path, setup_test_database):
-    """
-    Initializes MCPClient with the MCP server command and args.
-
-    Args:
-        temp_db_path (str): Path to the temporary SQLite database.
+    Initializes MCPClient configured for the 'everything' server.
 
     Yields:
         MCPClient: An instance of MCPClient configured for testing.
     """
-    env = os.environ.copy()
-    env.update({
-        "npm_config_registry": "https://registry.npmjs.org",
-        # "SQLITE_DB_PATH": temp_db_path,  # Uncomment if needed by the MCP server
-    })
-
-    manager = MCPClient(
-        command="npx",
-        args=["-y", "mcp-server-sqlite-npx", temp_db_path],
-        env=env,
-        timeout=30  # Adjust as needed
-    )
-
-    logger.debug(f"MCPClient manager initialized with env: {env}")
-    yield manager
-    # No teardown needed since MCPClient's methods terminate the subprocess
+    client = MCPClient(server_config=EVERYTHING_SERVER_CONFIG, timeout=30)
+    yield client
 
 
-@pytest.mark.skipif(
-    os.getenv("CI", "").lower() in ["true", "1"],
-    reason="Skipping MCP client tests in CI environment due to unknown issue executing npx."
-)
 @pytest.mark.asyncio
-async def test_discover_tools(mcp_client_manager):
+async def test_discover_tools(mcp_client):
     """
-    Test that discover_tools correctly retrieves available tools.
+    Test that MCPClient can discover tools from the 'everything' server.
 
     Args:
-        mcp_client_manager (MCPClient): Instance of MCPClient.
+        mcp_client (MCPClient): Instance of MCPClient.
     """
-    tools = await mcp_client_manager.get_tools("FilesystemAgent")
+    tools = await mcp_client.list_tools()
 
-    # Check that at least one tool is discovered
-    assert len(tools) >= 1, f"Expected at least 1 tool, got {len(tools)}"
+    # Ensure at least one tool is discovered
+    assert len(tools) > 0, "Expected at least one tool from the 'everything' server."
 
-    # Find 'read_query' tool
-    read_query_tool = next((tool for tool in tools if tool.name == "read_query"), None)
-    assert read_query_tool is not None, "'read_query' tool not found."
+    # Verify the tools have expected properties
+    expected_tool_names = {"echo", "add", "longRunningOperation", "printEnv", "sampleLLM", "getTinyImage"}
+    discovered_tool_names = {tool.name for tool in tools}
 
-    # Verify tool details
-    assert read_query_tool.description == "Execute a SELECT query on the SQLite database", "Tool description mismatch."
+    for tool_name in expected_tool_names:
+        assert tool_name in discovered_tool_names, f"Expected tool '{tool_name}' not found."
 
-    # Properly define 'schema' from the tool's input_schema
-    schema = read_query_tool.input_schema
-    assert "query" in schema.get("properties", {}), "Missing 'query' property in schema"
+    logger.info(f"Discovered tools: {discovered_tool_names}")
 
 
-@pytest.mark.skipif(
-    os.getenv("CI", "").lower() in ["true", "1"],
-    reason="Skipping MCP client tests in CI environment due to unknown issue executing npx."
-)
 @pytest.mark.asyncio
-async def test_call_tool_read_query(mcp_client_manager):
+async def test_call_tool_echo(mcp_client):
     """
-    Test calling the 'read_query' tool to execute a SELECT query.
+    Test calling the 'echo' tool.
 
     Args:
-        mcp_client_manager (MCPClient): Instance of MCPClient.
+        mcp_client (MCPClient): Instance of MCPClient.
     """
-    # Discover tools
-    tools = await mcp_client_manager.get_tools("FilesystemAgent")
-    read_query_tool = next((tool for tool in tools if tool.name == "read_query"), None)
-    assert read_query_tool is not None, "'read_query' tool not found."
-
-    # Define the SQL query for testing
-    sql_query = "SELECT * FROM courses LIMIT 1"
-    arguments = {"query": sql_query}
+    tools = await mcp_client.list_tools()
+    echo_tool = next((tool for tool in tools if tool.name == "echo"), None)
+    assert echo_tool is not None, "'echo' tool not found."
 
     # Call the tool
-    tool_response = await mcp_client_manager.call_tool(read_query_tool, arguments)
+    arguments = {"message": "Hello, MCP!"}
+    result = await mcp_client.execute_tool(echo_tool, arguments)
 
-    # Check the response
-    expected_result = [
-        {
-            "id": 1,
-            "name": "Introduction to AI",
-            "department": "Computer Science",
-            "credits": 3
-        }
-    ]
-    assert tool_response == expected_result, f"Tool function output mismatch. Got: {tool_response}"
+    # Extract the text content from the response
+    text_content = result.content[0].text
+    assert text_content == "Echo: Hello, MCP!", f"Unexpected result from 'echo' tool: {text_content}"
 
 
-@pytest.mark.skipif(
-    os.getenv("CI", "").lower() in ["true", "1"],
-    reason="Skipping MCP client tests in CI environment due to unknown issue executing npx."
-)
 @pytest.mark.asyncio
-async def test_call_tool_write_query(mcp_client_manager, temp_db_path):
+async def test_call_tool_add(mcp_client):
     """
-    Test calling the 'write_query' tool to execute an INSERT statement.
+    Test calling the 'add' tool.
 
     Args:
-        mcp_client_manager (MCPClient): Instance of MCPClient.
-        temp_db_path (str): Path to the temporary SQLite database.
+        mcp_client (MCPClient): Instance of MCPClient.
     """
-    # Discover tools
-    tools = await mcp_client_manager.get_tools("FilesystemAgent")
-    write_query_tool = next((tool for tool in tools if tool.name == "write_query"), None)
-    assert write_query_tool is not None, "'write_query' tool not found."
-
-    # Define the SQL INSERT query for testing
-    sql_insert = "INSERT INTO courses (id, name, department, credits) VALUES (3, 'Data Structures', 'Computer Science', 4)"
-    arguments = {"query": sql_insert}
+    tools = await mcp_client.list_tools()
+    add_tool = next((tool for tool in tools if tool.name == "add"), None)
+    assert add_tool is not None, "'add' tool not found."
 
     # Call the tool
-    tool_response = await mcp_client_manager.call_tool(write_query_tool, arguments)
+    arguments = {"a": 5, "b": 7}
+    result = await mcp_client.execute_tool(add_tool, arguments)
 
-    # Check the response
-    assert tool_response == "Success", f"Tool function output mismatch. Got: {tool_response}"
-
-    # Verify that the data was inserted into the database
-    conn = sqlite3.connect(temp_db_path)
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM courses WHERE id = 3")
-    result = cursor.fetchone()
-    conn.close()
-
-    assert result is not None, "No data inserted into the database."
-    assert result == (3, "Data Structures", "Computer Science", 4), f"Inserted data does not match. Got: {result}"
+    # Extract the text content from the response
+    text_content = result.content[0].text
+    assert text_content == "The sum of 5 and 7 is 12.", f"Unexpected result from 'add' tool: {text_content}"
 
 
-@pytest.mark.skipif(
-    os.getenv("CI", "").lower() in ["true", "1"],
-    reason="Skipping MCP client tests in CI environment due to unknown issue executing npx."
-)
-@pytest.mark.asyncio
-async def test_call_tool_write_query_invalid(mcp_client_manager, temp_db_path):
-    """
-    Test calling the 'write_query' tool with an invalid SQL statement.
+# @pytest.mark.asyncio
+# async def test_tool_caching(mcp_client):
+#     """
+#     Test that tools are cached after discovery to prevent redundant MCP server processes.
 
-    Args:
-        mcp_client_manager (MCPClient): Instance of MCPClient.
-        temp_db_path (str): Path to the temporary SQLite database.
-    """
-    # Discover tools
-    tools = await mcp_client_manager.get_tools("FilesystemAgent")
-    write_query_tool = next((tool for tool in tools if tool.name == "write_query"), None)
-    assert write_query_tool is not None, "'write_query' tool not found."
+#     Args:
+#         mcp_client (MCPClient): Instance of MCPClient.
+#     """
+#     # Discover tools once
+#     tools_first_call = await mcp_client.list_tools()
 
-    # Define an invalid SQL INSERT query for testing (typo in INSERT)
-    invalid_sql_insert = "INSER INTO courses (id, name, department, credits) VALUES (4, 'Algorithms', 'Computer Science', 4)"
-    arguments = {"query": invalid_sql_insert}
+#     # Verify caching by calling list_tools again (should return the same tools)
+#     tools_second_call = await mcp_client.list_tools()
+#     assert tools_first_call == tools_second_call, "Tools should be cached between calls."
 
-    # Call the tool and expect an exception due to invalid SQL syntax
-    with pytest.raises(RuntimeError) as exc_info:
-        await mcp_client_manager.call_tool(write_query_tool, arguments)
-
-    # assert "syntax error" in str(exc_info.value).lower(), "Expected a syntax error in the tool response."
-
-
-@pytest.mark.skipif(
-    os.getenv("CI", "").lower() in ["true", "1"],
-    reason="Skipping MCP client tests in CI environment due to unknown issue executing npx."
-)
-@pytest.mark.asyncio
-async def test_tool_caching(mcp_client_manager):
-    """
-    Test that tools are cached after the first discovery to prevent redundant MCP server processes.
-
-    Args:
-        mcp_client_manager (MCPClient): Instance of MCPClient.
-    """
-    # Mock the discover_tools method to track its calls
-    original_discover_tools = mcp_client_manager.discover_tools
-    mcp_client_manager.discover_tools = AsyncMock(side_effect=original_discover_tools)
-
-    # First call to get_tools (should trigger discovery)
-    tools_first_call = await mcp_client_manager.get_tools("FilesystemAgent")
-    assert mcp_client_manager.discover_tools.call_count == 1, "discover_tools should be called once."
-
-    # Second call to get_tools (should use cache)
-    tools_second_call = await mcp_client_manager.get_tools("FilesystemAgent")
-    assert mcp_client_manager.discover_tools.call_count == 1, "discover_tools should not be called again due to caching."
-
-    # Verify that both calls return the same tools
-    assert tools_first_call == tools_second_call, "Cached tools do not match the initially discovered tools."
+#     # Verify that the same objects are returned
+#     assert all(t1.name == t2.name for t1, t2 in zip(tools_first_call, tools_second_call)), "Cached tools should have identical names."

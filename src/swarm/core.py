@@ -50,57 +50,6 @@ stream_handler.setFormatter(formatter)
 if not logger.handlers:
     logger.addHandler(stream_handler)
 
-def repair_message_payload(messages: List[Dict[str, Any]], debug: bool = False) -> List[Dict[str, Any]]:
-    """
-    Repair the message payload to ensure 'tool' messages have corresponding 'assistant' messages with 'tool_calls'.
-
-    Args:
-        messages (List[Dict[str, Any]]): The conversation history messages.
-        debug (bool): Whether to enable debug logging.
-
-    Returns:
-        List[Dict[str, Any]]: The repaired message list.
-    """
-    tool_call_map = {}
-    repaired_messages = []
-
-    for i, message in enumerate(messages):
-        # Collect tool_calls from assistant messages
-        if message["role"] == "assistant" and message.get("tool_calls"):
-            for tool_call in message["tool_calls"]:
-                tool_call_map[tool_call["id"]] = message
-
-        repaired_messages.append(message)
-
-        if message["role"] == "tool":
-            tool_call_id = message.get("tool_call_id")
-            tool_name = message.get("tool_name")
-
-            if not tool_call_id:
-                logger.debug(f"Skipping tool message at index {i}: Missing 'tool_call_id'.")
-                continue
-
-            if not tool_name:
-                logger.debug(f"Skipping tool message at index {i}: Missing 'tool_name'.")
-                continue
-
-            if tool_call_id not in tool_call_map:
-                # Add a placeholder assistant message if it doesn't exist
-                repaired_message = {
-                    "role": "assistant",
-                    "content": None,  # Content can be left blank
-                    "tool_calls": [
-                        {
-                            "id": tool_call_id,
-                            "function": {"name": tool_name, "arguments": "{}"},
-                        }
-                    ],
-                }
-                logger.debug(f"Repairing: Adding missing assistant message for tool_call_id {tool_call_id}.")
-                repaired_messages.insert(-1, repaired_message)
-
-    logger.debug(f"Repaired message payload: {repaired_messages}")
-    return repaired_messages
 
 class Swarm:
     def __init__(self, client=None, config: Optional[dict] = None):
@@ -269,14 +218,14 @@ class Swarm:
         messages = [{"role": "system", "content": instructions}] + history
 
         # Repair message payload before validation
-        messages = repair_message_payload(messages, debug=debug)
+        messages = self.repair_message_payload(messages)
 
-        # Validate the sequence of messages
-        for i in range(1, len(messages)):
-            if messages[i]["role"] == "tool" and not messages[i - 1].get("tool_calls"):
-                raise ValueError(
-                    f"Invalid message sequence: 'tool' message at index {i} must follow an 'assistant' message with 'tool_calls'."
-                )
+        # # Validate the sequence of messages
+        # for i in range(1, len(messages)):
+        #     if messages[i]["role"] == "tool" and not messages[i - 1].get("tool_calls"):
+        #         raise ValueError(
+        #             f"Invalid message sequence: 'tool' message at index {i} must follow an 'assistant' message with 'tool_calls'."
+        #         )
 
         # Serialize agent functions into 'tools'
         serialized_functions = [function_to_json(f) for f in agent.functions]
@@ -359,89 +308,90 @@ class Swarm:
         context_variables: dict,
         debug: bool,
     ) -> Response:
-        function_map = {f.__name__: f for f in functions}
-        partial_response = Response(messages=[], agent=None, context_variables={})
+        """
+        Handles tool calls, executing functions and processing results.
 
-        for tool_call in tool_calls:
-            name = tool_call.function.name
-            if name not in function_map:
-                logger.error(f"Tool {name} not found in function map.")
-                partial_response.messages.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "tool_name": name,
-                        "content": f"Error: Tool {name} not found.",
-                    }
-                )
-                continue
+        Args:
+            tool_calls (List[ChatCompletionMessageToolCall]): The list of tool calls to process.
+            functions (List[AgentFunction]): The list of available functions (tools).
+            context_variables (dict): Shared context variables for tools.
+            debug (bool): Whether to enable debug logging.
 
-            func = function_map[name]
-            if not callable(func):
-                logger.error(f"Function {name} is not callable: {func}")
-                partial_response.messages.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "tool_name": name,
-                        "content": f"Error: Function {name} is not callable.",
-                    }
-                )
-                continue
+        Returns:
+            Response: A Response object with tool results.
+        """
+        async def async_handle():
+            function_map = {f.__name__: f for f in functions}
+            partial_response = Response(messages=[], agent=None, context_variables={})
 
-            args = json.loads(tool_call.function.arguments)
-            func = function_map[name]
+            for tool_call in tool_calls:
+                name = tool_call.function.name
+                tool_call_id = tool_call.id
 
-            # If the function signature expects context_variables, pass them
-            if __CTX_VARS_NAME__ in func.__code__.co_varnames:
-                args[__CTX_VARS_NAME__] = context_variables
+                if name not in function_map:
+                    error_msg = f"Tool {name} not found in function map."
+                    logger.error(error_msg)
+                    partial_response.messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call_id,
+                            "tool_name": name,
+                            "content": f"Error: {error_msg}",
+                        }
+                    )
+                    continue
 
-            try:
-                # >>> CHECK IF THIS IS A DYNAMIC TOOL OR THE RETURN IS A COROUTINE
-                if getattr(func, "dynamic", False):
-                    # If the Tool was marked dynamic, we must await it
-                    raw_result = asyncio.run(func(**args))
-                else:
-                    # Synchronous call
-                    raw_result = func(**args)
-                    # If the function returned a coroutine anyway, also await it
-                    if inspect.iscoroutine(raw_result):
-                        logger.debug("Got a coroutine from a static tool, calling asyncio.run(...) explicitly.")
-                        raw_result = asyncio.run(raw_result)
+                func = function_map[name]
+                args = json.loads(tool_call.function.arguments)
 
-                # Convert raw_result -> swarm.core.Result
-                result: Result = self.handle_function_result(raw_result, debug)
+                # Inject context variables if needed
+                if __CTX_VARS_NAME__ in func.__code__.co_varnames:
+                    args[__CTX_VARS_NAME__] = context_variables
 
-                if isinstance(raw_result, Agent):
-                    partial_response.agent = raw_result  # Switch active agent
+                try:
+                    # Handle dynamic or static tools
+                    if getattr(func, "dynamic", False):
+                        raw_result = await func(**args)  # Await dynamic tools
+                    else:
+                        raw_result = func(**args)  # Call static tools
+                        if inspect.iscoroutine(raw_result):
+                            logger.debug("Got a coroutine from a static tool, awaiting it explicitly.")
+                            raw_result = await raw_result
 
-                # Add the tool response message
-                partial_response.messages.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "tool_name": name,
-                        "content": (
-                            result.value if isinstance(result.value, str) 
-                            else json.dumps(result.value)
-                        ),
-                    }
-                )
-                partial_response.context_variables.update(result.context_variables)
+                    # Convert result to a Response
+                    result = self.handle_function_result(raw_result, debug)
+                    partial_response.messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call_id,
+                            "tool_name": name,
+                            "content": json.dumps(result.value),
+                        }
+                    )
+                    partial_response.context_variables.update(result.context_variables)
 
-            except Exception as e:
-                partial_response.messages.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "tool_name": name,
-                        "content": f"Error: {str(e)}",
-                    }
-                )
+                except Exception as e:
+                    error_msg = str(e)
+                    logger.error(f"Error in tool '{name}': {error_msg}")
+                    partial_response.messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call_id,
+                            "tool_name": name,
+                            "content": f"Error: {error_msg}",
+                        }
+                    )
 
-        return partial_response
+            return partial_response
 
-
+        # Check if we're in an async context
+        try:
+            loop = asyncio.get_running_loop()
+            # If we're already in an async context, run the async version
+            return asyncio.run(async_handle())
+        except RuntimeError:
+            # If no event loop is running, fallback to running a new loop
+            return asyncio.run(async_handle())
 
     def run_and_stream(
         self,
@@ -650,3 +600,112 @@ class Swarm:
             agent=active_agent,
             context_variables=context_variables,
         )
+
+    def validate_message_sequence(self, messages: List[Dict[str, Any]]):
+        """
+        Validate the sequence of messages to ensure compliance with the expected format.
+
+        Args:
+            messages (list): The sequence of messages to validate.
+
+        Raises:
+            ValueError: If the sequence is invalid.
+        """
+        expected_tool_call_ids = set()
+
+        for i, message in enumerate(messages):
+            if message["role"] == "assistant":
+                # If the assistant message has tool_calls, add their IDs to the expected set
+                if message.get("tool_calls"):
+                    for tool_call in message["tool_calls"]:
+                        expected_tool_call_ids.add(tool_call["id"])
+            elif message["role"] == "tool":
+                tool_call_id = message.get("tool_call_id")
+                if not tool_call_id:
+                    raise ValueError(
+                        f"Invalid tool message at index {i}: Missing 'tool_call_id'."
+                    )
+                if tool_call_id not in expected_tool_call_ids:
+                    raise ValueError(
+                        f"Invalid message sequence: 'tool' message at index {i} with tool_call_id '{tool_call_id}' does not have a corresponding 'assistant' message with 'tool_calls'."
+                    )
+                # Remove the tool_call_id once it's been validated
+                expected_tool_call_ids.remove(tool_call_id)
+            else:
+                # For other roles, no action needed
+                pass
+
+        if expected_tool_call_ids:
+            missing = ", ".join(expected_tool_call_ids)
+            raise ValueError(f"Missing tool messages for tool_call_ids: {missing}")
+
+    def repair_message_payload(self, messages: List[Dict[str, Any]], debug: bool = False) -> List[Dict[str, Any]]:
+        """
+        Repairs the message sequence by ensuring that every assistant message with tool_calls
+        is followed by the corresponding tool messages.
+
+        Args:
+            messages (List[Dict[str, Any]]): The sequence of chat messages.
+            debug (bool): Whether to enable debug logging.
+
+        Returns:
+            List[Dict[str, Any]]: The repaired sequence of messages.
+        """
+        repaired_messages = []
+        tool_call_map = {}
+
+        # Step 1: Collect all tool_call_ids from assistant messages
+        for idx, message in enumerate(messages):
+            if message["role"] == "assistant" and message.get("tool_calls"):
+                for tool_call in message["tool_calls"]:
+                    tool_call_id = tool_call["id"]
+                    tool_call_map[tool_call_id] = {
+                        "function": tool_call["function"],
+                        "type": tool_call["type"],
+                        "name": tool_call["function"]["name"],
+                    }
+
+        # Step 2: Iterate and ensure that each assistant message with tool_calls is followed by tool messages
+        i = 0
+        while i < len(messages):
+            message = messages[i]
+            repaired_messages.append(message)
+
+            if message["role"] == "assistant" and message.get("tool_calls"):
+                for tool_call in message["tool_calls"]:
+                    tool_call_id = tool_call["id"]
+                    # Check if a corresponding tool message exists after the assistant message
+                    tool_message_exists = False
+                    for j in range(i + 1, len(messages)):
+                        next_message = messages[j]
+                        if next_message["role"] == "tool" and next_message.get("tool_call_id") == tool_call_id:
+                            tool_message_exists = True
+                            break
+                        # If another assistant message is found before the tool message, stop searching
+                        if next_message["role"] == "assistant":
+                            break
+
+                    if not tool_message_exists:
+                        logger.warning(f"Missing tool message for tool_call_id: {tool_call_id}. Repairing...")
+                        placeholder_tool_message = {
+                            "role": "tool",
+                            "tool_call_id": tool_call_id,
+                            "tool_name": tool_call["function"]["name"],
+                            "content": "Automatically repaired tool response.",
+                        }
+                        repaired_messages.append(placeholder_tool_message)
+
+            i += 1
+
+        # Step 3: Validate the repaired sequence
+        try:
+            self.validate_message_sequence(repaired_messages)
+        except ValueError as e:
+            logger.error(f"Validation failed after repair: {e}")
+            raise
+
+        if debug:
+            logger.debug("Repaired message payload:")
+            logger.debug(json.dumps(repaired_messages, indent=2))
+
+        return repaired_messages

@@ -177,3 +177,9 @@ LOGGING = {
         },
     },
 }
+
+ACCOUNT_EMAIL_VERIFICATION = "none"  # Skip email verification
+ACCOUNT_SIGNUP_REDIRECT_URL = "/django_chat/"  # Redirect to homepage after signup
+ACCOUNT_AUTHENTICATION_METHOD = "username_email"  # Allow both username and email login
+ACCOUNT_USERNAME_REQUIRED = True  # Require usernames
+ACCOUNT_EMAIL_REQUIRED = False  # Emails optional for dev POC

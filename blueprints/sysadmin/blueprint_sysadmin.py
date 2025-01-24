@@ -1,0 +1,189 @@
+# blueprints/sysadmin/blueprint_sysadmin.py
+
+"""
+Sysadmin Blueprint Class for Open Swarm (MCP).
+
+This blueprint defines agents that interact with various MCP servers essential for
+system administration tasks, including filesystem operations, searching, database 
+management, installation tasks, in-memory data handling, and sequential thinking.
+"""
+
+import logging
+from typing import Dict, Any
+
+from swarm.extensions.blueprint import BlueprintBase
+from swarm.settings import DEBUG
+from swarm.types import Agent
+
+# Configure logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
+
+if not logger.handlers:
+    stream_handler = logging.StreamHandler()
+    formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(name)s - %(message)s")
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+
+
+class SysadminBlueprint(BlueprintBase):
+    """
+    A blueprint defining agents for various MCP server integrations, allowing them
+    to hand off control to one another for complex system administration workflows.
+    """
+
+    @property
+    def metadata(self) -> Dict[str, Any]:
+        """
+        Metadata for the SysadminBlueprint.
+
+        Returns:
+            Dict[str, Any]: Metadata with title, description, required MCP servers, and environment variables.
+        """
+        return {
+            "title": "Sysadmin Blueprint",
+            "description": (
+                "Provides agents for MCP-based system administration: "
+                "filesystem management, searching, SQLite database operations, MCP installation, "
+                "in-memory tasks, and sequential-thinking workflows."
+            ),
+            "required_mcp_servers": [
+                "filesystem",
+                "brave-search",
+                "sqlite",
+                "mcp-installer",
+                "memory",
+                "sequential-thinking",
+            ],
+            "env_vars": [
+                "ALLOWED_PATH",
+                "BRAVE_API_KEY",
+                "SQLITE_DB_PATH",
+            ],
+        }
+
+    def create_agents(self) -> Dict[str, Agent]:
+        """
+        Create agents for the SysadminBlueprint, one for each MCP server.
+
+        Returns:
+            Dict[str, Agent]: Dictionary of created agents.
+        """
+        import os
+
+        # Retrieve environment variables
+        allowed_paths = os.getenv("ALLOWED_PATHS", "/default/path")
+        brave_api_key = os.getenv("BRAVE_API_KEY", "default-brave-key")
+        sqlite_db_path = os.getenv("SQLITE_DB_PATH", "/tmp/sqlite.db")
+
+        # Dictionary to hold all agents
+        agents: Dict[str, Agent] = {}
+
+        # Define the agents
+        agents["FilesystemAgent"] = Agent(
+            name="FilesystemAgent",
+            instructions=(
+                "You manage and interact with the filesystem under allowed paths. "
+                "Use the filesystem MCP server to perform file operations."
+            ),
+            mcp_servers=["filesystem"],
+            env_vars={"ALLOWED_PATHS": allowed_paths},
+        )
+
+        agents["BraveSearchAgent"] = Agent(
+            name="BraveSearchAgent",
+            instructions=(
+                "You perform search queries using the Brave Search MCP server. "
+                "Leverage the Brave API key for authenticated search operations."
+            ),
+            mcp_servers=["brave-search"],
+            env_vars={"BRAVE_API_KEY": brave_api_key},
+        )
+
+        agents["SQLiteAgent"] = Agent(
+            name="SQLiteAgent",
+            instructions=(
+                "You interact with a SQLite database via the SQLite MCP server. "
+                "Use the provided database path to manage data."
+            ),
+            mcp_servers=["sqlite"],
+            env_vars={"SQLITE_DB_PATH": sqlite_db_path},
+        )
+
+        agents["McpInstallerAgent"] = Agent(
+            name="McpInstallerAgent",
+            instructions=(
+                "You handle MCP installation and configuration tasks, "
+                "coordinating the setup of various MCP servers as needed."
+            ),
+            mcp_servers=["mcp-installer"],
+            env_vars={},
+        )
+
+        agents["MemoryAgent"] = Agent(
+            name="MemoryAgent",
+            instructions=(
+                "You perform in-memory data operations using the memory MCP server, "
+                "allowing short-term or ephemeral data storage within workflows."
+            ),
+            mcp_servers=["memory"],
+            env_vars={},
+        )
+
+        agents["SequentialThinkingAgent"] = Agent(
+            name="SequentialThinkingAgent",
+            instructions=(
+                "You provide sequential-thinking capabilities, helping plan and structure "
+                "multi-step or branching tasks in a logical order."
+            ),
+            mcp_servers=["sequential-thinking"],
+            env_vars={},
+        )
+
+        # Define handoff functions so each agent can transfer control to any other agent
+        def handoff_to_filesystem():
+            logger.debug("Handing off to FilesystemAgent")
+            return agents["FilesystemAgent"]
+
+        def handoff_to_brave_search():
+            logger.debug("Handing off to BraveSearchAgent")
+            return agents["BraveSearchAgent"]
+
+        def handoff_to_sqlite():
+            logger.debug("Handing off to SQLiteAgent")
+            return agents["SQLiteAgent"]
+
+        def handoff_to_mcp_installer():
+            logger.debug("Handing off to McpInstallerAgent")
+            return agents["McpInstallerAgent"]
+
+        def handoff_to_memory():
+            logger.debug("Handing off to MemoryAgent")
+            return agents["MemoryAgent"]
+
+        def handoff_to_sequential_thinking():
+            logger.debug("Handing off to SequentialThinkingAgent")
+            return agents["SequentialThinkingAgent"]
+
+        # Assign the same handoff functions to every agent, enabling them to delegate
+        all_handoffs = [
+            handoff_to_filesystem,
+            handoff_to_brave_search,
+            handoff_to_sqlite,
+            handoff_to_mcp_installer,
+            handoff_to_memory,
+            handoff_to_sequential_thinking,
+        ]
+
+        for agent in agents.values():
+            agent.functions = all_handoffs
+
+        # Set the starting agent (choose whichever makes sense for your workflow)
+        self.set_starting_agent(agents["MemoryAgent"])
+
+        logger.debug(f"Agents created: {list(agents.keys())}")
+        return agents
+
+
+if __name__ == "__main__":
+    SysadminBlueprint.main()

@@ -44,11 +44,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'channels',
-    'swarm',
-    'core',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
+    'swarm',
+    'swarm.extensions.blueprint.modes.rest_mode',
 ]
 
 MIDDLEWARE = [

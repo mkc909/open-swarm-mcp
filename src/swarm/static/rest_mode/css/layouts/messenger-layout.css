@@ -1,0 +1,62 @@
+/* messenger-layout.css - Messenger Layout Theme */
+
+/* Chat Pane */
+.chat-pane {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin: 0 20px;
+    color: var(--text-primary);
+    transition: flex var(--transition-duration) ease;
+    background-color: var(--bg-message-other);
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Message History */
+.message-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    background-color: var(--bg-message-other);
+    border: 2px solid var(--border-color); /* Thicker border */
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+/* Input Form */
+.form-container {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-top: 2px solid var(--border-color); /* Thicker border */
+}
+
+/* User Input Field */
+#userInput {
+    flex: 1;
+    padding: 10px;
+    border: 2px solid var(--border-color); /* Thicker border */
+    border-radius: 4px;
+    font-size: 1em;
+    margin: 0 10px;
+}
+
+/* Submit Button */
+#submitButton {
+    padding: 10px 20px;
+    background-color: var(--button-primary);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color var(--transition-duration) ease;
+    font-size: 1em;
+}
+
+#submitButton:hover {
+    background-color: var(--button-hover);
+}
+
+/* ... [additional Messenger-like styles can be added here] ... */

@@ -1,0 +1,21 @@
+/* pastel.css - Updated Pastel Color Theme */
+
+:root {
+  --bg-primary: #ffffff; /* White background */
+  --bg-container: #f0f8ff; /* Alice Blue */
+  --bg-message-user: #add8e6; /* Light Blue */
+  --bg-message-assistant: #e6ffe6; /* Light Green */
+  --bg-message-tool: #ffe6e6; /* Light Red */
+  --bg-message-other: #f9f9f9; /* Very Light Gray */
+  --bg-blueprint: #fffaf0; /* Floral White */
+  --bg-debug: #f5f5f5; /* White Smoke */
+  --text-primary: #333333; /* Dark Gray */
+  --text-secondary: #666666; /* Medium Gray */
+  --border-color: #d3d3d3; /* Light Gray */
+  --button-primary: #87cefa; /* Light Sky Blue */
+  --button-hover: #00bfff; /* Deep Sky Blue */
+  --logout-button-bg: #87cefa; /* Light Sky Blue */
+  --logout-button-hover: #00bfff; /* Deep Sky Blue */
+  --logo-color: #87cefa; /* Light Sky Blue */
+  --transition-duration: 0.3s;
+}

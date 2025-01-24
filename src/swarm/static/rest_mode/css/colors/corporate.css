@@ -1,0 +1,21 @@
+/* Corporate Color Theme */
+
+:root {
+  --bg-primary: #2e2e2e; /* Darker grey */
+  --bg-container: #3a3a3a; /* Darker grey */
+  --bg-message-user: #4a4a4a; /* Dark grey for user messages */
+  --bg-message-assistant: #555555; /* Slightly lighter grey for assistant messages */
+  --bg-message-tool: #3a3a3a; /* Dark grey */
+  --bg-message-other: #4a4a4a; /* Dark grey */
+  --bg-blueprint: #3a3a3a;
+  --bg-debug: #2e2e2e;
+  --text-primary: #f0f0f0; /* Light grey for text */
+  --text-secondary: #cccccc; /* Lighter grey for secondary text */
+  --border-color: #555555;
+  --button-primary: #6c757d;
+  --button-hover: #5a6268;
+  --logout-button-bg: #6c757d;
+  --logout-button-hover: #5a6268;
+  --logo-color: #6c757d;
+  --transition-duration: 0.3s;
+}

@@ -1,0 +1,21 @@
+/* tropical.css - Tropical Color Theme */
+
+:root {
+  --bg-primary: #FFFBF0; /* Light Cream */
+  --bg-container: #FFDAB9; /* Peach Puff */
+  --bg-message-user: #FFE4B5; /* Moccasin */
+  --bg-message-assistant: #FFDEAD; /* Navajo White */
+  --bg-message-tool: #FFDAB9; /* Peach Puff */
+  --bg-message-other: #FFE4B5; /* Moccasin */
+  --bg-blueprint: #FFFAF0; /* Floral White */
+  --bg-debug: #FFF5EE; /* Seashell */
+  --text-primary: #2F4F4F; /* Dark Slate Gray */
+  --text-secondary: #696969; /* Dim Gray */
+  --border-color: #CD853F; /* Peru */
+  --button-primary: #20B2AA; /* Light Sea Green */
+  --button-hover: #3CB371; /* Medium Sea Green */
+  --logout-button-bg: #20B2AA; /* Light Sea Green */
+  --logout-button-hover: #3CB371; /* Medium Sea Green */
+  --logo-color: #20B2AA; /* Light Sea Green */
+  --transition-duration: 0.3s;
+}

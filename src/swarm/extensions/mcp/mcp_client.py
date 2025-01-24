@@ -33,54 +33,71 @@ class MCPClient:
         self.timeout = timeout
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
+        self._lock = asyncio.Lock()  # Ensure thread-safe session initialization
+        self.initialized = False  # Track if the session is initialized
 
         logger.info(f"Initialized MCPClient with command={self.command} args={self.args}")
 
     async def initialize_session(self) -> None:
-        """Initialize the MCP client session."""
-        try:
-            server_params = StdioServerParameters(
-                command=self.command, args=self.args, env=self.env
-            )
-            stdio_transport = await self.exit_stack.enter_async_context(
-                stdio_client(server_params)
-            )
-            read, write = stdio_transport
-            self.session = await self.exit_stack.enter_async_context(
-                ClientSession(read, write)
-            )
-            await self.session.initialize()
-            logger.info("MCPClient session initialized successfully.")
-        except Exception as e:
-            logger.error(f"Failed to initialize MCP client session: {e}")
-            await self.cleanup()
-            raise RuntimeError("Initialization failed.") from e
+        """Initialize the MCP client session if not already initialized."""
+        if self.initialized:
+            logger.debug("MCPClient session is already initialized.")
+            return
+
+        async with self._lock:  # Prevent concurrent initialization
+            if self.initialized:  # Double-check inside the lock
+                logger.debug("MCPClient session was initialized during lock acquisition.")
+                return
+
+            try:
+                logger.info("Initializing MCP client session...")
+                server_params = StdioServerParameters(
+                    command=self.command, args=self.args, env=self.env
+                )
+                stdio_transport = await self.exit_stack.enter_async_context(
+                    stdio_client(server_params)
+                )
+                read, write = stdio_transport
+                self.session = await self.exit_stack.enter_async_context(
+                    ClientSession(read, write)
+                )
+                await self.session.initialize()
+                self.initialized = True
+                logger.info("MCPClient session initialized successfully.")
+            except Exception as e:
+                logger.error(f"Failed to initialize MCP client session: {e}")
+                await self.cleanup()  # Clean up on failure
+                raise RuntimeError("Initialization failed.") from e
 
     async def list_tools(self) -> List[Tool]:
         """Discover tools from the MCP server."""
-        if not self.session:
-            await self.initialize_session()
+        await self.initialize_session()
 
-        tools_response = await self.session.list_tools()
-        tools = [
-            Tool(
-                name=tool.name,
-                description=tool.description,
-                input_schema=tool.inputSchema,
-                func=await self._create_tool_callable(tool.name),
-            )
-            for tool in tools_response.tools
-        ]
-        logger.info(f"Discovered tools: {[tool.name for tool in tools]}")
-        return tools
+        try:
+            logger.info("Requesting list of tools from the MCP server...")
+            tools_response = await self.session.list_tools()
+            logger.debug(f"Raw tools response: {tools_response}")
+
+            tools = [
+                Tool(
+                    name=tool.name,
+                    description=tool.description,
+                    input_schema=tool.inputSchema,
+                    func=await self._create_tool_callable(tool.name),
+                )
+                for tool in tools_response.tools
+            ]
+            logger.info(f"Discovered tools: {[tool.name for tool in tools]}")
+            return tools
+        except Exception as e:
+            logger.error(f"Error listing tools: {e}")
+            raise RuntimeError("Failed to list tools.") from e
 
     async def _create_tool_callable(self, tool_name: str) -> Callable[..., Any]:
         """Dynamically create a callable function for the specified tool."""
         async def dynamic_tool_func(**kwargs) -> Any:
             """Invoke the tool with the provided arguments."""
-            if not self.session:
-                await self.initialize_session()
-
+            await self.initialize_session()
             logger.info(f"Calling tool '{tool_name}' with arguments: {kwargs}")
             try:
                 result = await self.session.call_tool(tool_name, kwargs)
@@ -111,8 +128,11 @@ class MCPClient:
     async def cleanup(self) -> None:
         """Clean up resources and terminate the session."""
         try:
-            await self.exit_stack.aclose()
-            self.session = None
-            logger.info("MCPClient resources cleaned up successfully.")
+            if self.initialized:
+                logger.debug("Cleaning up MCPClient resources.")
+                await self.exit_stack.aclose()
+                self.session = None
+                self.initialized = False
+                logger.info("MCPClient resources cleaned up successfully.")
         except Exception as e:
             logger.error(f"Error during MCPClient cleanup: {e}")

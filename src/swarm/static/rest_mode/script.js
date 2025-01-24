@@ -284,12 +284,12 @@
 
         try {
             // Validate the chat history before sending
-            const validationError = validateChatHistory(chatHistory);
-            if (validationError) {
-                console.error("Validation error:", validationError);
-                alert("Message validation failed: " + validationError);
-                return; // Stop submission if validation fails
-            }
+            // const validationError = validateChatHistory(chatHistory);
+            // if (validationError) {
+            //     console.error("Validation error:", validationError);
+            //     alert("Message validation failed: " + validationError);
+            //     return; // Stop submission if validation fails
+            // }
 
             // Extract the model name from the current URL
             const urlPath = window.location.pathname;

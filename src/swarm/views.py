@@ -246,4 +246,8 @@ def blueprint_webpage(request, blueprint_name):
         )
 
     logger.debug(f"Rendering blueprint webpage for: '{blueprint_name}'")
-    return render(request, "rest_mode/blueprint_page.html", {"blueprint_name": blueprint_name})
+    context = {
+        "blueprint_name": blueprint_name,
+        "dark_mode": request.session.get('dark_mode', True)  # Default to dark mode
+    }
+    return render(request, "rest_mode/blueprint_page.html", context)

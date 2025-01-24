@@ -29,23 +29,6 @@ class MCPClient:
 
         logger.info(f"Initialized MCPClient with command={self.command}, args={self.args}")
 
-    async def _create_session(self):
-        """
-        Create and initialize a new MCP session within a context manager.
-        """
-        logger.debug("Creating a new MCP session...")
-        server_params = StdioServerParameters(
-            command=self.command, args=self.args, env=self.env
-        )
-        try:
-            async with stdio_client(server_params) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    logger.info("MCP session initialized successfully.")
-                    return session
-        except Exception as e:
-            logger.error(f"Failed to initialize MCP session: {e}")
-            raise RuntimeError("Session initialization failed.") from e
 
     async def list_tools(self) -> List[Tool]:
         """

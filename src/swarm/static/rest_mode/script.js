@@ -254,12 +254,12 @@
         }
     }
 
-    /**
+     /**
      * Handles the submission of a user message.
      * Sends the entire chat history and context variables to the server.
      * @param {string|null} messageText - Optional text to send instead of user input.
      */
-    async function handleSubmit(messageText = null) {
+     async function handleSubmit(messageText = null) {
         const userInput = document.getElementById("userInput");
         const userMessageContent = messageText ? messageText : userInput.value.trim();
 
@@ -283,6 +283,13 @@
         appendRawMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
 
         try {
+            // Validate the chat history before sending
+            const validationError = validateChatHistory(chatHistory);
+            if (validationError) {
+                console.error("Validation error:", validationError);
+                alert("Message validation failed: " + validationError);
+                return; // Stop submission if validation fails
+            }
 
             // Extract the model name from the current URL
             const urlPath = window.location.pathname;

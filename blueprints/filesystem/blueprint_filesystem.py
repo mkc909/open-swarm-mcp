@@ -107,7 +107,7 @@ class FilesystemBlueprint(BlueprintBase):
         agents["TriageAgent"] = triage_agent
 
         logger.debug("FilesystemAgent and TriageAgent have been created.")
-        self.set_starting_agent(triage_agent)  # Set TriageAgent as the starting agent
+        self.set_starting_agent(filesystem_agent)
         return agents
 
 if __name__ == "__main__":

@@ -1,0 +1,137 @@
+/* style.css - Additional Overrides and Custom Styles */
+
+/* Ensure the OS SVG logo and light/dark mode icons are visible */
+.chat-logo {
+    width: 90px; /* Increased size */
+    height: 90px; /* Increased size */
+}
+
+.chat-logo circle {
+    stroke: var(--text-primary);
+    stroke-width: 5;
+    fill: var(--logo-color);
+}
+
+.chat-logo text {
+    font-size: 45px;
+    fill: #ffffff;
+    font-family: Arial, sans-serif;
+    dominant-baseline: middle;
+    text-anchor: middle;
+}
+
+/* Dark/Light Mode Icons */
+.toggle-title::before {
+    content: attr(data-icon);
+    margin-right: 8px;
+    font-size: 1.2em;
+}
+
+/* Adjustments for Toggle Sections */
+.toggle-section .toggle-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.toggle-section .toggle-content {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Persist Icon Styling */
+.persist-icon {
+  display: none;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  font-size: 1.2em;
+  cursor: pointer;
+  color: #888;
+  transition: color var(--transition-duration) ease;
+}
+
+.persist-icon:hover {
+  color: #ff1493; /* A more vibrant color on hover */
+}
+
+.message {
+  position: relative; /* To position the plus icon on hover */
+  margin-bottom: 15px;
+  padding: 10px 15px;
+  border-radius: 8px;
+  max-width: 80%;
+}
+
+.message:hover .persist-icon {
+  display: inline; /* Show the plus icon on hover */
+}
+
+.pinned-message {
+  margin: 5px 0;
+  padding: 5px;
+  border: 1px dashed #aaa;
+  border-radius: 5px;
+  background-color: #fefefe;
+}
+
+.first-user-message {
+  display: none; /* Hidden until a message is pinned or first user message is detected */
+  padding: 15px;
+  margin-bottom: 20px;
+  background-color: #d1e7dd; /* Light green shade */
+  border: 2px solid #0f5132;
+  border-radius: 8px;
+  font-size: 1em;
+  color: #0f5132;
+}
+
+/* Smaller trash icon with red highlight on hover */
+.trash-can {
+  font-size: 1.2em;
+  color: #aaa;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.trash-can:hover {
+  color: #dc3545; /* red */
+}
+
+/* Adjust the splash screen to ensure it doesn't persist */
+.splash-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-primary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    transition: opacity var(--transition-duration) ease;
+}
+
+.splash-screen.fade-out {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Light/Dark Mode Icons */
+.toggle-section[data-theme="dark"] .toggle-title::before {
+    content: "🌙"; /* Moon icon for Dark Mode */
+}
+
+.toggle-section[data-theme="light"] .toggle-title::before {
+    content: "☀️"; /* Sun icon for Light Mode */
+}
+
+/* Ensure that when dark mode is enabled, icons reflect the current mode */
+[data-theme-dark="true"] .toggle-section[data-theme="dark"] .toggle-title::before,
+[data-theme-dark="false"] .toggle-section[data-theme="light"] .toggle-title::before {
+    display: none;
+}

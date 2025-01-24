@@ -45,10 +45,14 @@ INSTALLED_APPS = [
     'rest_framework',
     'channels',
     'swarm',
-    'swarm.extensions.blueprint.modes.rest_mode',
+    'core',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
 ]
 
 MIDDLEWARE = [
+    'allauth.account.middleware.AccountMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

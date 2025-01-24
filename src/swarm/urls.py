@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path, re_path
+from django.urls import path, re_path, include
 from django.http import HttpResponse
 from django.conf import settings
 import os
@@ -21,5 +21,6 @@ urlpatterns = [
     path('django_chat/<str:conversation_id>/', views.ChatView.as_view(), name='chat_page'),
     re_path(r'ws/django_chat/(?P<conversation_id>[0-9a-fA-F-]+)/$', consumers.DjangoChatConsumer.as_asgi(), name="ws_django_chat"),
     path('favicon.ico', favicon, name='favicon'),
+    path('accounts/', include('allauth.urls')),
     path('<str:blueprint_name>', views.blueprint_webpage, name='blueprint_webpage'),
 ]

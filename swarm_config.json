@@ -63,6 +63,27 @@
             }
         },
 
+        "mcp-installer": {
+            "command": "npx",
+            "args": ["-y", "@anaisbetts/mcp-installer"]
+        },
+
+        "memory": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-memory"
+            ]
+        },
+
+        "sequential-thinking": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-sequential-thinking"
+            ]
+        },
+
         "everything": {
             "command": "npx",
             "args": ["-y", "@modelcontextprotocol/server-everything"],
@@ -74,8 +95,11 @@
             "args": [
               "-y",
               "@modelcontextprotocol/server-filesystem",
-              "/path/to/your/exposed/folder/"
-            ]
+              "${ALLOWED_PATH}"
+            ],
+            "env": {
+                "ALLOWED_PATH": "${ALLOWED_PATH}"
+	    } 
         }
 
     }

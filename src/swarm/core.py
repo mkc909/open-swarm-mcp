@@ -288,6 +288,7 @@ class Swarm:
                 return result_obj
 
             case Agent() as agent:
+                # When an Agent is returned, encapsulate it within a Result object
                 return Result(
                     value=json.dumps({"assistant": agent.name}),
                     agent=agent,
@@ -296,10 +297,13 @@ class Swarm:
                 try:
                     return Result(value=str(result))
                 except Exception as e:
-                    error_message = f"Failed to cast response to string: {result}. " \
-                                   f"Make sure agent functions return a string or Result object. Error: {str(e)}"
+                    error_message = (
+                        f"Failed to cast response to string: {result}. "
+                        f"Make sure agent functions return a string or Result object. Error: {str(e)}"
+                    )
                     logger.debug(error_message)
                     raise TypeError(error_message)
+
 
     def handle_tool_calls(
         self,
@@ -320,78 +324,79 @@ class Swarm:
         Returns:
             Response: A Response object with tool results.
         """
-        async def async_handle():
-            function_map = {f.__name__: f for f in functions}
-            partial_response = Response(messages=[], agent=None, context_variables={})
+        # Create a function map for quick lookup
+        function_map = {f.__name__: f for f in functions}
+        partial_response = Response(messages=[], agent=None, context_variables={})
 
-            for tool_call in tool_calls:
-                name = tool_call.function.name
-                tool_call_id = tool_call.id
+        for tool_call in tool_calls:
+            name = tool_call.function.name
+            tool_call_id = tool_call.id
 
-                if name not in function_map:
-                    error_msg = f"Tool {name} not found in function map."
-                    logger.error(error_msg)
-                    partial_response.messages.append(
-                        {
-                            "role": "tool",
-                            "tool_call_id": tool_call_id,
-                            "tool_name": name,
-                            "content": f"Error: {error_msg}",
-                        }
-                    )
-                    continue
+            # Check if the tool exists
+            if name not in function_map:
+                error_msg = f"Tool {name} not found in function map."
+                logger.error(error_msg)
+                partial_response.messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call_id,
+                        "tool_name": name,
+                        "content": f"Error: {error_msg}",
+                    }
+                )
+                continue
 
-                func = function_map[name]
-                args = json.loads(tool_call.function.arguments)
+            func = function_map[name]
+            args = json.loads(tool_call.function.arguments)
 
-                # Inject context variables if needed
-                if __CTX_VARS_NAME__ in func.__code__.co_varnames:
-                    args[__CTX_VARS_NAME__] = context_variables
+            # Inject context variables if the function accepts them
+            if __CTX_VARS_NAME__ in func.__code__.co_varnames:
+                args[__CTX_VARS_NAME__] = context_variables
 
-                try:
-                    # Handle dynamic or static tools
-                    if getattr(func, "dynamic", False):
-                        raw_result = await func(**args)  # Await dynamic tools
-                    else:
-                        raw_result = func(**args)  # Call static tools
-                        if inspect.iscoroutine(raw_result):
-                            logger.debug("Got a coroutine from a static tool, awaiting it explicitly.")
-                            raw_result = await raw_result
+            try:
+                # Execute the tool
+                if getattr(func, "dynamic", False):
+                    # For dynamic tools (async)
+                    raw_result = asyncio.run(func(**args))
+                else:
+                    # For static tools (sync)
+                    raw_result = func(**args)
+                    if inspect.iscoroutine(raw_result):
+                        logger.debug("Awaiting coroutine from static tool.")
+                        raw_result = asyncio.run(raw_result)
 
-                    # Convert result to a Response
-                    result = self.handle_function_result(raw_result, debug)
-                    partial_response.messages.append(
-                        {
-                            "role": "tool",
-                            "tool_call_id": tool_call_id,
-                            "tool_name": name,
-                            "content": json.dumps(result.value),
-                        }
-                    )
-                    partial_response.context_variables.update(result.context_variables)
+                # Process the result and add it to the response
+                result = self.handle_function_result(raw_result, debug)
+                partial_response.messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call_id,
+                        "tool_name": name,
+                        "content": json.dumps(result.value),
+                    }
+                )
+                partial_response.context_variables.update(result.context_variables)
 
-                except Exception as e:
-                    error_msg = str(e)
-                    logger.error(f"Error in tool '{name}': {error_msg}")
-                    partial_response.messages.append(
-                        {
-                            "role": "tool",
-                            "tool_call_id": tool_call_id,
-                            "tool_name": name,
-                            "content": f"Error: {error_msg}",
-                        }
-                    )
+                # **Updated Agent Switching Logic**
+                # Check if the tool call resulted in an agent handoff
+                if result.agent:
+                    partial_response.agent = result.agent
+                    context_variables["active_agent_name"] = result.agent.name
+                    logger.debug(f"Active agent updated to: {result.agent.name}")
 
-            return partial_response
+            except Exception as e:
+                error_msg = f"Error executing tool {name}: {str(e)}"
+                logger.error(error_msg)
+                partial_response.messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call_id,
+                        "tool_name": name,
+                        "content": f"Error: {error_msg}",
+                    }
+                )
 
-        # Check if we're in an async context
-        try:
-            loop = asyncio.get_running_loop()
-            # If we're already in an async context, run the async version
-            return asyncio.run(async_handle())
-        except RuntimeError:
-            # If no event loop is running, fallback to running a new loop
-            return asyncio.run(async_handle())
+        return partial_response
 
     def run_and_stream(
         self,
@@ -423,14 +428,19 @@ class Swarm:
         history = copy.deepcopy(messages)
         init_len = len(messages)
 
+        # Ensure initial active agent name is set
+        context_variables["active_agent_name"] = active_agent.name
+        if debug:
+            logger.debug(f"Initial active_agent_name set to: {active_agent.name}")
+
         # Discover and merge tools before starting the conversation
         all_functions = asyncio.run(self.discover_and_merge_agent_tools(agent, debug=debug))
-        agent.functions = all_functions  # Update agent's functions with discovered tools
+        active_agent.functions = all_functions  # Update agent's functions with discovered tools
 
         while len(history) - init_len < max_turns:
             message = {
                 "content": "",
-                "sender": agent.name,
+                "sender": active_agent.name,
                 "role": "assistant",
                 "function_call": None,
                 "tool_calls": defaultdict(
@@ -443,14 +453,20 @@ class Swarm:
             }
 
             # Get completion with current history, agent
-            completion = self.get_chat_completion(
-                agent=active_agent,
-                history=history,
-                context_variables=context_variables,
-                model_override=model_override,
-                stream=True,
-                debug=debug,
-            )
+            try:
+                completion = self.get_chat_completion(
+                    agent=active_agent,
+                    history=history,
+                    context_variables=context_variables,
+                    model_override=model_override,
+                    stream=True,
+                    debug=debug,
+                )
+            except Exception as e:
+                logger.error(f"Failed to get chat completion: {e}")
+                if debug:
+                    logger.debug(f"[DEBUG] Exception during get_chat_completion: {e}")
+                break
 
             yield {"delim": "start"}
             for chunk in completion:
@@ -472,14 +488,15 @@ class Swarm:
             yield {"delim": "end"}
 
             message["tool_calls"] = list(
-                message.get("tool_calls", {}).values())
+                message.get("tool_calls", {}).values()
+            )
             if not message["tool_calls"]:
                 message["tool_calls"] = None
             logger.debug(f"Received completion: {message}")
             history.append(message)
 
             if not message["tool_calls"] or not execute_tools:
-                logger.debug("Ending turn.")
+                logger.debug("No tool calls or tool execution disabled. Ending turn.")
                 break
 
             # Convert tool_calls to objects
@@ -490,7 +507,9 @@ class Swarm:
                     name=tool_call["function"]["name"],
                 )
                 tool_call_object = ChatCompletionMessageToolCall(
-                    id=tool_call["id"], function=function, type=tool_call["type"]
+                    id=tool_call["id"],
+                    function=function,
+                    type=tool_call["type"]
                 )
                 tool_calls.append(tool_call_object)
 
@@ -500,8 +519,12 @@ class Swarm:
             )
             history.extend(partial_response.messages)
             context_variables.update(partial_response.context_variables)
+
             if partial_response.agent:
                 active_agent = partial_response.agent
+                context_variables["active_agent_name"] = active_agent.name  # Update context variable
+                if debug:
+                    logger.debug(f"Active agent switched to: {active_agent.name}")
 
         yield {
             "response": Response(
@@ -510,6 +533,7 @@ class Swarm:
                 context_variables=context_variables,
             )
         }
+
 
     def run(
         self,
@@ -553,13 +577,17 @@ class Swarm:
                 max_turns=max_turns,
                 execute_tools=execute_tools,
             )
+
         active_agent = agent
         context_variables = copy.deepcopy(context_variables)
         history = copy.deepcopy(messages)
         init_len = len(messages)
 
+        # Ensure initial active agent name is set
+        context_variables["active_agent_name"] = active_agent.name
+
         while len(history) - init_len < max_turns and active_agent:
-            # Get completion with current history, agent
+            # Get completion with current history and agent
             completion = self.get_chat_completion(
                 agent=active_agent,
                 history=history,
@@ -568,34 +596,41 @@ class Swarm:
                 stream=stream,
                 debug=debug,
             )
+
+            # Extract the completion message
             try:
                 message = completion.choices[0].message
             except Exception as e:
-                logger.debug(f"Failed to get message from completion: {e}")
-                logger.debug(f"[ERROR] Failed to get message from completion: {e}")
+                logger.error(f"Failed to extract message from completion: {e}")
                 break
 
             logger.debug(f"Received completion: {message}")
             message.sender = active_agent.name
             history.append(
                 json.loads(message.model_dump_json())
-            )  # To avoid OpenAI types (?)
+            )  # Convert to standard dict format for processing
 
+            # If no tool calls or tools aren't being executed, end the loop
             if not message.tool_calls or not execute_tools:
-                logger.debug("Ending turn.")
+                logger.debug("No tool calls or tool execution disabled. Ending turn.")
                 break
 
-            # Handle function calls, updating context_variables, and switching agents
+            # Handle tool calls, updating context variables and switching agents if needed
             partial_response = self.handle_tool_calls(
                 message.tool_calls, active_agent.functions, context_variables, debug
             )
             history.extend(partial_response.messages)
             context_variables.update(partial_response.context_variables)
+
+            # Update the active agent if a new agent is returned
             if partial_response.agent:
                 active_agent = partial_response.agent
+                context_variables["active_agent_name"] = active_agent.name
+                logger.debug(f"Active agent switched to: {active_agent.name}")
 
+        # Return the final response
         return Response(
-            id=f"response-{uuid.uuid4()}",  # Generate a unique ID for the response
+            id=f"response-{uuid.uuid4()}",
             messages=history[init_len:],
             agent=active_agent,
             context_variables=context_variables,

@@ -142,6 +142,15 @@ class BlueprintBase(ABC):
         self.context_variables.update(context_variables)
         logger.debug(f"Context variables before execution: {self.context_variables}")
 
+        # Ensure active_agent_name is set
+        if "active_agent_name" not in self.context_variables:
+            if self.starting_agent:
+                self.context_variables["active_agent_name"] = self.starting_agent.name
+                logger.debug(f"active_agent_name not found, using starting agent: {self.starting_agent.name}")
+            else:
+                logger.error("No starting agent set and active_agent_name is missing.")
+                raise ValueError("No active agent or starting agent available.")
+
         # Determine the active agent
         active_agent = self.determine_active_agent()
         logger.debug(f"Running with active agent: {active_agent.name}")

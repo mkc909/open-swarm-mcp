@@ -2,169 +2,21 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Open-Swarm Chat</title>
-
-        <!-- CSRF Token -->
-        <meta name="csrf-token" content="{{ csrf_token }}">
-
-        <!-- Base CSS -->
-        <link rel="stylesheet" href="{% static 'rest_mode/css/base.css' %}">
-        <!-- Color Theme (Dynamic) -->
-        <link id="colorThemeLink" rel="stylesheet" href="{% static 'rest_mode/css/colors/pastel.css' %}">
-        <!-- Layout Theme (Dynamic) -->
-        <link id="layoutThemeLink" rel="stylesheet" href="{% static 'rest_mode/css/layouts/messenger-layout.css' %}">
-        <!-- Additional Style Overrides -->
-        <link rel="stylesheet" href="{% static 'rest_mode/css/style.css' %}">
+        {% include 'rest_mode/components/header.html' %}
     </head>
     <body>
-        <!-- Splash Screen -->
-        <div id="splashScreen" class="splash-screen">
-            <div class="splash-content">
-                <h1 id="splashText">Connecting to the AI...</h1>
-                <small>... trouble connecting? Check the <a href="https://github.com/matthewhand/open-swarm/TROUBLESHOOTING.md">Troubleshooting Guide</a></small>
-            </div>
-        </div>
-
-        <!-- Main Container -->
+        {% include 'rest_mode/components/splash_screen.html' %}
         <div class="container" data-theme-color="pastel" data-theme-dark="false" data-theme-layout="messenger-layout">
-            <!-- Toggle Buttons for Sidepanes -->
-            <button class="toggle-button" id="chatPaneToggle">
-                <img src="{% static 'rest_mode/svg/arrow_right.svg' %}" alt="Expand Chat Pane">
+            <button id="settingsToggleButton" class="settings-btn">
+                <img src="{% static 'rest_mode/svg/settings.svg' %}" alt="Settings">
             </button>
-            <button class="toggle-button right-toggle" id="settingsPaneToggle">
-                <img src="{% static 'rest_mode/svg/arrow_left.svg' %}" alt="Expand Settings Pane">
-            </button>
-
-            <!-- Left Sidebar: Chat History -->
-            <div class="side-panes chat-history-pane" id="chatHistoryPane" style="display: none;">
-                <button class="sidebar-hide-btn" id="leftSidebarHideBtn">
-                    <img src="{% static 'rest_mode/svg/arrow_left.svg' %}" alt="Hide Chat Pane">
-                </button>
-                <h2>📜 Chat History</h2>
-                <ul>
-                    <li class="active first-user" data-chat-id="1">
-                        What is Open-Swarm
-                        <span class="trash-can" title="Delete Chat">🗑️</span>
-                    </li>
-                    <li data-chat-id="2">
-                        FAQ
-                        <span class="trash-can" title="Delete Chat">🗑️</span>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Resizable Divider -->
-            <div class="resizable-divider" id="resizableDivider"></div>
-
-            <!-- Chat Pane -->
-            <div class="chat-pane">
-                <!-- Blueprint Metadata -->
-                <div class="blueprint-metadata" id="blueprintMetadata" data-model-name="{{ blueprint_name }}">
-                    <h2>Loading...</h2>
-                    <p>Please wait, fetching blueprint metadata...</p>
-                    
-                    <!-- Blueprint Dropdown -->
-                    <label for="blueprintDropdown">Select Blueprint:</label>
-                    <select id="blueprintDropdown" aria-label="Blueprint Selection"></select>
-                </div>
-
-                <!-- OS Logo -->
-                <div class="logo-container">
-                    <img src="{% static 'rest_mode/svg/logo.svg' %}" alt="Open-Swarm Logo" class="chat-logo">
-                </div>
-
-                <!-- Pinned / First Message Section -->
-                <div id="firstUserMessage" class="first-user-message"></div>
-
-                <!-- Message History -->
-                <div id="messageHistory" class="message-container"></div>
-
-                <!-- Loading Indicator -->
-                <div id="loadingIndicator" class="loading-indicator"></div>
-
-                <!-- Input Form -->
-                <div class="form-container">
-                    <button class="input-button upload-button" id="uploadButton" aria-label="Upload">
-                        <img src="{% static 'rest_mode/svg/plus.svg' %}" alt="Upload">
-                    </button>
-                    <input type="text" id="userInput" placeholder="Type your message here..."/>
-                    <button class="input-button" id="voiceRecordButton" aria-label="Record Voice">
-                        <img src="{% static 'rest_mode/svg/voice.svg' %}" alt="Record Voice">
-                    </button>
-                    <button id="submitButton">Send</button>
-                </div>
-            </div>
-
-            <!-- Right Sidebar: Settings -->
-            <div class="side-panes options-pane" id="optionsPane" style="display: none;">
-                <button class="sidebar-hide-btn" id="optionsSidebarHideBtn">
-                    <img src="{% static 'rest_mode/svg/arrow_right.svg' %}" alt="Hide Settings Pane">
-                </button>
-
-                <div class="settings-container">
-                    <h2>⚙️ Settings</h2>
-                    <div class="toggle-container">
-                        <div class="theme-dropdown theme-toggle">
-                            <label for="colorSelect">🎨 Colour Theme:</label>
-                            <select id="colorSelect">
-                                <option value="pastel">Pastel</option>
-                                <option value="tropical">Tropical</option>
-                                <option value="corporate">Corporate</option>
-                            </select>
-                        </div>
-                        <div class="theme-dropdown theme-toggle">
-                            <label for="layoutSelect">🖥️ Layout Theme:</label>
-                            <select id="layoutSelect">
-                                <option value="messenger-layout">Messenger</option>
-                                <option value="mobile-layout">Mobile</option>
-                                <option value="minimalist-layout">Minimalist</option>
-                            </select>
-                        </div>
-                        <div class="toggle-section theme-toggle" data-theme="light">
-                            <div class="toggle-title" data-icon="☀️">
-                                Dark/Light Mode
-                            </div>
-                            <div class="toggle-content">
-                                <input type="checkbox" id="darkModeToggle"/>
-                                <label for="darkModeToggle">Enable Dark Mode</label>
-                            </div>
-                        </div>
-                        <button class="toggle-section theme-toggle" id="debugButton">
-                            <div class="toggle-title">🐞 Debug</div>
-                        </button>
-                    </div>
-                </div>
-
-
-                <!-- Debug Pane -->
-                <div class="debug-pane" id="debugPane">
-                    <h2>🐞 Debug Information</h2>
-                    <div id="debugContent"></div>
-                    <!-- Tech Support Button Inside Debug Pane -->
-                    <button id="techSupportButtonInsideDebug" class="tech-support-button">🛠️ Tech Support</button>
-                </div>
-
-                <!-- Raw Messages Pane -->
-                <div class="raw-messages-pane" id="rawMessagesPane" style="display: none;">
-                    <h2>📄 Raw Messages</h2>
-                    <div id="rawMessagesContent"></div>
-                </div>
-
-                <div class="logout-container">
-                    <button class="logout-button" id="logoutButton">🚪 Logout</button>
-                </div>
-            </div>
+            {% include 'rest_mode/components/chat_sidebar.html' %}
+            {% include 'rest_mode/components/main_chat_pane.html' %}
+            {% include 'rest_mode/components/settings_sidebar.html' %}
         </div>
-
-        <!-- Toast Container -->
-        <div id="toastContainer" class="toast-container"></div>
-
         <!-- Scripts (ES Modules) -->
         <script type="module" src="{% static 'rest_mode/js/base.js' %}"></script>
         <script type="module" src="{% static 'rest_mode/js/chatLogic.js' %}"></script>
         <script type="module" src="{% static 'rest_mode/js/toast.js' %}"></script>
-        <script type="module" src="{% static 'rest_mode/js/main.js' %}"></script>
-    </body>
+        <script type="module" src="{% static 'rest_mode/js/main.js' %}"></script>    </body>
 </html>

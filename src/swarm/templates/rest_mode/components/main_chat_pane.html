@@ -1,0 +1,25 @@
+{% load static %}
+<div class="chat-pane">
+    <div class="blueprint-metadata" id="blueprintMetadata" data-model-name="{{ blueprint_name }}">
+        <h2>Loading...</h2>
+        <p>Please wait, fetching blueprint metadata...</p>
+        <label for="blueprintDropdown">Select Blueprint:</label>
+        <select id="blueprintDropdown" aria-label="Blueprint Selection"></select>
+    </div>
+    <div class="logo-container">
+        <img src="{% static 'rest_mode/svg/logo.svg' %}" alt="Open-Swarm Logo" class="chat-logo">
+    </div>
+    <div id="firstUserMessage" class="first-user-message"></div>
+    <div id="messageHistory" class="message-container"></div>
+    <div id="loadingIndicator" class="loading-indicator"></div>
+    <div class="form-container">
+        <button class="input-button upload-button" id="uploadButton" aria-label="Upload">
+            <img src="{% static 'rest_mode/svg/plus.svg' %}" alt="Upload">
+        </button>
+        <input type="text" id="userInput" placeholder="Type your message here...">
+        <button class="input-button" id="voiceRecordButton" aria-label="Record Voice">
+            <img src="{% static 'rest_mode/svg/voice.svg' %}" alt="Record Voice">
+        </button>
+        <button id="submitButton">Send</button>
+    </div>
+</div>

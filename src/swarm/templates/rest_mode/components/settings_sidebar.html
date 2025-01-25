@@ -1,0 +1,36 @@
+{% load static %}
+<div class="side-panes options-pane" id="optionsPane" style="display: none;">
+    <button class="sidebar-hide-btn" id="optionsSidebarHideBtn">
+        <img src="{% static 'rest_mode/svg/arrow_right.svg' %}" alt="Hide Settings Pane">
+    </button>
+    <div class="settings-container">
+        <h2>⚙️ Settings</h2>
+        <div class="toggle-container">
+            <div class="theme-dropdown theme-toggle">
+                <label for="colorSelect">🎨 Colour Theme:</label>
+                <select id="colorSelect">
+                    <option value="pastel">Pastel</option>
+                    <option value="tropical">Tropical</option>
+                    <option value="corporate">Corporate</option>
+                </select>
+            </div>
+            <div class="theme-dropdown theme-toggle">
+                <label for="layoutSelect">🖥️ Layout Theme:</label>
+                <select id="layoutSelect">
+                    <option value="messenger-layout">Messenger</option>
+                    <option value="mobile-layout">Mobile</option>
+                    <option value="minimalist-layout">Minimalist</option>
+                </select>
+            </div>
+            <div class="toggle-section theme-toggle" data-theme="light">
+                <div class="toggle-title" data-icon="☀️">
+                    Dark/Light Mode
+                </div>
+                <div class="toggle-content">
+                    <input type="checkbox" id="darkModeToggle">
+                    <label for="darkModeToggle">Enable Dark Mode</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

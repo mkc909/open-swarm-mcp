@@ -10,6 +10,7 @@ function replaceEmojisWithSVGs() {
     const replacements = [
         { emoji: "➕", svgPath: "/static/rest_mode/svg/plus.svg", selector: "#uploadButton" },
         { emoji: "🎤", svgPath: "/static/rest_mode/svg/voice.svg", selector: "#voiceRecordButton" },
+        { emoji: "⚙️", svgPath: "/static/rest_mode/svg/settings.svg", selector: "#settingsToggleButton" },
     ];
 
     replacements.forEach(({ emoji, svgPath, selector }) => {
@@ -23,6 +24,24 @@ function replaceEmojisWithSVGs() {
 }
 
 /**
+ * Initializes the settings toggle button functionality.
+ */
+function setupSettingsToggleButton() {
+    const settingsToggleButton = document.getElementById('settingsToggleButton');
+    const optionsPane = document.getElementById('optionsPane');
+
+    if (settingsToggleButton && optionsPane) {
+        settingsToggleButton.addEventListener('click', () => {
+            const isVisible = optionsPane.style.display !== 'none';
+            optionsPane.style.display = isVisible ? 'none' : 'block';
+            showToast(isVisible ? "Settings pane hidden." : "Settings pane expanded.", "info");
+        });
+    } else {
+        console.warn('Warning: Settings toggle button or options pane not found.');
+    }
+}
+
+/**
  * Initializes all UI components and event listeners.
  */
 export function initializeUI() {
@@ -30,10 +49,11 @@ export function initializeUI() {
     initializeApplication();
     initializeTheme();
     replaceEmojisWithSVGs();
+    setupSettingsToggleButton();
 }
 
 /**
- * Sets up the chat history sidebar functionality, including minimize/maximize behavior.
+ * Sets up the chat history pane functionality, including minimize/maximize behavior.
  */
 function setupChatHistoryPane() {
     const chatHistoryPane = document.getElementById('chatHistoryPane');

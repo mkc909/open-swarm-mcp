@@ -8,6 +8,8 @@ import { debugLog } from './debug.js';
  * @param {Object} metadata - Additional metadata for the message.
  */
 export function renderMessage(role, content, sender, metadata) {
+    debugLog('Rendering message...', { role, content, sender, metadata });
+
     const messageContainer = document.getElementById('messageHistory');
     if (!messageContainer) {
         debugLog('Message container not found.', { role, content, sender, metadata });
@@ -17,16 +19,16 @@ export function renderMessage(role, content, sender, metadata) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
     messageDiv.innerHTML = `
-        <strong>${sender}:</strong> ${content.text || content.content}
+        <strong>${sender}:</strong> ${content.text || content.content || 'No content available'}
     `;
 
     // Add metadata as a tooltip (if applicable)
     if (metadata && Object.keys(metadata).length) {
-        messageDiv.title = JSON.stringify(metadata);
+        messageDiv.title = JSON.stringify(metadata, null, 2);
     }
 
     messageContainer.appendChild(messageDiv);
-    debugLog('Message rendered.', { role, content, sender, metadata });
+    debugLog('Message rendered successfully.', { role, content, sender, metadata });
 }
 
 /**
@@ -37,13 +39,31 @@ export function renderMessage(role, content, sender, metadata) {
  * @param {Object} metadata - Additional metadata.
  */
 export function appendRawMessage(role, content, sender, metadata) {
+    debugLog('Appending raw message...', { role, content, sender, metadata });
+
     renderMessage(role, content, sender, metadata);
 
     // Scroll to the bottom of the message history
     const messageContainer = document.getElementById('messageHistory');
     if (messageContainer) {
         messageContainer.scrollTop = messageContainer.scrollHeight;
+        debugLog('Scrolled to the bottom of the message history.');
+    } else {
+        debugLog('Message container not found while appending raw message.', { role, content, sender, metadata });
     }
+}
 
-    debugLog('Raw message appended.', { role, content, sender, metadata });
+/**
+ * Clears all messages from the chat history UI.
+ */
+export function clearMessages() {
+    debugLog('Clearing all messages from the chat history.');
+
+    const messageContainer = document.getElementById('messageHistory');
+    if (messageContainer) {
+        messageContainer.innerHTML = '';
+        debugLog('Chat history cleared successfully.');
+    } else {
+        debugLog('Message container not found while clearing messages.');
+    }
 }

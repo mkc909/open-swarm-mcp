@@ -17,7 +17,6 @@
         <link id="layoutThemeLink" rel="stylesheet" href="{% static 'rest_mode/css/layouts/messenger-layout.css' %}">
         <!-- Additional Style Overrides -->
         <link rel="stylesheet" href="{% static 'rest_mode/css/style.css' %}">
-
     </head>
     <body>
         <!-- Splash Screen -->
@@ -30,21 +29,19 @@
 
         <!-- Main Container -->
         <div class="container" data-theme-color="pastel" data-theme-dark="false" data-theme-layout="messenger-layout">
-            <!-- Reveal Sidebar Button (Left) -->
-            <button class="sidebar-reveal-btn" id="leftSidebarRevealBtn" aria-label="Reveal Chat History Sidebar" style="display: none;">
-                ⇦
+            <!-- Toggle Buttons for Sidepanes -->
+            <button class="toggle-button" id="chatPaneToggle">
+                <img src="{% static 'rest_mode/svg/arrow_right.svg' %}" alt="Expand Chat Pane">
             </button>
-
-            <!-- Reveal Sidebar Button (Right) -->
-            <button class="sidebar-reveal-btn" id="optionsSidebarRevealBtn" aria-label="Reveal Settings Sidebar" style="display: none;">
-                ⇨
+            <button class="toggle-button right-toggle" id="settingsPaneToggle">
+                <img src="{% static 'rest_mode/svg/arrow_left.svg' %}" alt="Expand Settings Pane">
             </button>
 
             <!-- Left Sidebar: Chat History -->
-            <div class="side-panes chat-history-pane" id="chatHistoryPane">
+            <div class="side-panes chat-history-pane" id="chatHistoryPane" style="display: none;">
                 <!-- Hide Sidebar Button -->
-                <button class="sidebar-hide-btn" id="leftSidebarHideBtn" aria-label="Hide Chat History Sidebar">
-                    ⇨
+                <button class="sidebar-hide-btn" id="leftSidebarHideBtn">
+                    <img src="{% static 'rest_mode/svg/arrow_left.svg' %}" alt="Hide Chat Pane">
                 </button>
                 <h2>📜 Chat History</h2>
                 <ul>
@@ -80,7 +77,6 @@
                         <circle cx="60" cy="60" r="55" stroke="var(--text-primary)" stroke-width="5" fill="var(--logo-color)"/>
                         <text x="50%" y="60%" dominant-baseline="middle" text-anchor="middle" font-size="45" fill="#ffffff" font-family="Arial, sans-serif">OS</text>
                     </svg>
-                    <!-- Dynamic blueprint title can be inserted here -->
                 </h1>
 
                 <!-- Pinned / First Message Section -->
@@ -113,10 +109,10 @@
             </div>
 
             <!-- Right Sidebar: Settings -->
-            <div class="side-panes options-pane" id="optionsPane">
+            <div class="side-panes options-pane" id="optionsPane" style="display: none;">
                 <!-- Hide Sidebar Button -->
-                <button class="sidebar-hide-btn" id="optionsSidebarHideBtn" aria-label="Hide Settings Sidebar">
-                    ⇦
+                <button class="sidebar-hide-btn" id="optionsSidebarHideBtn">
+                    <img src="{% static 'rest_mode/svg/arrow_right.svg' %}" alt="Hide Settings Pane">
                 </button>
 
                 <div class="settings-container">
@@ -191,6 +187,5 @@
         <script type="module" src="{% static 'rest_mode/js/chatLogic.js' %}"></script>
         <script type="module" src="{% static 'rest_mode/js/toast.js' %}"></script>
         <script type="module" src="{% static 'rest_mode/js/main.js' %}"></script>
-
     </body>
 </html>

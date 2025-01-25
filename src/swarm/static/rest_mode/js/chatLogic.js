@@ -182,10 +182,10 @@ function updateBlueprintMetadata(blueprint) {
  */
 export function handleChatHistoryClick(item) {
     const chatName = item.firstChild.textContent.trim();
-    showToast(`Selected: "${chatName}"`, "info");
+    showToast(`Selected: "${chatName}"`, 'info');
 
     const chatHistoryItems = document.querySelectorAll('.chat-history-pane li');
-    chatHistoryItems.forEach(i => i.classList.remove('active'));
+    chatHistoryItems.forEach((i) => i.classList.remove('active'));
     item.classList.add('active');
 }
 
@@ -251,13 +251,12 @@ export function handleLogout() {
  * Handles file upload.
  */
 export function handleUpload() {
-    showToast("➕ Upload feature is under development.", "info");
+    showToast('➕ Upload feature is under development.', 'info');
 }
 
 /**
  * Handles voice recording.
  */
 export function handleVoiceRecord() {
-    showToast("🎤 Voice recording is under development.", "info");
+    showToast('🎤 Voice recording is under development.', 'info');
 }
-

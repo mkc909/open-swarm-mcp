@@ -5,6 +5,7 @@ This module provides a function to redact sensitive keys in dictionaries or list
 for logging purposes, with support for partial reveals.
 """
 
+import os
 from typing import Any, List
 
 def redact_sensitive_data(data: Any, sensitive_keys: List[str] = None, mask: str = "****", reveal_chars: int = 4) -> Any:
@@ -33,9 +34,13 @@ def redact_sensitive_data(data: Any, sensitive_keys: List[str] = None, mask: str
         """Helper function to check if a key is sensitive (case-insensitive)."""
         return any(sensitive_key.lower() == key.lower() for sensitive_key in sensitive_keys)
 
+    def is_sensitive_value(value: str) -> bool:
+        """Helper function to check if a value matches any environment variable exactly."""
+        return value in os.environ.values()
+
     if isinstance(data, dict):
         return {
-            key: (partially_redact(value) if is_sensitive_key(key) and isinstance(value, str)
+            key: (partially_redact(value) if is_sensitive_key(key) and isinstance(value, str) and is_sensitive_value(value)
                   else redact_sensitive_data(value, sensitive_keys, mask, reveal_chars))
             for key, value in data.items()
         }
@@ -43,5 +48,5 @@ def redact_sensitive_data(data: Any, sensitive_keys: List[str] = None, mask: str
         return [redact_sensitive_data(item, sensitive_keys, mask, reveal_chars) for item in data]
     elif isinstance(data, str):
         # Always redact strings if they are sensitive (e.g., API keys)
-        return partially_redact(data)
+        return partially_redact(data) if is_sensitive_value(data) else data
     return data

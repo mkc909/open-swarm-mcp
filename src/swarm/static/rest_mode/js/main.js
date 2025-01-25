@@ -1,10 +1,19 @@
-import { initializeUI } from './ui.js';
-import { initializeSplashScreen } from './splash.js';
+// main.js - Main application entry point
 
-/**
- * Entry point for initializing the application.
- */
+import { initializeSplashScreen } from './splash.js';
+import { initializeUI } from './ui.js';
+import { debugLog } from './settings.js';
+
 document.addEventListener('DOMContentLoaded', () => {
-    initializeUI();
-    initializeSplashScreen();
+    debugLog("DOM Content Loaded. Initializing application...");
+
+    try {
+        initializeSplashScreen();
+        debugLog("Splash screen initialization complete.");
+
+        initializeUI();
+        debugLog("UI initialization complete.");
+    } catch (error) {
+        debugLog(`Initialization failed: ${error.message}`, "error");
+    }
 });

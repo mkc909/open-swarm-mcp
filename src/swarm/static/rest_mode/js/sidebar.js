@@ -1,16 +1,12 @@
 import { showToast } from './toast.js';
 
-/**
- * Toggles the visibility of a sidebar.
- * @param {string} sidebar - 'left' for Chat History or 'options' for Settings.
- * @param {boolean} shouldShow - true to show the sidebar, false to hide.
- */
+/* Existing toggleSidebar function */
 export function toggleSidebar(sidebar, shouldShow) {
     const container = document.querySelector('.container');
-    const leftSidebarHideBtn = document.getElementById("leftSidebarHideBtn");
     const leftSidebarRevealBtn = document.getElementById("leftSidebarRevealBtn");
-    const optionsSidebarHideBtn = document.getElementById("optionsSidebarHideBtn");
+    const leftSidebarHideBtn = document.getElementById("leftSidebarHideBtn");
     const optionsSidebarRevealBtn = document.getElementById("optionsSidebarRevealBtn");
+    const optionsSidebarHideBtn = document.getElementById("optionsSidebarHideBtn");
 
     if (!container) return;
 
@@ -20,11 +16,13 @@ export function toggleSidebar(sidebar, shouldShow) {
             chatHistoryPane.style.display = 'block';
             leftSidebarRevealBtn.style.display = 'none';
             leftSidebarHideBtn.style.display = 'flex';
+            leftSidebarRevealBtn.innerHTML = '←'; /* Arrow icon */
             showToast("📜 Chat History sidebar shown.", "info");
         } else {
             chatHistoryPane.style.display = 'none';
             leftSidebarHideBtn.style.display = 'none';
             leftSidebarRevealBtn.style.display = 'flex';
+            leftSidebarRevealBtn.innerHTML = '→'; /* Arrow icon */
             showToast("📜 Chat History sidebar hidden.", "info");
         }
     } else if (sidebar === 'options') {
@@ -33,11 +31,13 @@ export function toggleSidebar(sidebar, shouldShow) {
             optionsPane.style.display = 'block';
             optionsSidebarRevealBtn.style.display = 'none';
             optionsSidebarHideBtn.style.display = 'flex';
+            optionsSidebarRevealBtn.innerHTML = '→'; /* Arrow icon */
             showToast("⚙️ Settings sidebar shown.", "info");
         } else {
             optionsPane.style.display = 'none';
             optionsSidebarHideBtn.style.display = 'none';
             optionsSidebarRevealBtn.style.display = 'flex';
+            optionsSidebarRevealBtn.innerHTML = '←'; /* Arrow icon */
             showToast("⚙️ Settings sidebar hidden.", "info");
         }
     }

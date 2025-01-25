@@ -1,4 +1,4 @@
-/* Corporate Color Theme */
+/* corporate.css - Corporate Color Theme */
 
 :root {
   --bg-primary: #2e2e2e; /* Darker grey */
@@ -18,4 +18,31 @@
   --logout-button-hover: #5a6268;
   --logo-color: #6c757d;
   --transition-duration: 0.3s;
+}
+
+[data-theme-dark="true"] {
+  /* Dark mode variables specific to corporate theme */
+  --bg-primary: #1f1f1f;
+  --bg-container: #2b2b2b;
+  --bg-message-user: #3c3c3c;
+  --bg-message-assistant: #4d4d4d;
+  --bg-message-tool: #2b2b2b;
+  --bg-message-other: #3c3c3c;
+  --bg-blueprint: #2b2b2b;
+  --bg-debug: #1f1f1f;
+  --text-primary: #e0e0e0; /* Slightly dimmer for better contrast */
+  --text-secondary: #b3b3b3;
+  --border-color: #777777;
+  --button-primary: #a9a9a9;
+  --button-hover: #8c8c8c;
+  --logout-button-bg: #a9a9a9;
+  --logout-button-hover: #8c8c8c;
+  --logo-color: #a9a9a9;
+}
+
+/* Corporate Theme Specific Input Styling */
+#userInput {
+    background-color: #3a3a3a; /* Dark background */
+    color: #ffffff; /* Light text */
+    border: 2px solid #555555; /* Dark border */
 }

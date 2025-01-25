@@ -1,5 +1,6 @@
-/* Minimalist Layout Theme */
+/* minimalist-layout.css - Minimalist layout-specific styles */
 
+/* General minimalist layout adjustments */
 .message.assistant {
     background: none; /* No box */
     color: var(--text-primary);
@@ -44,4 +45,13 @@
     overflow: auto;
 }
 
-/* Additional minimalist layout styles can be added here */
+/* Hide attach and voice buttons */
+[data-theme-layout="minimalist-layout"] .form-container #uploadButton,
+[data-theme-layout="minimalist-layout"] .form-container #voiceRecordButton {
+    display: none !important;
+}
+
+/* Expand input field to fill the gap */
+[data-theme-layout="minimalist-layout"] .form-container #userInput {
+    width: calc(100% - 60px) !important;
+}

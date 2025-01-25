@@ -1,6 +1,7 @@
-/* pastel.css - Updated Pastel Color Theme */
+/* pastel.css - Updated Pastel Color Theme with Dark Mode Variants */
 
 :root {
+  /* Light mode variables */
   --bg-primary: #ffffff; /* White background */
   --bg-container: #f0f8ff; /* Alice Blue */
   --bg-message-user: #add8e6; /* Light Blue */
@@ -18,4 +19,73 @@
   --logout-button-hover: #00bfff; /* Deep Sky Blue */
   --logo-color: #87cefa; /* Light Sky Blue */
   --transition-duration: 0.3s;
+}
+
+[data-theme-dark="true"] {
+  /* Dark mode variables */
+  --bg-primary: #1a1a1a; /* Dark background */
+  --bg-container: #2a2a2a; /* Dark container */
+  --bg-message-user: #555555; /* Darker Blue */
+  --bg-message-assistant: #445544; /* Darker Green */
+  --bg-message-tool: #554444; /* Darker Red */
+  --bg-message-other: #3a3a3a; /* Dark Gray */
+  --bg-blueprint: #2a2a2a; /* Dark Floral White */
+  --bg-debug: #2a2a2a; /* Dark Debug */
+  --text-primary: #f0f0f0; /* Light Gray */
+  --text-secondary: #bbbbbb; /* Medium Light Gray */
+  --border-color: #555555; /* Dark Gray */
+  --button-primary: #00bfff; /* Deep Sky Blue */
+  --button-hover: #87cefa; /* Light Sky Blue */
+  --logout-button-bg: #00bfff; /* Deep Sky Blue */
+  --logout-button-hover: #87cefa; /* Light Sky Blue */
+  --logo-color: #00bfff; /* Deep Sky Blue */
+}
+
+/* Message Styling */
+.message.user {
+    background-color: var(--bg-message-user);
+    color: var(--text-primary);
+    border-radius: 15px;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    max-width: 70%;
+    align-self: flex-end;
+    position: relative;
+}
+
+.message.assistant {
+    background-color: var(--bg-message-assistant);
+    color: var(--text-primary);
+    border-radius: 15px;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    max-width: 70%;
+    align-self: flex-start;
+    position: relative;
+}
+
+/* Persisted Messages Styling */
+.pinned-message {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 5px 0;
+    padding: 10px;
+    border: 1px dashed #aaa;
+    border-radius: 15px;
+    background-color: #fefefe;
+    color: var(--text-primary);
+}
+
+.pinned-message .remove-pinned-button {
+    background: none;
+    border: none;
+    color: #dc3545; /* Red color */
+    font-size: 1.2em;
+    cursor: pointer;
+    transition: color var(--transition-duration) ease;
+}
+
+.pinned-message .remove-pinned-button:hover {
+    color: #ff0000; /* Brighter red on hover */
 }

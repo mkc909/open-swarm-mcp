@@ -24,6 +24,7 @@
         <div id="splashScreen" class="splash-screen">
             <div class="splash-content">
                 <h1 id="splashText">Connecting to the AI...</h1>
+                <small>... trouble connecting? Check the <a href="https://github.com/matthewhand/open-swarm/TROUBLESHOOTING.md">Troubleshooting Guide</a></small>
             </div>
         </div>
 
@@ -64,9 +65,13 @@
             <!-- Chat Pane -->
             <div class="chat-pane">
                 <!-- Blueprint Metadata -->
-                <div class="blueprint-metadata" id="blueprintMetadata">
+                <div class="blueprint-metadata" id="blueprintMetadata" data-model-name="{{ blueprint_name }}">
                     <h2>Loading...</h2>
                     <p>Please wait, fetching blueprint metadata...</p>
+                    
+                    <!-- Blueprint Dropdown -->
+                    <label for="blueprintDropdown">Select Blueprint:</label>
+                    <select id="blueprintDropdown" aria-label="Blueprint Selection"></select>
                 </div>
 
                 <!-- "OS" SVG + model info -->
@@ -183,16 +188,9 @@
 
         <!-- Scripts (ES Modules) -->
         <script type="module" src="{% static 'rest_mode/js/base.js' %}"></script>
-        <script type="module" src="{% static 'rest_mode/js/toast.js' %}"></script>
-        <script type="module" src="{% static 'rest_mode/js/splash.js' %}"></script>
-        <script type="module" src="{% static 'rest_mode/js/rendering.js' %}"></script>
-        <script type="module" src="{% static 'rest_mode/js/validation.js' %}"></script>
-        <script type="module" src="{% static 'rest_mode/js/debug.js' %}"></script>
-        <script type="module" src="{% static 'rest_mode/js/sidebar.js' %}"></script>
         <script type="module" src="{% static 'rest_mode/js/chatLogic.js' %}"></script>
-        <script type="module" src="{% static 'rest_mode/js/events.js' %}"></script>
-        <script type="module" src="{% static 'rest_mode/js/theme.js' %}"></script>
-        <script type="module" src="{% static 'rest_mode/js/ui.js' %}"></script>
+        <script type="module" src="{% static 'rest_mode/js/toast.js' %}"></script>
         <script type="module" src="{% static 'rest_mode/js/main.js' %}"></script>
+
     </body>
 </html>

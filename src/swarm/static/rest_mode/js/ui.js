@@ -4,23 +4,83 @@ import { initializeTheme } from './theme.js';
 import { showToast } from './toast.js';
 
 /**
- * Replaces placeholder emojis with corresponding SVG icons.
+ * Automatically replaces placeholders with all SVG icons.
  */
-function replaceEmojisWithSVGs() {
-    const replacements = [
-        { emoji: "➕", svgPath: "/static/rest_mode/svg/plus.svg", selector: "#uploadButton" },
-        { emoji: "🎤", svgPath: "/static/rest_mode/svg/voice.svg", selector: "#voiceRecordButton" },
-        { emoji: "⚙️", svgPath: "/static/rest_mode/svg/settings.svg", selector: "#settingsToggleButton" },
-    ];
+function replaceAllSVGs() {
+    const placeholders = {
+        "#uploadButton": "plus.svg",
+        "#voiceRecordButton": "voice.svg",
+        "#settingsToggleButton": "settings.svg",
+        "#chatHistoryToggleButton": "chat_history.svg",
+        "#newChatButton": "new_chat.svg",
+        "#searchButton": "search.svg",
+        "#logoutButton": "logout.svg",
+        "#undoButton": "undo.svg",
+        "#saveButton": "save.svg",
+        "#thumbsUpButton": "thumbs_up.svg",
+        "#thumbsDownButton": "thumbs_down.svg",
+        "#trashButton": "trash.svg",
+        "#attachButton": "attach.svg",
+        "#visibleToggleButton": "visible.svg",
+        "#notVisibleToggleButton": "not_visible.svg",
+        "#runCodeButton": "run_code.svg",
+        "#stopButton": "stop.svg",
+        "#avatarButton": "avatar.svg",
+        "#speakerButton": "speaker.svg",
+    };
 
-    replacements.forEach(({ emoji, svgPath, selector }) => {
-        const button = document.querySelector(selector);
-        if (button) {
-            button.innerHTML = `
-                <img src="${svgPath}" alt="${emoji}" class="icon-svg" />
+    Object.entries(placeholders).forEach(([selector, svgFile]) => {
+        const element = document.querySelector(selector);
+        if (element) {
+            element.innerHTML = `
+                <img src="/static/rest_mode/svg/${svgFile}" alt="${svgFile.replace('.svg', '')}" class="icon-svg" />
             `;
+        } else {
+            console.warn(`Element not found for selector: ${selector}`);
         }
     });
+}
+
+/**
+ * Sets up a loading spinner for dynamic content.
+ * @param {string} containerId - The ID of the container for the spinner.
+ * @param {boolean} show - Whether to show or hide the spinner.
+ */
+export function toggleLoadingSpinner(containerId, show) {
+    const container = document.getElementById(containerId);
+    if (!container) {
+        console.warn(`Container not found for spinner: ${containerId}`);
+        return;
+    }
+
+    if (show) {
+        container.innerHTML = `
+            <img src="/static/rest_mode/svg/animated_spinner.svg" alt="Loading..." class="spinner" />
+        `;
+    } else {
+        container.innerHTML = ''; // Clear spinner
+    }
+}
+
+/**
+ * Sets up the chat history pane, including toggle visibility.
+ */
+function setupChatHistoryPane() {
+    const chatHistoryPane = document.getElementById('chatHistoryPane');
+    const minimizeButton = document.getElementById('leftSidebarHideBtn');
+
+    if (!chatHistoryPane || !minimizeButton) {
+        console.warn("Missing elements for chat history pane.");
+        return;
+    }
+
+    minimizeButton.addEventListener('click', () => {
+        const isVisible = chatHistoryPane.style.display !== 'none';
+        chatHistoryPane.style.display = isVisible ? 'none' : 'block';
+        showToast(isVisible ? "Chat history minimized." : "Chat history expanded.", "info");
+    });
+
+    chatHistoryPane.style.display = 'block'; // Ensure visible by default
 }
 
 /**
@@ -48,31 +108,9 @@ export function initializeUI() {
     initializeSidebar();
     initializeApplication();
     initializeTheme();
-    replaceEmojisWithSVGs();
+    replaceAllSVGs(); // Replace all SVGs dynamically
+    setupChatHistoryPane();
     setupSettingsToggleButton();
 }
 
-/**
- * Sets up the chat history pane functionality, including minimize/maximize behavior.
- */
-function setupChatHistoryPane() {
-    const chatHistoryPane = document.getElementById('chatHistoryPane');
-    const minimizeButton = document.getElementById('leftSidebarHideBtn'); // Ensure this button exists in the HTML
-
-    if (!chatHistoryPane) {
-        console.warn("Warning: 'chatHistoryPane' element not found.");
-        return;
-    }
-
-    if (!minimizeButton) {
-        console.warn("Warning: 'leftSidebarHideBtn' element not found.");
-        return;
-    }
-
-    // Toggle chat history pane minimized class on button click
-    minimizeButton.addEventListener('click', () => {
-        chatHistoryPane.classList.toggle('minimized');
-        const isMinimized = chatHistoryPane.classList.contains('minimized');
-        showToast(isMinimized ? "Chat history minimized." : "Chat history restored.", "info");
-    });
-}
+document.addEventListener('DOMContentLoaded', initializeUI);

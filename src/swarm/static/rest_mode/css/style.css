@@ -82,3 +82,37 @@ body {
     text-align: center; /* Center the container */
     margin: 20px auto; /* Add vertical spacing */
 }
+/* Chat History Styling */
+.chat-history-pane ul {
+    list-style: none;
+    padding: 0;
+}
+
+.chat-history-pane li {
+    margin-bottom: 10px;
+}
+
+.chat-history-pane details {
+    background-color: var(--bg-container);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 10px;
+    cursor: pointer;
+    transition: background-color var(--transition-duration) ease;
+}
+
+.chat-history-pane details[open] {
+    background-color: var(--bg-message-other);
+}
+
+.chat-history-pane summary {
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.chat-history-pane p {
+    margin: 10px 0 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}

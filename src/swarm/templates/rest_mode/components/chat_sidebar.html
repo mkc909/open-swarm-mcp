@@ -1,17 +1,21 @@
 {% load static %}
-<div class="side-panes chat-history-pane" id="chatHistoryPane" style="display: none;">
-    <button class="sidebar-hide-btn" id="leftSidebarHideBtn">
+<div class="side-panes chat-history-pane" id="chatHistoryPane">
+    <button class="sidebar-hide-btn" id="leftSidebarHideBtn" aria-label="Hide Chat History">
         <img src="{% static 'rest_mode/svg/arrow_left.svg' %}" alt="Hide Chat Pane">
     </button>
     <h2>📜 Chat History</h2>
     <ul>
-        <li class="active first-user" data-chat-id="1">
-            What is Open-Swarm
-            <span class="trash-can" title="Delete Chat">🗑️</span>
+        <li>
+            <details>
+                <summary>Welcome to Open-Swarm</summary>
+                <p>Welcome to Open-Swarm Chat! Start a conversation to explore its capabilities.</p>
+            </details>
         </li>
-        <li data-chat-id="2">
-            FAQ
-            <span class="trash-can" title="Delete Chat">🗑️</span>
+        <li>
+            <details>
+                <summary>FAQ</summary>
+                <p>Find frequently asked questions and their answers here.</p>
+            </details>
         </li>
     </ul>
 </div>

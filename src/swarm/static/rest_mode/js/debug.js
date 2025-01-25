@@ -1,5 +1,5 @@
 import { showToast } from './toast.js';
-import { chatHistory, contextVariables } from './chatLogic.js';
+import { chatHistory, contextVariables } from './chatHandlers.js';
 export { debugLog } from './settings.js';
 
 /**
@@ -45,7 +45,7 @@ function renderRelevantDebugInfo() {
     debugContent.innerHTML = `
         <p><strong>Role:</strong> ${role}</p>
         <p><strong>Sender:</strong> ${sender}</p>
-        <p><strong>Content:</strong> ${content?.content || "No content provided."}</p>
+        <p><strong>Content:</strong> ${content || "No content provided."}</p>
         <p><strong>Metadata:</strong> <pre>${JSON.stringify(metadata || {}, null, 2)}</pre></p>
     `;
 

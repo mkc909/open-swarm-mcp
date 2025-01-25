@@ -1,81 +1,17 @@
+import {
+    chatHistory,
+    contextVariables,
+    validateMessage,
+    renderFirstUserMessage,
+    populateBlueprintDropdown,
+    handleLogout,
+    handleUpload,
+    handleVoiceRecord,
+    debugLog,
+} from './chatHandlers.js';
 import { showToast } from './toast.js';
 import { fetchBlueprints } from './blueprint.js';
 import { renderMessage, appendRawMessage } from './messages.js';
-
-const DEBUG_MODE = true;
-
-/**
- * Logs debug messages if debug mode is enabled.
- * @param {string} message - The message to log.
- * @param {any} data - Additional data to include in the log.
- */
-function debugLog(message, data = null) {
-    if (DEBUG_MODE) {
-        console.log(`[DEBUG] ${message}`, data);
-    }
-}
-
-// Chat History and Context Variables
-export let chatHistory = [];
-export let contextVariables = { active_agent_name: null };
-
-/**
- * Renders the first (assistant) message if none exists.
- */
-export function renderFirstUserMessage() {
-    const firstMessageExists = chatHistory.some((msg) => msg.role === 'user');
-    if (!firstMessageExists) {
-        const firstUserMessage = {
-            role: 'assistant',
-            content: 'Welcome to Open-Swarm Chat!',
-            sender: 'Assistant',
-            metadata: {},
-        };
-        chatHistory.push(firstUserMessage);
-        appendRawMessage(
-            firstUserMessage.role,
-            { content: firstUserMessage.content },
-            firstUserMessage.sender,
-            firstUserMessage.metadata
-        );
-    }
-}
-
-/**
- * Populates the blueprint dropdown and updates the metadata for the selected blueprint.
- * @param {Array} blueprints - The list of blueprints fetched from the API.
- */
-function populateBlueprintDropdown(blueprints) {
-    const blueprintDropdown = document.getElementById('blueprintDropdown');
-    const blueprintMetadata = document.getElementById('blueprintMetadata');
-
-    if (!blueprintDropdown || !blueprintMetadata) {
-        console.warn('Blueprint dropdown or metadata element not found.');
-        return;
-    }
-
-    // Populate the dropdown
-    blueprintDropdown.innerHTML = blueprints
-        .map((bp) => `<option value="${bp.id}">${bp.title}</option>`)
-        .join('');
-
-    // Get the current blueprint from the URI
-    const currentBlueprintId = window.location.pathname.split('/').filter(Boolean).pop();
-    const defaultBlueprint = blueprints.find((bp) => bp.id === currentBlueprintId) || blueprints[0];
-
-    // Set the default selection and update metadata
-    blueprintDropdown.value = defaultBlueprint.id;
-    updateBlueprintMetadata(defaultBlueprint);
-
-    // Add event listener for dropdown changes
-    blueprintDropdown.addEventListener('change', (e) => {
-        const selectedBlueprint = blueprints.find((bp) => bp.id === e.target.value);
-        if (selectedBlueprint) {
-            updateBlueprintMetadata(selectedBlueprint);
-        }
-    });
-}
-
 
 /**
  * Handles user message submission.
@@ -105,26 +41,16 @@ export async function handleSubmit() {
 
     // Validate message
     const error = validateMessage(userMessage);
-    if (error) return; // Toast shown from validateMessage
+    if (error) return;
 
-    // Render in UI
+    // Render the first assistant message if it's the first user message
     if (isFirstUserMessage) {
-        const firstUserMessageDiv = document.getElementById("firstUserMessage");
-        if (firstUserMessageDiv) {
-            firstUserMessageDiv.innerHTML = `<strong>${userMessage.sender}:</strong> ${userMessage.content}`;
-            firstUserMessageDiv.style.display = "block";
-        }
-    } else {
-        renderMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
+        renderFirstUserMessage();
     }
-    appendRawMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
 
-    if (!isFirstUserMessage) {
-        const firstUserMessageDiv = document.getElementById("firstUserMessage");
-        if (firstUserMessageDiv) {
-            firstUserMessageDiv.style.display = "none";
-        }
-    }
+    // Render the user message in the UI
+    renderMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
+    appendRawMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
 
     showLoadingIndicator();
 
@@ -132,7 +58,7 @@ export async function handleSubmit() {
         const urlPath = window.location.pathname;
         const modelName = urlPath.split("/").filter(Boolean).pop() || "unknown_model";
 
-        console.log("Submitting message to model:", modelName);
+        debugLog("Submitting message to model:", modelName);
 
         const response = await fetch("/v1/chat/completions", {
             method: "POST",
@@ -161,49 +87,23 @@ export async function handleSubmit() {
     }
 }
 
-
 /**
- * Updates the blueprint metadata section with the selected blueprint's details.
- * @param {Object} blueprint - The selected blueprint.
+ * Initializes the chat logic.
  */
-function updateBlueprintMetadata(blueprint) {
-    const blueprintMetadata = document.getElementById('blueprintMetadata');
-    if (!blueprintMetadata) return;
-
-    blueprintMetadata.innerHTML = `
-        <h2>${blueprint.title}</h2>
-        <p>${blueprint.description}</p>
-    `;
-    debugLog('Updated blueprint metadata.', blueprint);
-}
-
-/**
- * Chat History item click handler.
- */
-export function handleChatHistoryClick(item) {
-    const chatName = item.firstChild.textContent.trim();
-    showToast(`Selected: "${chatName}"`, 'info');
-
-    const chatHistoryItems = document.querySelectorAll('.chat-history-pane li');
-    chatHistoryItems.forEach((i) => i.classList.remove('active'));
-    item.classList.add('active');
-}
-
-// Initialize the application
-document.addEventListener('DOMContentLoaded', async () => {
-    debugLog('Initializing chat logic.');
+export async function initializeChatLogic() {
+    debugLog("Initializing chat logic.");
     try {
         const blueprints = await fetchBlueprints();
         populateBlueprintDropdown(blueprints);
     } catch (error) {
-        showToast('⚠️ Failed to load blueprints.', 'error');
-        console.error('Error initializing blueprints:', error);
+        showToast("⚠️ Failed to load blueprints.", "error");
+        console.error("Error initializing blueprints:", error);
     }
-});
-
+}
 
 /**
  * Handles chat deletion.
+ * @param {HTMLElement} item - The chat item element to delete.
  */
 export async function handleDeleteChat(item) {
     const chatName = item.firstChild.textContent.trim();
@@ -223,12 +123,13 @@ export async function handleDeleteChat(item) {
 
     try {
         const response = await fetch(`/v1/chat/delete/${chatId}`, {
-            method: 'DELETE',
+            method: "DELETE",
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                "Content-Type": "application/json",
+                "X-CSRFToken": document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
             },
         });
+
         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
         item.remove();
         showToast(`✅ Chat "${chatName}" deleted.`, "success");
@@ -238,25 +139,18 @@ export async function handleDeleteChat(item) {
     }
 }
 
-
 /**
- * Handles user logout.
+ * Handles chat history item click.
+ * @param {HTMLElement} item - The clicked chat history item.
  */
-export function handleLogout() {
-    showToast("🚪 You have been logged out.", "info");
-    window.location.href = "/login";
+export function handleChatHistoryClick(item) {
+    const chatName = item.firstChild.textContent.trim();
+    showToast(`Selected: "${chatName}"`, "info");
+
+    const chatHistoryItems = document.querySelectorAll(".chat-history-pane li");
+    chatHistoryItems.forEach((i) => i.classList.remove("active"));
+    item.classList.add("active");
 }
 
-/**
- * Handles file upload.
- */
-export function handleUpload() {
-    showToast('➕ Upload feature is under development.', 'info');
-}
-
-/**
- * Handles voice recording.
- */
-export function handleVoiceRecord() {
-    showToast('🎤 Voice recording is under development.', 'info');
-}
+// Initialize chat logic on DOMContentLoaded
+document.addEventListener("DOMContentLoaded", initializeChatLogic);

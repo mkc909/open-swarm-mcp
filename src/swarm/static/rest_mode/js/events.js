@@ -4,9 +4,9 @@ import {
     handleDeleteChat,
     handleUpload,
     handleVoiceRecord,
-    handleSubmit,
-    renderFirstUserMessage
-} from './chatLogic.js';
+    renderFirstUserMessage,
+} from './chatHandlers.js';
+import { handleSubmit } from './chatLogic.js';
 import { toggleDebugPane, handleTechSupport } from './debug.js';
 import { initializeTheme } from './theme.js';
 import { showToast } from './toast.js';

@@ -1,21 +1,25 @@
 /* components.css - Buttons, Icons, and Forms */
 
-/* Icon SVG Styling */
+/* General Icon SVG Styling */
 .icon-svg {
-    width: var(--icon-size);
-    height: var(--icon-size);
-    fill: var(--text-secondary);
+    width: var(--icon-size, 24px); /* Default size */
+    height: var(--icon-size, 24px);
+    fill: var(--text-secondary); /* Default color */
     vertical-align: middle;
-    transition: fill var(--transition-duration) ease;
+    transition: fill var(--transition-duration, 0.3s) ease, transform var(--transition-duration, 0.3s) ease;
 }
 
+/* Hover and Focus Effects */
 .icon-svg:hover {
-    fill: var(--button-hover);
+    fill: var(--button-hover); /* Hover color from theme */
+    transform: scale(1.1); /* Slightly increase size */
 }
 
 /* Button Styling */
 .upload-button,
-#voiceRecordButton {
+#voiceRecordButton,
+.toolbar-btn,
+.settings-btn {
     background: none;
     border: none;
     cursor: pointer;
@@ -23,12 +27,75 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform var(--transition-duration) ease;
+    transition: transform var(--transition-duration, 0.3s) ease, opacity var(--transition-duration, 0.3s) ease;
 }
 
+/* Hover Effects for All Buttons */
 .upload-button:hover svg,
-#voiceRecordButton:hover svg {
-    transform: scale(1.1);
+#voiceRecordButton:hover svg,
+.toolbar-btn:hover svg,
+.settings-btn:hover img {
+    transform: scale(1.1); /* Slight zoom */
+    fill: var(--button-hover); /* Apply hover color */
+}
+
+/* Toolbar Button Specific Adjustments */
+.toolbar-btn {
+    padding: 5px;
+    border-radius: 50%; /* Rounded buttons */
+    opacity: 0; /* Hidden by default */
+    position: relative; /* For tooltip positioning */
+    transition: opacity var(--transition-duration, 0.3s);
+}
+
+/* Show Toolbar on Message Hover */
+.message:hover .toolbar-btn {
+    opacity: 1; /* Fully visible when parent message is hovered */
+}
+
+/* Persistent Toolbar Buttons */
+.persistent-toolbar .toolbar-btn {
+    margin-right: 8px; /* Spacing between buttons */
+}
+
+/* Tooltip Styling */
+.toolbar-btn[title]::after {
+    content: attr(title); /* Use the title attribute */
+    position: absolute;
+    bottom: 120%; /* Position above the icon */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--bg-container);
+    color: var(--text-primary);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.toolbar-btn:hover[title]::after {
+    opacity: 1; /* Visible on hover */
+    visibility: visible;
+}
+
+/* Settings Button Specific Styling */
+.settings-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+}
+
+.settings-btn img {
+    width: 100%;
+    height: 100%;
+    fill: var(--text-primary); /* Matches theme primary text color */
 }
 
 /* Input Fields */
@@ -38,37 +105,15 @@ input[type="text"] {
     border-radius: 4px;
     width: 100%;
     font-size: 1rem;
-    transition: border-color var(--transition-duration) ease;
+    transition: border-color var(--transition-duration, 0.3s) ease;
 }
 
 input[type="text"]:focus {
     border-color: var(--button-hover);
     outline: none;
 }
-/* Settings Button */
-.settings-btn {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.2s ease, opacity 0.2s ease;
-}
 
-.settings-btn img {
-    width: 100%;
-    height: 100%;
-    fill: var(--text-primary);
-}
-
-.settings-btn:hover img {
-    transform: scale(1.1);
-    fill: var(--button-hover);
+/* Active State for Toolbar Buttons */
+.toolbar-btn:active {
+    transform: scale(0.95); /* Click feedback */
 }

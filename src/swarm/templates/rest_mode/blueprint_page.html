@@ -39,7 +39,6 @@
 
             <!-- Left Sidebar: Chat History -->
             <div class="side-panes chat-history-pane" id="chatHistoryPane" style="display: none;">
-                <!-- Hide Sidebar Button -->
                 <button class="sidebar-hide-btn" id="leftSidebarHideBtn">
                     <img src="{% static 'rest_mode/svg/arrow_left.svg' %}" alt="Hide Chat Pane">
                 </button>
@@ -71,13 +70,10 @@
                     <select id="blueprintDropdown" aria-label="Blueprint Selection"></select>
                 </div>
 
-                <!-- "OS" SVG + model info -->
-                <h1 id="chatHeading">
-                    <svg class="chat-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
-                        <circle cx="60" cy="60" r="55" stroke="var(--text-primary)" stroke-width="5" fill="var(--logo-color)"/>
-                        <text x="50%" y="60%" dominant-baseline="middle" text-anchor="middle" font-size="45" fill="#ffffff" font-family="Arial, sans-serif">OS</text>
-                    </svg>
-                </h1>
+                <!-- OS Logo -->
+                <div class="logo-container">
+                    <img src="{% static 'rest_mode/svg/logo.svg' %}" alt="Open-Swarm Logo" class="chat-logo">
+                </div>
 
                 <!-- Pinned / First Message Section -->
                 <div id="firstUserMessage" class="first-user-message"></div>
@@ -90,27 +86,19 @@
 
                 <!-- Input Form -->
                 <div class="form-container">
-                    <!-- Upload (+) Button -->
                     <button class="input-button upload-button" id="uploadButton" aria-label="Upload">
-                        ➕
+                        <img src="{% static 'rest_mode/svg/plus.svg' %}" alt="Upload">
                     </button>
-
-                    <!-- User Input -->
                     <input type="text" id="userInput" placeholder="Type your message here..."/>
-
-                    <!-- Voice Record -->
                     <button class="input-button" id="voiceRecordButton" aria-label="Record Voice">
-                        🎤
+                        <img src="{% static 'rest_mode/svg/voice.svg' %}" alt="Record Voice">
                     </button>
-
-                    <!-- Submit -->
                     <button id="submitButton">Send</button>
                 </div>
             </div>
 
             <!-- Right Sidebar: Settings -->
             <div class="side-panes options-pane" id="optionsPane" style="display: none;">
-                <!-- Hide Sidebar Button -->
                 <button class="sidebar-hide-btn" id="optionsSidebarHideBtn">
                     <img src="{% static 'rest_mode/svg/arrow_right.svg' %}" alt="Hide Settings Pane">
                 </button>
@@ -118,7 +106,6 @@
                 <div class="settings-container">
                     <h2>⚙️ Settings</h2>
                     <div class="toggle-container">
-                        <!-- Colour Theme -->
                         <div class="theme-dropdown theme-toggle">
                             <label for="colorSelect">🎨 Colour Theme:</label>
                             <select id="colorSelect">
@@ -127,8 +114,6 @@
                                 <option value="corporate">Corporate</option>
                             </select>
                         </div>
-
-                        <!-- Layout Theme -->
                         <div class="theme-dropdown theme-toggle">
                             <label for="layoutSelect">🖥️ Layout Theme:</label>
                             <select id="layoutSelect">
@@ -137,8 +122,6 @@
                                 <option value="minimalist-layout">Minimalist</option>
                             </select>
                         </div>
-
-                        <!-- Dark/Light Mode Toggle -->
                         <div class="toggle-section theme-toggle" data-theme="light">
                             <div class="toggle-title" data-icon="☀️">
                                 Dark/Light Mode
@@ -148,15 +131,12 @@
                                 <label for="darkModeToggle">Enable Dark Mode</label>
                             </div>
                         </div>
-
-                        <!-- Debug Button -->
                         <button class="toggle-section theme-toggle" id="debugButton">
-                            <div class="toggle-title">
-                                🐞 Debug
-                            </div>
+                            <div class="toggle-title">🐞 Debug</div>
                         </button>
                     </div>
                 </div>
+
 
                 <!-- Debug Pane -->
                 <div class="debug-pane" id="debugPane">
@@ -172,7 +152,6 @@
                     <div id="rawMessagesContent"></div>
                 </div>
 
-                <!-- Logout Container -->
                 <div class="logout-container">
                     <button class="logout-button" id="logoutButton">🚪 Logout</button>
                 </div>

@@ -4,14 +4,32 @@ import { initializeTheme } from './theme.js';
 import { showToast } from './toast.js';
 
 /**
+ * Replaces placeholder emojis with corresponding SVG icons.
+ */
+function replaceEmojisWithSVGs() {
+    const replacements = [
+        { emoji: "➕", svgPath: "/static/rest_mode/svg/plus.svg", selector: "#uploadButton" },
+        { emoji: "🎤", svgPath: "/static/rest_mode/svg/voice.svg", selector: "#voiceRecordButton" },
+    ];
+
+    replacements.forEach(({ emoji, svgPath, selector }) => {
+        const button = document.querySelector(selector);
+        if (button) {
+            button.innerHTML = `
+                <img src="${svgPath}" alt="${emoji}" class="icon-svg" />
+            `;
+        }
+    });
+}
+
+/**
  * Initializes all UI components and event listeners.
- * Should be called once during application startup.
  */
 export function initializeUI() {
     initializeSidebar();
     initializeApplication();
     initializeTheme();
-    setupChatHistoryPane();
+    replaceEmojisWithSVGs();
 }
 
 /**

@@ -1,0 +1,47 @@
+/* components.css - Buttons, Icons, and Forms */
+
+/* Icon SVG Styling */
+.icon-svg {
+    width: var(--icon-size);
+    height: var(--icon-size);
+    fill: var(--text-secondary);
+    vertical-align: middle;
+    transition: fill var(--transition-duration) ease;
+}
+
+.icon-svg:hover {
+    fill: var(--button-hover);
+}
+
+/* Button Styling */
+.upload-button,
+#voiceRecordButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform var(--transition-duration) ease;
+}
+
+.upload-button:hover svg,
+#voiceRecordButton:hover svg {
+    transform: scale(1.1);
+}
+
+/* Input Fields */
+input[type="text"] {
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    width: 100%;
+    font-size: 1rem;
+    transition: border-color var(--transition-duration) ease;
+}
+
+input[type="text"]:focus {
+    border-color: var(--button-hover);
+    outline: none;
+}

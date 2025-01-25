@@ -1,63 +1,18 @@
-/* style.css - Additional Overrides and Custom Styles */
+/* style.css - Shared Styles and Modular Imports */
 
-/* Root Variables and Theme Styles */
-:root {
-    /* Light Mode Variables */
-    --bg-primary: #ffffff; /* White background */
-    --bg-container: #f0f8ff; /* Alice Blue */
-    --bg-message-user: #add8e6; /* Light Blue */
-    --bg-message-assistant: #e6ffe6; /* Light Green */
-    --bg-message-tool: #ffe6e6; /* Light Red */
-    --bg-message-other: #f9f9f9; /* Very Light Gray */
-    --bg-blueprint: #fffaf0; /* Floral White */
-    --bg-debug: #f5f5f5; /* White Smoke */
-    --text-primary: #333333; /* Dark Gray */
-    --text-secondary: #666666; /* Medium Gray */
-    --border-color: #d3d3d3; /* Light Gray */
-    --button-primary: #87cefa; /* Light Sky Blue */
-    --button-hover: #00bfff; /* Deep Sky Blue */
-    --logout-button-bg: #87cefa; /* Light Sky Blue */
-    --logout-button-hover: #00bfff; /* Deep Sky Blue */
-    --logo-color: #87cefa; /* Light Sky Blue */
-    --transition-duration: 0.3s;
-    
-    /* Additional Variables */
-    --btn-padding: 10px 20px;
-    --btn-font-size: 1em;
-    --btn-border-radius: 6px;
-    --btn-color: #ffffff;
-    --btn-bg: var(--button-primary);
-    --btn-hover-bg: var(--button-hover);
-  }
-  
-  /* Dark Mode Variables */
-  [data-theme-dark="true"] {
-    --bg-primary: #1a1a1a;
-    --bg-container: #2a2a2a;
-    --bg-message-user: #555555; /* Darker Blue */
-    --bg-message-assistant: #445544; /* Darker Green */
-    --bg-message-tool: #554444; /* Darker Red */
-    --bg-message-other: #3a3a3a; /* Dark Gray */
-    --bg-blueprint: #2a2a2a; /* Dark Floral White */
-    --bg-debug: #2a2a2a; /* Dark Debug */
-    --text-primary: #f0f0f0; /* Light Gray */
-    --text-secondary: #bbbbbb; /* Medium Light Gray */
-    --border-color: #555555; /* Dark Gray */
-    --button-primary: #00bfff; /* Deep Sky Blue */
-    --button-hover: #87cefa; /* Light Sky Blue */
-    --logout-button-bg: #00bfff; /* Deep Sky Blue */
-    --logout-button-hover: #87cefa; /* Light Sky Blue */
-    --logo-color: #00bfff; /* Deep Sky Blue */
-  }
-  
-  /* Base Styles */
-  * {
+/* Modular Imports */
+@import './theme.css';
+@import './components.css';
+@import './layout.css';
+
+/* Base Styles */
+* {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-  }
-  
-  body {
+}
+
+body {
     font-family: Arial, sans-serif;
     line-height: 1.6;
     background-color: var(--bg-primary);
@@ -67,9 +22,10 @@
     justify-content: center;
     align-items: center;
     transition: background-color var(--transition-duration), color var(--transition-duration);
-  }
-  
-  .container {
+}
+
+/* Container Styling */
+.container {
     position: relative;
     display: flex;
     flex-direction: row;
@@ -78,458 +34,51 @@
     margin: 20px;
     padding: 20px;
     background-color: var(--bg-container);
-    border: 2px solid var(--border-color); /* Thicker border */
+    border: 2px solid var(--border-color);
     border-radius: 8px;
     height: 90vh;
     overflow: hidden;
     transition: all var(--transition-duration) ease;
-  }
-  
-  /* Toast Container Styling */
-  .toast-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 10000; /* High z-index to overlay other elements */
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  /* Toast Styling */
-  .toast {
-    background-color: rgba(0, 0, 0, 0.8);
-    color: #ffffff;
-    padding: 15px 20px;
-    border-radius: 5px;
-    min-width: 200px;
-    max-width: 300px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    opacity: 1;
-    transition: opacity var(--transition-duration) ease, transform var(--transition-duration) ease;
-  }
-  
-  .toast.info {
-    background-color: rgba(0, 123, 255, 0.9); /* Bootstrap Info Blue */
-  }
-  
-  .toast.success {
-    background-color: rgba(40, 167, 69, 0.9); /* Bootstrap Success Green */
-  }
-  
-  .toast.error {
-    background-color: rgba(220, 53, 69, 0.9); /* Bootstrap Danger Red */
-  }
-  
-  .toast.warning {
-    background-color: rgba(255, 193, 7, 0.9); /* Bootstrap Warning Yellow */
-  }
-  
-  .toast.fade-out {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  
-  .toast .close-btn {
-    background: none;
-    border: none;
-    color: #ffffff;
-    font-size: 1.2em;
-    margin-left: 10px;
-    cursor: pointer;
-  }
-  
-  /* OS SVG Logo Styling */
-  .chat-logo {
-    width: 90px; /* Increased size */
-    height: 90px; /* Increased size */
-  }
-  
-  .chat-logo circle {
-    stroke: var(--text-primary);
-    stroke-width: 5;
-    fill: var(--logo-color);
-  }
-  
-  .chat-logo text {
-    font-size: 45px;
-    fill: #ffffff;
-    font-family: Arial, sans-serif;
-    dominant-baseline: middle;
-    text-anchor: middle;
-  }
-  
-  /* Toggle Section */
-  .toggle-section .toggle-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-  }
-  
-  .toggle-section .toggle-content {
-    margin-top: 10px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  
-  /* Dark/Light Mode Icons */
-  .toggle-title::before {
-    content: attr(data-icon);
-    margin-right: 8px;
-    font-size: 1.2em;
-  }
-  
-  .toggle-section[data-theme="dark"] .toggle-title::before {
-    content: "🌙"; /* Moon icon for Dark Mode */
-  }
-  
-  .toggle-section[data-theme="light"] .toggle-title::before {
-    content: "☀️"; /* Sun icon for Light Mode */
-  }
-  
-  /* Persist Icon Styling */
-  .persist-icon {
-    display: none;
+}
+
+/* Sidebar Reveal Buttons */
+.sidebar-reveal-btn {
     position: absolute;
-    top: 5px;
-    right: 5px;
-    font-size: 1.2em;
-    cursor: pointer;
-    color: #888;
-    transition: color var(--transition-duration) ease;
-  }
-  
-  .persist-icon:hover {
-    color: #ff1493; /* Vibrant color on hover */
-  }
-  
-  /* Message Styling */
-  .message {
-    position: relative; /* To position the plus icon on hover */
-    margin-bottom: 15px;
-    padding: 10px 15px;
-    border-radius: 8px;
-    max-width: 80%;
-    background-color: var(--bg-message-assistant); /* Default background */
-    color: var(--text-primary);
-    transition: background-color var(--transition-duration), color var(--transition-duration);
-  }
-  
-  .message.user {
-    background-color: var(--bg-message-user);
-    align-self: flex-end;
-  }
-  
-  .message.assistant {
-    background-color: var(--bg-message-assistant);
-    align-self: flex-start;
-  }
-  
-  /* Hover to show persist icon */
-  .message:hover .persist-icon {
-    display: inline;
-  }
-  
-  /* Pinned Message Styling */
-  .pinned-message {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin: 5px 0;
-    padding: 10px;
-    border: 1px dashed #aaa;
-    border-radius: 15px;
-    background-color: #fefefe;
-    color: var(--text-primary);
-  }
-  
-  .pinned-message .remove-pinned-button {
-    background: none;
-    border: none;
-    color: #dc3545; /* Red color */
-    font-size: 1.2em;
-    cursor: pointer;
-    transition: color var(--transition-duration) ease;
-  }
-  
-  .pinned-message .remove-pinned-button:hover {
-    color: #ff0000; /* Brighter red on hover */
-  }
-  
-  /* First User Message */
-  .first-user-message {
-    display: none; /* Hidden until a message is pinned or first user message is detected */
-    padding: 15px;
-    margin-bottom: 20px;
-    background-color: #d1e7dd; /* Light green shade */
-    border: 2px solid #0f5132;
-    border-radius: 8px;
-    font-size: 1em;
-    color: #0f5132;
-  }
-  
-  /* Trash Can Icon Styling */
-  .trash-can {
-    font-size: 1.2em;
-    color: #aaa;
-    cursor: pointer;
-    transition: color 0.2s;
-    margin-left: 10px;
-  }
-  
-  .trash-can:hover {
-    color: #dc3545; /* Red */
-  }
-  
-  /* Sidepane Toggle Buttons with Arrows */
-  .sidebar-reveal-btn, .sidebar-hide-btn {
+    top: 20px;
+    z-index: 1000;
     background-color: var(--button-primary);
     color: #fff;
     border: none;
     border-radius: 50%;
-    width: 40px; /* Adjusted size */
-    height: 40px; /* Adjusted size */
+    width: 40px;
+    height: 40px;
     cursor: pointer;
-    transition: background-color var(--transition-duration) ease, transform var(--transition-duration) ease;
-    font-size: 1.5em; /* Increased font size for visibility */
+    transition: background-color var(--transition-duration) ease;
+    font-size: 1em;
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-  
-  .sidebar-reveal-btn:hover, .sidebar-hide-btn:hover {
-    background-color: var(--button-hover);
-    transform: scale(1.1);
-  }
-  
-  /* Ensure arrows fit well within the buttons */
-  .sidebar-reveal-btn::before,
-  .sidebar-hide-btn::before {
-    content: attr(aria-label);
-    font-size: 1.5em;
-    line-height: 1;
-  }
-  
-  /* Hide the text labels if any */
-  .sidebar-reveal-btn span,
-  .sidebar-hide-btn span {
-    display: none;
-  }
-  
-  /* Remove text inside buttons if present */
-  .sidebar-reveal-btn,
-  .sidebar-hide-btn {
-    text-align: center;
-    padding: 0;
-  }
-  
-  /* Chat History Items Styling */
-  .chat-history-pane ul {
-    list-style: none;
-    padding: 0;
-  }
-  
-  .chat-history-pane li {
-    background-color: var(--bg-container);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    transition: background-color var(--transition-duration) ease, box-shadow var(--transition-duration) ease;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  
-  .chat-history-pane li:hover {
-    background-color: var(--bg-message-other);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-  
-  [data-theme-layout="minimalist-layout"] .chat-history-pane li {
-    background-color: transparent;
-    border: none;
-    padding: 8px;
-    margin-bottom: 5px;
-  }
-  
-  [data-theme-layout="minimalist-layout"] .chat-history-pane li:hover {
-    background-color: var(--bg-message-other);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-  
-  /* Top Buttons Styling */
-  .top-buttons {
-    display: flex;
-    gap: 10px;
-    position: absolute;
+}
+
+/* Toast Container */
+.toast-container {
+    position: fixed;
     top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-  }
-  
-  .top-button {
-    background-color: var(--button-primary);
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 10px 20px; /* Similar to 'Send' button */
-    cursor: pointer;
-    transition: background-color var(--transition-duration) ease, transform var(--transition-duration) ease;
-    font-size: var(--btn-font-size);
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  
-  .top-button:hover {
-    background-color: var(--button-hover);
-    transform: scale(1.05);
-  }
-  
-  /* Hide 'Chat History' button in minimalist layout */
-  [data-theme-layout="minimalist-layout"] #leftSidebarRevealBtn {
-    display: none;
-  }
-  
-  /* Ensure 'Chat History' sidebar is hidden in minimalist layout */
-  [data-theme-layout="minimalist-layout"] #chatHistoryPane {
-    display: none;
-  }
-  
-  /* Ensure 'Search' and 'New Chat' buttons are always visible except in minimalist layout */
-  [data-theme-layout="minimalist-layout"] .top-buttons {
-    justify-content: center;
-  }
-  
-  .top-buttons #chatHistoryToggle {
-    display: none;
-  }
-  
-  /* Adjust container for minimalist layout to hide chat history */
-  [data-theme-layout="minimalist-layout"] .container {
-    flex-direction: column;
-  }
-  
-  /* Adjust top-buttons for minimalist layout if necessary */
-  [data-theme-layout="minimalist-layout"] .top-buttons {
-    display: flex;
-    justify-content: center;
-  }
-  
-  /* Additional Settings - Voice Toggle Buttons */
-  .voice-toggle-buttons {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
-  }
-  
-  .voice-toggle-buttons .voice-btn {
-    flex: 1;
-    padding: 10px;
-    border: 2px solid var(--border-color);
-    border-radius: 6px;
-    background-color: var(--bg-container);
-    color: var(--text-primary);
-    cursor: pointer;
-    transition: background-color var(--transition-duration) ease, color var(--transition-duration) ease;
-    font-size: 1em;
-  }
-  
-  .voice-toggle-buttons .voice-btn:hover {
-    background-color: var(--bg-message-other);
-  }
-  
-  /* Upload Button Styling with SVG */
-  .upload-button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    width: 30px;
-    height: 30px;
-    transition: transform var(--transition-duration) ease;
-  }
-  
-  .upload-button svg {
-    width: 100%;
-    height: 100%;
-    fill: var(--text-secondary);
-    transition: fill var(--transition-duration) ease;
-  }
-  
-  .upload-button:hover svg {
-    fill: var(--button-hover);
-    transform: scale(1.1);
-  }
-  
-  /* Gap between microphone and Send button */
-  .form-container {
-    display: flex;
-    align-items: center;
-    padding: 10px;
-    border-top: 2px solid var(--border-color); /* Thicker border */
-    position: relative;
-  }
-  
-  #voiceRecordButton {
-    margin-right: 10px; /* Gap between microphone and Send */
-  }
-  
-  /* Settings Pane Adjustments */
-  .settings-container {
+    right: 20px;
+    z-index: 10000;
     display: flex;
     flex-direction: column;
-    gap: 15px;
-  }
-  
-  /* Voice Toggle Container */
-  .voice-toggle {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .voice-toggle label {
-    margin-bottom: 5px;
-    font-weight: bold;
-  }
-  
-  .voice-toggle-buttons {
-    display: flex;
     gap: 10px;
-  }
-  
-  /* Adjust for Minimalist Layout */
-  [data-theme-layout="minimalist-layout"] .toggle-container {
-    gap: 10px;
-  }
-  
-  /* New Buttons */
-  .chat-controls {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px;
-  }
-  
-  .chat-controls .btn {
-    padding: 8px 12px;
-    border: none;
-    border-radius: 5px;
-    font-size: 1em;
-    cursor: pointer;
-  }
-  
-  .chat-controls .btn:hover {
-    background-color: var(--btn-hover-bg);
-  }
-  
-  .chat-controls .btn:active {
-    background-color: var(--btn-active-bg);
-  }
-  
+}
+/* Logo Styling */
+.chat-logo {
+    width: 90px; /* Fixed size */
+    height: 90px;
+    display: block;
+    margin: 0 auto; /* Center the logo */
+}
+
+.logo-container {
+    text-align: center; /* Center the container */
+    margin: 20px auto; /* Add vertical spacing */
+}

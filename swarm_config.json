@@ -10,13 +10,33 @@
         },
         "reason": {
             "provider": "openai",
-            "model": "gpt-4o",
+            "model": "o1-mini",
             "base_url": "https://api.openai.com/v1",
             "api_key": "${OPENAI_API_KEY}",
             "cost": 0.5,
-            "speed": 0.5,
-            "intelligence": 0.5,
-            "temperature": 0.7
+            "speed": 0.3,
+            "intelligence": 0.7,
+            "temperature": 0.5
+        },
+        "format": {
+            "provider": "openai",
+            "model": "gpt-4o-mini",
+            "base_url": "https://api.openai.com/v1",
+            "api_key": "${OPENAI_API_KEY}",
+            "cost": 0.7,
+            "speed": 0.3,
+            "intelligence": 0.3,
+            "temperature": 0.5
+        },
+        "classify": {
+            "provider": "openai",
+            "model": "llama3.2:latest",
+            "base_url": "http://localhost:11434/",
+            "api_key": "",
+            "cost": 0.1,
+            "speed": 0.1,
+            "intelligence": 0.1,
+            "temperature": 0.0
         },
         "summarise": {
             "provider": "openai",

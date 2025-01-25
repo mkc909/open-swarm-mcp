@@ -1,0 +1,40 @@
+/* layout.css - Containers, Panes, and Layouts */
+
+/* Container Styling */
+.container {
+    position: relative;
+    width: 100%;
+    max-width: 1400px;
+    margin: 20px;
+    padding: 20px;
+    background-color: var(--bg-container);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    height: 90vh;
+    overflow: hidden;
+}
+
+/* Panes */
+.side-panes {
+    background-color: var(--bg-container);
+    border-right: 2px solid var(--border-color);
+    height: 100%;
+    overflow-y: auto;
+    transition: transform var(--transition-duration);
+}
+
+.side-panes.hidden {
+    transform: translateX(-100%);
+}
+
+/* Resizable Divider */
+.resizable-divider {
+    width: 5px;
+    background-color: var(--border-color);
+    cursor: col-resize;
+    transition: background-color var(--transition-duration);
+}
+
+.resizable-divider:hover {
+    background-color: var(--button-hover);
+}

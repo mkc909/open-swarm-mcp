@@ -2,13 +2,30 @@ import { toggleSidebar } from './sidebar.js';
 import {
     handleChatHistoryClick,
     handleDeleteChat,
-    handleLogout,
     handleUpload,
     handleVoiceRecord,
     handleSubmit,
     renderFirstUserMessage
 } from './chatLogic.js';
 import { toggleDebugPane, handleTechSupport } from './debug.js';
+import { initializeTheme } from './theme.js';
+import { showToast } from './toast.js';
+import { handleLogout } from './auth.js';
+
+/**
+ * Handles "Search" button click.
+ */
+function handleSearch() {
+    showToast("🔍 Search feature is under development.", "info");
+}
+
+/**
+ * Handles "New Chat" button click.
+ */
+function handleNewChat() {
+    showToast("📝 Starting a new chat...", "info");
+    // Implement new chat functionality as needed
+}
 
 /**
  * Sets up all event listeners for the application.
@@ -24,6 +41,13 @@ export function setupEventListeners() {
     leftSidebarRevealBtn?.addEventListener('click', () => toggleSidebar('left', true));
     optionsSidebarHideBtn?.addEventListener('click', () => toggleSidebar('options', false));
     optionsSidebarRevealBtn?.addEventListener('click', () => toggleSidebar('options', true));
+
+    // Top buttons
+    const searchButton = document.getElementById("searchButton");
+    const newChatButton = document.getElementById("newChatButton");
+
+    searchButton?.addEventListener('click', () => handleSearch());
+    newChatButton?.addEventListener('click', () => handleNewChat());
 
     // Chat history items
     const chatHistoryItems = document.querySelectorAll('.chat-history-pane li');
@@ -44,7 +68,7 @@ export function setupEventListeners() {
     document.getElementById("voiceRecordButton")?.addEventListener('click', () => handleVoiceRecord());
     document.getElementById("submitButton")?.addEventListener("click", () => handleSubmit());
 
-    // Enter key
+    // Enter key for submitting messages
     const userInput = document.getElementById("userInput");
     userInput?.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
@@ -53,13 +77,21 @@ export function setupEventListeners() {
         }
     });
 
-    // Debug
+    // Debug pane toggle
     document.getElementById("debugButton")?.addEventListener('click', () => toggleDebugPane());
+
+    // Tech Support button inside Debug pane
     document.getElementById("techSupportButtonInsideDebug")?.addEventListener('click', () => handleTechSupport());
+
+    // Dark Mode Toggle Button
+    const darkModeToggleButton = document.getElementById('darkModeToggleButton');
+    darkModeToggleButton?.addEventListener('click', () => {
+        // Handled in theme.js
+    });
 }
 
 /**
- * Initialize the app’s logic: first user message, event listeners, etc.
+ * Initialize the application.
  */
 export function initializeApplication() {
     renderFirstUserMessage();

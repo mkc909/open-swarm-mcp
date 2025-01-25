@@ -1,10 +1,21 @@
 import { showToast } from './toast.js';
-import { validateMessage } from './validation.js';
-import { renderMessage, appendRawMessage } from './rendering.js';
+import { fetchBlueprints } from './blueprint.js';
+import { renderMessage, appendRawMessage } from './messages.js';
+
+const DEBUG_MODE = true;
 
 /**
- * Manages the chat history and context variables.
+ * Logs debug messages if debug mode is enabled.
+ * @param {string} message - The message to log.
+ * @param {any} data - Additional data to include in the log.
  */
+function debugLog(message, data = null) {
+    if (DEBUG_MODE) {
+        console.log(`[DEBUG] ${message}`, data);
+    }
+}
+
+// Chat History and Context Variables
 export let chatHistory = [];
 export let contextVariables = { active_agent_name: null };
 
@@ -12,30 +23,59 @@ export let contextVariables = { active_agent_name: null };
  * Renders the first (assistant) message if none exists.
  */
 export function renderFirstUserMessage() {
-    const firstMessageExists = chatHistory.some(msg => msg.role === "user");
+    const firstMessageExists = chatHistory.some((msg) => msg.role === 'user');
     if (!firstMessageExists) {
         const firstUserMessage = {
-            role: "assistant",
-            content: "Welcome to Open-Swarm Chat!",
-            sender: "Assistant",
+            role: 'assistant',
+            content: 'Welcome to Open-Swarm Chat!',
+            sender: 'Assistant',
             metadata: {},
         };
         chatHistory.push(firstUserMessage);
-        appendRawMessage(firstUserMessage.role, { content: firstUserMessage.content }, firstUserMessage.sender, firstUserMessage.metadata);
-
-        const firstUserMessageDiv = document.getElementById("firstUserMessage");
-        if (firstUserMessageDiv) {
-            firstUserMessageDiv.innerHTML = `<strong>${firstUserMessage.sender}:</strong> ${firstUserMessage.content}`;
-            firstUserMessageDiv.style.display = "block";
-        }
-
-        // Clear heading text to save space
-        const chatHeading = document.getElementById('chatHeading');
-        if (chatHeading) {
-            chatHeading.innerHTML = "";
-        }
+        appendRawMessage(
+            firstUserMessage.role,
+            { content: firstUserMessage.content },
+            firstUserMessage.sender,
+            firstUserMessage.metadata
+        );
     }
 }
+
+/**
+ * Populates the blueprint dropdown and updates the metadata for the selected blueprint.
+ * @param {Array} blueprints - The list of blueprints fetched from the API.
+ */
+function populateBlueprintDropdown(blueprints) {
+    const blueprintDropdown = document.getElementById('blueprintDropdown');
+    const blueprintMetadata = document.getElementById('blueprintMetadata');
+
+    if (!blueprintDropdown || !blueprintMetadata) {
+        console.warn('Blueprint dropdown or metadata element not found.');
+        return;
+    }
+
+    // Populate the dropdown
+    blueprintDropdown.innerHTML = blueprints
+        .map((bp) => `<option value="${bp.id}">${bp.title}</option>`)
+        .join('');
+
+    // Get the current blueprint from the URI
+    const currentBlueprintId = window.location.pathname.split('/').filter(Boolean).pop();
+    const defaultBlueprint = blueprints.find((bp) => bp.id === currentBlueprintId) || blueprints[0];
+
+    // Set the default selection and update metadata
+    blueprintDropdown.value = defaultBlueprint.id;
+    updateBlueprintMetadata(defaultBlueprint);
+
+    // Add event listener for dropdown changes
+    blueprintDropdown.addEventListener('change', (e) => {
+        const selectedBlueprint = blueprints.find((bp) => bp.id === e.target.value);
+        if (selectedBlueprint) {
+            updateBlueprintMetadata(selectedBlueprint);
+        }
+    });
+}
+
 
 /**
  * Handles user message submission.
@@ -121,143 +161,20 @@ export async function handleSubmit() {
     }
 }
 
-/**
- * Processes the assistant's response.
- */
-export function processAssistantResponse(choices, updatedContextVars) {
-    if (!Array.isArray(choices)) {
-        console.error("Invalid choices array:", choices);
-        showToast("⚠️ Invalid response from server.", "error");
-        return;
-    }
-
-    // Merge context variables
-    contextVariables = { ...contextVariables, ...updatedContextVars };
-
-    console.log("Processing assistant response with choices:", choices);
-
-    choices.forEach(choice => {
-        const rawMsg = { ...choice.message };
-        chatHistory.push(rawMsg);
-
-        const role = rawMsg.role || "assistant";
-        const content = rawMsg.content ?? "No content";
-        const sender = rawMsg.sender || (role === "user" ? "User" : "Assistant");
-        const metadata = { ...rawMsg };
-
-        console.log("Rendering message with:", { role, content, sender, metadata });
-
-        // Avoid duplicating the first message
-        if (chatHistory.length > 1) {
-            renderMessage(role, { content }, sender, metadata);
-        }
-        appendRawMessage(role, { content }, sender, metadata);
-    });
-
-    console.log("Assistant response processed successfully.");
-}
 
 /**
- * Shows the loading indicator.
+ * Updates the blueprint metadata section with the selected blueprint's details.
+ * @param {Object} blueprint - The selected blueprint.
  */
-export function showLoadingIndicator() {
-    const loadingIndicator = document.getElementById("loadingIndicator");
-    if (!loadingIndicator) return;
+function updateBlueprintMetadata(blueprint) {
+    const blueprintMetadata = document.getElementById('blueprintMetadata');
+    if (!blueprintMetadata) return;
 
-    loadingIndicator.style.display = 'flex';
-
-    const container = document.querySelector('.container');
-    const currentLayout = container?.getAttribute('data-theme-layout');
-
-    if (currentLayout === 'mobile-layout') {
-        loadingIndicator.innerHTML = `<p>Assistant is typing...</p>`;
-    } else if (currentLayout === 'minimalist-layout') {
-        loadingIndicator.innerHTML = `
-            <div class="loader">
-                <svg width="50" height="50" viewBox="0 0 120 30" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="15" cy="15" r="15" fill="var(--button-primary)">
-                        <animate attributeName="r" from="15" to="15"
-                            begin="0s" dur="0.8s"
-                            values="15;9;15" calcMode="linear"
-                            repeatCount="indefinite" />
-                        <animate attributeName="fill-opacity" from="1" to="1"
-                            begin="0s" dur="0.8s"
-                            values="1;0.3;1" calcMode="linear"
-                            repeatCount="indefinite" />
-                    </circle>
-                    <circle cx="60" cy="15" r="9" fill="var(--button-primary)" fill-opacity="0.3">
-                        <animate attributeName="r" from="9" to="9"
-                            begin="0.4s" dur="0.8s"
-                            values="9;15;9" calcMode="linear"
-                            repeatCount="indefinite" />
-                        <animate attributeName="fill-opacity" from="0.3" to="0.3"
-                            begin="0.4s" dur="0.8s"
-                            values="0.3;1;0.3" calcMode="linear"
-                            repeatCount="indefinite" />
-                    </circle>
-                    <circle cx="105" cy="15" r="15" fill="var(--button-primary)">
-                        <animate attributeName="r" from="15" to="15"
-                            begin="0.8s" dur="0.8s"
-                            values="15;9;15" calcMode="linear"
-                            repeatCount="indefinite" />
-                        <animate attributeName="fill-opacity" from="1" to="1"
-                            begin="0.8s" dur="0.8s"
-                            values="1;0.3;1" calcMode="linear"
-                            repeatCount="indefinite" />
-                    </circle>
-                </svg>
-            </div>
-        `;
-    } else {
-        // Default pulsating loader
-        loadingIndicator.innerHTML = `
-            <div class="loader">
-                <svg width="50" height="50" viewBox="0 0 120 30" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="15" cy="15" r="15" fill="var(--button-primary)">
-                        <animate attributeName="r" from="15" to="15"
-                            begin="0s" dur="0.8s"
-                            values="15;9;15" calcMode="linear"
-                            repeatCount="indefinite" />
-                        <animate attributeName="fill-opacity" from="1" to="1"
-                            begin="0s" dur="0.8s"
-                            values="1;0.3;1" calcMode="linear"
-                            repeatCount="indefinite" />
-                    </circle>
-                    <circle cx="60" cy="15" r="9" fill="var(--button-primary)" fill-opacity="0.3">
-                        <animate attributeName="r" from="9" to="9"
-                            begin="0.4s" dur="0.8s"
-                            values="9;15;9" calcMode="linear"
-                            repeatCount="indefinite" />
-                        <animate attributeName="fill-opacity" from="0.3" to="0.3"
-                            begin="0.4s" dur="0.8s"
-                            values="0.3;1;0.3" calcMode="linear"
-                            repeatCount="indefinite" />
-                    </circle>
-                    <circle cx="105" cy="15" r="15" fill="var(--button-primary)">
-                        <animate attributeName="r" from="15" to="15"
-                            begin="0.8s" dur="0.8s"
-                            values="15;9;15" calcMode="linear"
-                            repeatCount="indefinite" />
-                        <animate attributeName="fill-opacity" from="1" to="1"
-                            begin="0.8s" dur="0.8s"
-                            values="1;0.3;1" calcMode="linear"
-                            repeatCount="indefinite" />
-                    </circle>
-                </svg>
-            </div>
-        `;
-    }
-}
-
-/**
- * Hides the loading indicator.
- */
-export function hideLoadingIndicator() {
-    const loadingIndicator = document.getElementById("loadingIndicator");
-    if (!loadingIndicator) return;
-
-    loadingIndicator.style.display = 'none';
-    loadingIndicator.innerHTML = '';
+    blueprintMetadata.innerHTML = `
+        <h2>${blueprint.title}</h2>
+        <p>${blueprint.description}</p>
+    `;
+    debugLog('Updated blueprint metadata.', blueprint);
 }
 
 /**
@@ -271,6 +188,19 @@ export function handleChatHistoryClick(item) {
     chatHistoryItems.forEach(i => i.classList.remove('active'));
     item.classList.add('active');
 }
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', async () => {
+    debugLog('Initializing chat logic.');
+    try {
+        const blueprints = await fetchBlueprints();
+        populateBlueprintDropdown(blueprints);
+    } catch (error) {
+        showToast('⚠️ Failed to load blueprints.', 'error');
+        console.error('Error initializing blueprints:', error);
+    }
+});
+
 
 /**
  * Handles chat deletion.
@@ -308,6 +238,7 @@ export async function handleDeleteChat(item) {
     }
 }
 
+
 /**
  * Handles user logout.
  */
@@ -329,3 +260,4 @@ export function handleUpload() {
 export function handleVoiceRecord() {
     showToast("🎤 Voice recording is under development.", "info");
 }
+

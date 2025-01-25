@@ -1,5 +1,6 @@
 import { showToast } from './toast.js';
 import { chatHistory, contextVariables } from './chatLogic.js';
+export { debugLog } from './settings.js';
 
 /**
  * Toggles the Debug pane.
@@ -17,6 +18,13 @@ export function toggleDebugPane() {
         showToast("🐞 Debug pane shown.", "info");
         renderRelevantDebugInfo();
     }
+}
+
+/**
+ * Handles Tech Support Button Click Inside Debug Pane
+ */
+export function handleTechSupport() {
+    showToast("🛠️ Tech Support feature coming soon!", "info");
 }
 
 /**
@@ -41,7 +49,6 @@ function renderRelevantDebugInfo() {
         <p><strong>Metadata:</strong> <pre>${JSON.stringify(metadata || {}, null, 2)}</pre></p>
     `;
 
-    // If there's an active agent, display it
     if (contextVariables.active_agent_name) {
         const activeAgentElement = document.createElement("div");
         activeAgentElement.className = "debug-active-agent";
@@ -50,11 +57,4 @@ function renderRelevantDebugInfo() {
     }
 
     debugContent.scrollTop = debugContent.scrollHeight;
-}
-
-/**
- * Handles Tech Support Button Click Inside Debug Pane
- */
-export function handleTechSupport() {
-    showToast("🛠️ Tech Support feature coming soon!", "info");
 }

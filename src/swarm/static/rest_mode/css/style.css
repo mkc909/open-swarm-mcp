@@ -29,8 +29,8 @@ body {
     position: relative;
     display: flex;
     flex-direction: row;
-    width: 100%;
-    max-width: 1400px;
+    width: 99%;
+    max-width: none;
     margin: 20px;
     padding: 20px;
     background-color: var(--bg-container);

@@ -95,3 +95,37 @@
 .message-toolbar .toolbar-btn:hover {
     opacity: 1; /* Fully visible for hovered button */
 }
+
+/* Quick Prompts Styling */
+.quick-prompts-container {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping */
+    gap: 10px; /* Space between quick prompts */
+    margin: 10px 0; /* Vertical spacing */
+    justify-content: start; /* Align prompts to the left */
+}
+
+/.quick-prompt-button {
+    background-color: var(--button-primary);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.quick-prompt-button:hover {
+    background-color: var(--button-hover-bg);
+}
+
+/* Form Container Updates */
+.form-container {
+    display: flex;
+    gap: 15px; /* Space between buttons and input */
+    align-items: center;
+    padding: 10px;
+    background-color: var(--bg-primary);
+    border-top: 1px solid var(--border-color);
+}

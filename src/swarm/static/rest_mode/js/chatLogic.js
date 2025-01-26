@@ -15,8 +15,6 @@ export let contextVariables = { active_agent_name: null };
 
 /**
  * Processes the assistant's response and updates context variables.
- * @param {Array} choices - The choices from the assistant's response.
- * @param {object} updatedContextVariables - Updated context variables from the server.
  */
 function processAssistantResponse(choices, updatedContextVariables) {
     if (!choices || !Array.isArray(choices)) {
@@ -57,7 +55,6 @@ function processAssistantResponse(choices, updatedContextVariables) {
 
 /**
  * Handles user message submission.
- * Validates the input, updates the UI, and sends the message to the server.
  */
 export async function handleSubmit() {
     const userInput = document.getElementById("userInput");
@@ -139,7 +136,6 @@ export async function handleSubmit() {
 
 /**
  * Initializes the chat logic.
- * Fetches blueprint metadata and sets up the initial UI state.
  */
 export async function initializeChatLogic() {
     debugLog("Initializing chat logic.");
@@ -154,8 +150,6 @@ export async function initializeChatLogic() {
 
 /**
  * Handles chat history item click.
- * Highlights the selected chat and updates the UI.
- * @param {HTMLElement} item - The clicked chat history item.
  */
 export function handleChatHistoryClick(item) {
     const chatName = item.firstChild.textContent.trim();

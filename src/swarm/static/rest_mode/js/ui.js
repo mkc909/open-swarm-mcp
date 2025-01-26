@@ -1,6 +1,7 @@
 import { initializeSidebar } from './sidebar.js';
 import { initializeApplication } from './events.js';
 import { initializeTheme } from './theme.js';
+import { renderQuickPrompts } from './messages.js';
 import { showToast } from './toast.js';
 
 /**
@@ -39,6 +40,32 @@ function replaceAllSVGs() {
             console.warn(`Element not found for selector: ${selector}`);
         }
     });
+}
+
+/**
+ * Shows the splash page during initialization.
+ */
+function showSplashPage() {
+    const splashScreen = document.getElementById('splashScreen');
+    const appContainer = document.getElementById('appContainer');
+
+    if (splashScreen) {
+        splashScreen.style.display = 'flex';
+        appContainer.style.display = 'none';
+    }
+}
+
+/**
+ * Hides the splash page and reveals the app.
+ */
+function hideSplashPage() {
+    const splashScreen = document.getElementById('splashScreen');
+    const appContainer = document.getElementById('appContainer');
+
+    if (splashScreen) {
+        splashScreen.style.display = 'none';
+        appContainer.style.display = 'flex';
+    }
 }
 
 /**
@@ -139,13 +166,20 @@ export function hideLoadingIndicator() {
  * Initializes all UI components and event listeners.
  */
 export function initializeUI() {
+    showSplashPage(); // Show the splash page on load
+    renderQuickPrompts(); // Render quick prompts on load
+
+    // Integrate other initialization logic
     initializeSidebar();
     initializeApplication();
     initializeTheme();
     replaceAllSVGs();
     setupChatHistoryPane();
     setupSettingsToggleButton();
-    setupResizableSidebars(); // Integrated here
+    setupResizableSidebars();
+
+    // Hide the splash screen after initialization
+    setTimeout(hideSplashPage, 2000); // Example delay for effect
 }
 
 document.addEventListener('DOMContentLoaded', initializeUI);

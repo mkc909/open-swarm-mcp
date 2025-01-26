@@ -1,11 +1,9 @@
 import { debugLog } from './debug.js';
 
+let quickPrompts = ["What is Open-Swarm?", "Explain the architecture.", "How do I set up a new blueprint?"];
+
 /**
  * Renders a message into the UI.
- * @param {string} role - The role of the message sender ('user', 'assistant', etc.).
- * @param {Object} content - The content of the message (text or rich content).
- * @param {string} sender - The name of the sender.
- * @param {Object} metadata - Additional metadata for the message.
  */
 export function renderMessage(role, content, sender, metadata) {
     debugLog('Rendering message...', { role, content, sender, metadata });
@@ -21,6 +19,13 @@ export function renderMessage(role, content, sender, metadata) {
     messageDiv.innerHTML = `
         <span><strong>${sender}:</strong> ${content.text || content.content || 'No content available'}</span>
         <div class="message-toolbar">
+            <button class="toolbar-btn" aria-label="Thumbs Up">
+                <img src="/static/rest_mode/svg/thumbs_up.svg" alt="Thumbs Up Icon" class="icon-svg" />
+            </button>
+            <button class="toolbar-btn" aria-label="Thumbs Down">
+                <img src="/static/rest_mode/svg/thumbs_down.svg" alt="Thumbs Down Icon" class="icon-svg" />
+            </button>
+            <div class="toolbar-gap"></div>
             <button class="toolbar-btn" aria-label="Append to Persistent Message">
                 <img src="/static/rest_mode/svg/plus.svg" alt="Plus Icon" class="icon-svg" />
             </button>
@@ -30,19 +35,13 @@ export function renderMessage(role, content, sender, metadata) {
             <button class="toolbar-btn" aria-label="Copy Message">
                 <img src="/static/rest_mode/svg/copy.svg" alt="Copy Icon" class="icon-svg" />
             </button>
+            <div class="toolbar-gap"></div>
             <button class="toolbar-btn" aria-label="Delete Message">
                 <img src="/static/rest_mode/svg/trash.svg" alt="Trash Icon" class="icon-svg" />
-            </button>
-            <button class="toolbar-btn" aria-label="Thumbs Up">
-                <img src="/static/rest_mode/svg/thumbs_up.svg" alt="Thumbs Up Icon" class="icon-svg" />
-            </button>
-            <button class="toolbar-btn" aria-label="Thumbs Down">
-                <img src="/static/rest_mode/svg/thumbs_down.svg" alt="Thumbs Down Icon" class="icon-svg" />
             </button>
         </div>
     `;
 
-    // Add metadata as a tooltip (if applicable)
     if (metadata && Object.keys(metadata).length) {
         messageDiv.title = JSON.stringify(metadata, null, 2);
     }
@@ -50,30 +49,91 @@ export function renderMessage(role, content, sender, metadata) {
     messageContainer.appendChild(messageDiv);
     debugLog('Message rendered successfully.', { role, content, sender, metadata });
 
-    // Attach toolbar functionality
     attachToolbarActions(messageDiv);
 }
 
 /**
  * Appends a raw message object into the chat UI.
- * @param {string} role - The role of the message sender.
- * @param {Object} content - The content of the message.
- * @param {string} sender - The sender's name.
- * @param {Object} metadata - Additional metadata.
  */
 export function appendRawMessage(role, content, sender, metadata) {
     debugLog('Appending raw message...', { role, content, sender, metadata });
 
     renderMessage(role, content, sender, metadata);
 
-    // Scroll to the bottom of the message history
     const messageContainer = document.getElementById('messageHistory');
     if (messageContainer) {
         messageContainer.scrollTop = messageContainer.scrollHeight;
         debugLog('Scrolled to the bottom of the message history.');
-    } else {
-        debugLog('Message container not found while appending raw message.', { role, content, sender, metadata });
     }
+}
+
+/**
+ * Renders quick prompts in the UI.
+ */
+export function renderQuickPrompts() {
+    const quickPromptsContainer = document.getElementById('quickPrompts');
+    if (!quickPromptsContainer) {
+        debugLog('Quick prompts container not found.');
+        return;
+    }
+
+    quickPromptsContainer.innerHTML = quickPrompts
+        .map(
+            (prompt, index) => `
+            <button class="quick-prompt-button" data-index="${index}">
+                ${prompt}
+            </button>`
+        )
+        .join('');
+
+    document.querySelectorAll('.quick-prompt-button').forEach((button) =>
+        button.addEventListener('click', (e) => handleQuickPromptSelection(e))
+    );
+    debugLog('Quick prompts rendered successfully.');
+}
+
+/**
+ * Handles quick prompt selection.
+ */
+function handleQuickPromptSelection(event) {
+    const promptIndex = event.target.getAttribute('data-index');
+    const promptText = quickPrompts[promptIndex];
+
+    appendRawMessage('user', { content: promptText }, 'User', {});
+    clearQuickPrompts();
+}
+
+/**
+ * Clears all quick prompts from the UI.
+ */
+function clearQuickPrompts() {
+    const quickPromptsContainer = document.getElementById('quickPrompts');
+    if (quickPromptsContainer) {
+        quickPromptsContainer.innerHTML = '';
+        debugLog('Quick prompts cleared.');
+    }
+}
+
+/**
+ * Allows adding a new quick prompt dynamically.
+ */
+export function addQuickPrompt(prompt) {
+    quickPrompts.push(prompt);
+    renderQuickPrompts();
+    debugLog('Quick prompt added.', { prompt });
+}
+
+/**
+ * Removes a quick prompt by index.
+ */
+export function removeQuickPrompt(index) {
+    if (index < 0 || index >= quickPrompts.length) {
+        debugLog('Invalid quick prompt index.', { index });
+        return;
+    }
+    quickPrompts.splice(index, 1);
+    renderQuickPrompts();
+    debugLog('Quick prompt removed.', { index });
 }
 
 /**
@@ -86,90 +146,86 @@ export function clearMessages() {
     if (messageContainer) {
         messageContainer.innerHTML = '';
         debugLog('Chat history cleared successfully.');
-    } else {
-        debugLog('Message container not found while clearing messages.');
     }
 }
 
 /**
  * Attaches toolbar actions to a message element.
- * @param {HTMLElement} messageDiv - The message element to attach toolbar actions to.
  */
 function attachToolbarActions(messageDiv) {
     const persistentMessage = document.getElementById("persistentMessage");
 
     messageDiv.addEventListener("click", (event) => {
-        const target = event.target.closest("button");
+        const target = event.target.closest('button');
         if (!target) return;
 
-        const action = target.getAttribute("aria-label");
+        const action = target.getAttribute('aria-label');
 
         switch (action) {
-            case "Append to Persistent Message":
+            case 'Thumbs Up':
+                debugLog('Thumbs up clicked.');
+                break;
+            case 'Thumbs Down':
+                debugLog('Thumbs down clicked.');
+                break;
+            case 'Append to Persistent Message':
                 appendToPersistentMessage(messageDiv, persistentMessage);
                 break;
-            case "Edit Message":
+            case 'Edit Message':
                 editMessage(messageDiv);
                 break;
-            case "Copy Message":
+            case 'Copy Message':
                 copyMessageToClipboard(messageDiv);
                 break;
-            case "Delete Message":
+            case 'Delete Message':
                 deleteMessage(messageDiv);
                 break;
-            default:
-                debugLog(`Unknown action: ${action}`);
         }
     });
 }
 
 /**
  * Appends the content of a message to the persistent message area.
- * @param {HTMLElement} messageDiv - The message element.
- * @param {HTMLElement} persistentMessage - The persistent message area.
  */
 function appendToPersistentMessage(messageDiv, persistentMessage) {
-    const content = messageDiv.querySelector("span").innerText;
-    const persistentMessageContent = persistentMessage.querySelector(".message span");
+    const content = messageDiv.querySelector('span').innerText;
+    const persistentMessageContent = persistentMessage.querySelector('.message span');
     if (persistentMessageContent) {
         persistentMessageContent.innerText = content;
     }
-    debugLog("Message appended to persistent message area.", { content });
+    debugLog('Message appended to persistent message area.', { content });
 }
 
 /**
  * Allows the user to edit a message.
- * @param {HTMLElement} messageDiv - The message element.
  */
 function editMessage(messageDiv) {
-    const span = messageDiv.querySelector("span");
+    const span = messageDiv.querySelector('span');
     const content = span.innerText;
-    const newContent = prompt("Edit your message:", content);
+    const newContent = prompt('Edit your message:', content);
     if (newContent !== null) {
         span.innerText = newContent;
-        debugLog("Message edited successfully.", { newContent });
+        debugLog('Message edited successfully.', { newContent });
     }
 }
 
 /**
  * Copies a message's content to the clipboard.
- * @param {HTMLElement} messageDiv - The message element.
  */
 function copyMessageToClipboard(messageDiv) {
-    const content = messageDiv.querySelector("span").innerText;
+    const content = messageDiv.querySelector('span').innerText;
     navigator.clipboard.writeText(content).then(() => {
-        alert("Message copied to clipboard!");
-        debugLog("Message copied to clipboard.", { content });
+        alert('Message copied to clipboard!');
+        debugLog('Message copied to clipboard.', { content });
     });
 }
 
 /**
  * Deletes a message from the chat history.
- * @param {HTMLElement} messageDiv - The message element.
  */
 function deleteMessage(messageDiv) {
-    if (confirm("Are you sure you want to delete this message?")) {
+    if (confirm('Are you sure you want to delete this message?')) {
         messageDiv.remove();
-        debugLog("Message deleted successfully.");
+        debugLog('Message deleted successfully.');
     }
 }

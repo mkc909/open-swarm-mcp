@@ -41,41 +41,6 @@ export function validateMessage(message) {
  * Fetches and renders blueprint metadata from /v1/models/.
  */
 export async function fetchBlueprintMetadata() {
-    const blueprintMetadataElement = document.getElementById('blueprintMetadata');
-    const persistentMessageElement = document.getElementById('firstUserMessage');
-
-    // Check if the elements exist
-    if (!blueprintMetadataElement || !persistentMessageElement) {
-        console.error("Error: Required DOM elements 'blueprintMetadata' or 'firstUserMessage' not found.");
-        return;
-    }
-
-    // Timeout messages
-    setTimeout(() => {
-        if (!blueprintName) {
-            appendRawMessage(
-                'assistant',
-                {
-                    content: 'Waiting for blueprint to download...',
-                },
-                'Assistant'
-            );
-        }
-    }, 3000);
-
-    setTimeout(() => {
-        if (!blueprintName) {
-            appendRawMessage(
-                'assistant',
-                {
-                    content:
-                        'Could not retrieve blueprint metadata. Check out the troubleshooting guide at <a href="https://github.com/matthewhand/open-swarm/TROUBLESHOOTING.md">Troubleshooting Guide</a>.',
-                },
-                'Assistant'
-            );
-        }
-    }, 8000);
-
     try {
         const response = await fetch('/v1/models/');
         if (!response.ok) throw new Error('Failed to fetch metadata.');
@@ -89,14 +54,11 @@ export async function fetchBlueprintMetadata() {
         blueprintName = defaultBlueprint.title;
         blueprintMetadata = defaultBlueprint.description;
 
-        // Update UI
-        blueprintMetadataElement.innerHTML = `<h2>${blueprintName}</h2>`;
-        persistentMessageElement.innerHTML = `<p>${blueprintMetadata}</p>`;
-
+        // Post blueprint metadata as an Assistant message
         appendRawMessage(
             'assistant',
             {
-                content: `Blueprint loaded: ${blueprintName}`,
+                content: `Blueprint loaded: <strong>${blueprintName}</strong><br>${blueprintMetadata}`,
             },
             'Assistant'
         );
@@ -104,6 +66,16 @@ export async function fetchBlueprintMetadata() {
         populateBlueprintDialog(blueprints); // Populate blueprint dialog options
     } catch (error) {
         console.error('Error fetching blueprint metadata:', error);
+
+        // Add fallback messages for errors
+        appendRawMessage(
+            'assistant',
+            {
+                content:
+                    'Could not retrieve blueprint metadata. Check out the troubleshooting guide at <a href="https://github.com/matthewhand/open-swarm/TROUBLESHOOTING.md">Troubleshooting Guide</a>.',
+            },
+            'Assistant'
+        );
     }
 }
 
@@ -145,27 +117,23 @@ function populateBlueprintDialog(blueprints) {
  * @param {Object} blueprint - The selected blueprint.
  */
 function selectBlueprint(blueprint) {
-    const blueprintMetadataElement = document.getElementById('blueprintMetadata');
-    const blueprintDialogElement = document.getElementById('blueprintDialog');
-    const persistentMessageElement = document.getElementById('firstUserMessage');
-
     blueprintName = blueprint.title;
     blueprintMetadata = blueprint.description;
 
-    // Update UI
-    blueprintMetadataElement.innerHTML = `<h2>${blueprintName}</h2>`;
-    persistentMessageElement.innerHTML = `<p>${blueprintMetadata}</p>`;
-
+    // Post updated blueprint metadata
     appendRawMessage(
         'assistant',
         {
-            content: `Blueprint loaded: ${blueprintName}`,
+            content: `Blueprint loaded: <strong>${blueprintName}</strong><br>${blueprintMetadata}`,
         },
         'Assistant'
     );
 
-    // Hide the dialog
-    blueprintDialogElement.classList.add('hidden');
+    // Hide the blueprint dialog
+    const blueprintDialogElement = document.getElementById('blueprintDialog');
+    if (blueprintDialogElement) {
+        blueprintDialogElement.classList.add('hidden');
+    }
 }
 
 /**

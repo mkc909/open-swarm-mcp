@@ -92,9 +92,9 @@ function setupSettingsToggleButton() {
 
     if (settingsToggleButton && optionsPane) {
         settingsToggleButton.addEventListener('click', () => {
-            const isVisible = optionsPane.style.display !== 'none';
-            optionsPane.style.display = isVisible ? 'none' : 'block';
-            showToast(isVisible ? "Settings pane hidden." : "Settings pane expanded.", "info");
+            optionsPane.classList.toggle('hidden');
+            const isVisible = !optionsPane.classList.contains('hidden');
+            showToast(isVisible ? "Settings pane expanded." : "Settings pane hidden.", "info");
         });
     } else {
         console.warn('Warning: Settings toggle button or options pane not found.');

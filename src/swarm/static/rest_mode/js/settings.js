@@ -83,3 +83,142 @@ function updateSettingsPane(config) {
     `;
     debugLog("Settings pane updated successfully.");
 }
+    
+document.addEventListener('DOMContentLoaded', function() {
+    // Mobile UI Toggle Handlers
+    const mobileUIToggle = document.getElementById('mobileUIToggle');
+    if (mobileUIToggle) {
+        mobileUIToggle.addEventListener('change', function() {
+            const isEnabled = this.checked;
+            // Handle Mobile UI toggle
+            if (isEnabled) {
+                showToast("Mobile UI enabled", "success");
+                // Additional logic to enable Mobile UI features
+            } else {
+                showToast("Mobile UI disabled", "info");
+                // Additional logic to disable Mobile UI features
+            }
+        });
+    }
+
+    const alwaysVisibleButtonsToggle = document.getElementById('alwaysVisibleButtonsToggle');
+    if (alwaysVisibleButtonsToggle) {
+        alwaysVisibleButtonsToggle.addEventListener('change', function() {
+            const isEnabled = this.checked;
+            // Handle Always Visible Buttons toggle
+            if (isEnabled) {
+                showToast("Always Visible Buttons enabled", "success");
+                // Logic to show always visible buttons
+            } else {
+                showToast("Always Visible Buttons disabled", "info");
+                // Logic to hide always visible buttons
+            }
+        });
+    }
+
+    const swipeLeftSettingsToggle = document.getElementById('swipeLeftSettingsToggle');
+    if (swipeLeftSettingsToggle) {
+        swipeLeftSettingsToggle.addEventListener('change', function() {
+            const isEnabled = this.checked;
+            // Handle Swipe left for Settings toggle
+            if (isEnabled) {
+                showToast("Swipe left for Settings enabled", "success");
+                // Logic to enable swipe left for settings
+            } else {
+                showToast("Swipe left for Settings disabled", "info");
+                // Logic to disable swipe left for settings
+            }
+        });
+    }
+
+    const swipeRightChatHistoryToggle = document.getElementById('swipeRightChatHistoryToggle');
+    if (swipeRightChatHistoryToggle) {
+        swipeRightChatHistoryToggle.addEventListener('change', function() {
+            const isEnabled = this.checked;
+            // Handle Swipe right for Chat History toggle
+            if (isEnabled) {
+                showToast("Swipe right for Chat History enabled", "success");
+                // Logic to enable swipe right for chat history
+            } else {
+                showToast("Swipe right for Chat History disabled", "info");
+                // Logic to disable swipe right for chat history
+            }
+        });
+    }
+
+    const swipeDownControlsToggle = document.getElementById('swipeDownControlsToggle');
+    if (swipeDownControlsToggle) {
+        swipeDownControlsToggle.addEventListener('change', function() {
+            const isEnabled = this.checked;
+            // Handle Swipe down for Controls toggle
+            if (isEnabled) {
+                showToast("Swipe down for Controls enabled", "success");
+                // Logic to enable swipe down for controls
+            } else {
+                showToast("Swipe down for Controls disabled", "info");
+                // Logic to disable swipe down for controls
+            }
+        });
+    }
+});
+
+    // Mobile UI Toggle Handlers
+    document.getElementById('mobileUIToggle').addEventListener('change', function() {
+        const isEnabled = this.checked;
+        // Handle Mobile UI toggle
+        if (isEnabled) {
+            showToast("Mobile UI enabled", "success");
+            // Additional logic to enable Mobile UI features
+        } else {
+            showToast("Mobile UI disabled", "info");
+            // Additional logic to disable Mobile UI features
+        }
+    });
+    
+    document.getElementById('alwaysVisibleButtonsToggle').addEventListener('change', function() {
+        const isEnabled = this.checked;
+        // Handle Always Visible Buttons toggle
+        if (isEnabled) {
+            showToast("Always Visible Buttons enabled", "success");
+            // Logic to show always visible buttons
+        } else {
+            showToast("Always Visible Buttons disabled", "info");
+            // Logic to hide always visible buttons
+        }
+    });
+    
+    document.getElementById('swipeLeftSettingsToggle').addEventListener('change', function() {
+        const isEnabled = this.checked;
+        // Handle Swipe left for Settings toggle
+        if (isEnabled) {
+            showToast("Swipe left for Settings enabled", "success");
+            // Logic to enable swipe left for settings
+        } else {
+            showToast("Swipe left for Settings disabled", "info");
+            // Logic to disable swipe left for settings
+        }
+    });
+    
+    document.getElementById('swipeRightChatHistoryToggle').addEventListener('change', function() {
+        const isEnabled = this.checked;
+        // Handle Swipe right for Chat History toggle
+        if (isEnabled) {
+            showToast("Swipe right for Chat History enabled", "success");
+            // Logic to enable swipe right for chat history
+        } else {
+            showToast("Swipe right for Chat History disabled", "info");
+            // Logic to disable swipe right for chat history
+        }
+    });
+    
+    document.getElementById('swipeDownControlsToggle').addEventListener('change', function() {
+        const isEnabled = this.checked;
+        // Handle Swipe down for Controls toggle
+        if (isEnabled) {
+            showToast("Swipe down for Controls enabled", "success");
+            // Logic to enable swipe down for controls
+        } else {
+            showToast("Swipe down for Controls disabled", "info");
+            // Logic to disable swipe down for controls
+        }
+    });

@@ -1,5 +1,5 @@
 {% load static %}
-<div class="side-panes options-pane" id="optionsPane" style="display: none;">
+<div class="side-panes options-pane" id="optionsPane">
     <button class="sidebar-hide-btn" id="optionsSidebarHideBtn">
         <img src="{% static 'rest_mode/svg/arrow_right.svg' %}" alt="Hide Settings Pane">
     </button>
@@ -40,18 +40,31 @@
             </div>
             <div class="toggle-content">
                 <div class="nested-toggle">
-                    <label for="chatHistoryTrashToggle">
-                        <input type="checkbox" id="chatHistoryTrashToggle"> Show Chat History Trash
+                    <label for="alwaysVisibleButtonsToggle">
+                        <img src="{% static 'rest_mode/svg/toggle_off.svg' %}" alt="Toggle Off" class="toggle-icon">
+                        <img src="{% static 'rest_mode/svg/toggle_on.svg' %}" alt="Toggle On" class="toggle-icon">
+                        <input type="checkbox" id="alwaysVisibleButtonsToggle"> Always Visible Buttons
                     </label>
                 </div>
                 <div class="nested-toggle">
-                    <label for="messageActionToggle">
-                        <input type="checkbox" id="messageActionToggle"> Show Message Action Items
+                    <label for="swipeLeftSettingsToggle">
+                        <img src="{% static 'rest_mode/svg/toggle_off.svg' %}" alt="Toggle Off" class="toggle-icon">
+                        <img src="{% static 'rest_mode/svg/toggle_on.svg' %}" alt="Toggle On" class="toggle-icon">
+                        <input type="checkbox" id="swipeLeftSettingsToggle"> Swipe left for Settings
                     </label>
                 </div>
                 <div class="nested-toggle">
-                    <label for="sidebarCloseToggle">
-                        <input type="checkbox" id="sidebarCloseToggle"> Show Sidebar Close Buttons
+                    <label for="swipeRightChatHistoryToggle">
+                        <img src="{% static 'rest_mode/svg/toggle_off.svg' %}" alt="Toggle Off" class="toggle-icon">
+                        <img src="{% static 'rest_mode/svg/toggle_on.svg' %}" alt="Toggle On" class="toggle-icon">
+                        <input type="checkbox" id="swipeRightChatHistoryToggle"> Swipe right for Chat History
+                    </label>
+                </div>
+                <div class="nested-toggle">
+                    <label for="swipeDownControlsToggle">
+                        <img src="{% static 'rest_mode/svg/toggle_off.svg' %}" alt="Toggle Off" class="toggle-icon">
+                        <img src="{% static 'rest_mode/svg/toggle_on.svg' %}" alt="Toggle On" class="toggle-icon">
+                        <input type="checkbox" id="swipeDownControlsToggle"> Swipe down for Controls
                     </label>
                 </div>
             </div>

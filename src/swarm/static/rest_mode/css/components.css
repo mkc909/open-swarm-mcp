@@ -15,6 +15,50 @@
     transform: scale(1.1); /* Slightly increase size */
 }
 
+/* Button with Labels */
+.button-with-label {
+    display: flex;
+    align-items: center;
+    gap: 5px; /* Spacing between icon and label */
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: background-color var(--transition-duration, 0.3s) ease;
+    color: var(--text-primary);
+    font-size: 1rem;
+    border-radius: 4px;
+}
+
+.button-with-label svg {
+    width: var(--icon-size, 24px);
+    height: var(--icon-size, 24px);
+    fill: var(--text-secondary);
+    transition: fill var(--transition-duration, 0.3s) ease;
+}
+
+.button-with-label:hover svg {
+    fill: var(--button-hover);
+}
+
+.button-with-label:hover {
+    background-color: var(--bg-container);
+    color: var(--button-hover);
+}
+
+/* Text Label Styling */
+.button-label {
+    display: inline-block; /* Ensures proper alignment */
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    transition: color var(--transition-duration, 0.3s) ease;
+}
+
+/* Hide labels when toggled off */
+[data-hide-labels="true"] .button-label {
+    display: none;
+}
+
 /* Chat History Item */
 .chat-history-item {
     position: relative;
@@ -81,4 +125,29 @@
 /* Persistent Toolbar */
 .persistent-toolbar .toolbar-btn {
     margin-right: 8px; /* Spacing between buttons */
+}
+
+/* Tooltip Styling */
+.toolbar-btn[title]::after {
+    content: attr(title); /* Use the title attribute */
+    position: absolute;
+    bottom: 120%; /* Position above the icon */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--bg-container);
+    color: var(--text-primary);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.toolbar-btn:hover[title]::after {
+    opacity: 1; /* Visible on hover */
+    visibility: visible;
 }

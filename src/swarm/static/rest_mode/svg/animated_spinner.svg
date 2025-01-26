@@ -1,11 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="58 30">
-    <animateTransform 
-      attributeName="transform" 
-      type="rotate"
-      dur="1s" 
-      from="0 12 12"
-      to="360 12 12" 
-      repeatCount="indefinite"/>
-  </circle>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+          <!-- Spinner Circle -->
+          <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" stroke-width="4" stroke-dasharray="120 40">
+            <animateTransform 
+              attributeName="transform" 
+              type="rotate"
+              dur="1s" 
+              from="0 24 24"
+              to="360 24 24" 
+              repeatCount="indefinite"/>
+          </circle>
+        </svg>

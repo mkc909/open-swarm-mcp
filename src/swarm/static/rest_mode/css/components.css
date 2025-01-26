@@ -1,65 +1,4 @@
-/* components.css - Buttons, Icons, and Forms */
-
-/* General Icon SVG Styling */
-.icon-svg {
-    width: var(--icon-size, 24px); /* Default size */
-    height: var(--icon-size, 24px);
-    fill: var(--text-secondary); /* Default color */
-    vertical-align: middle;
-    transition: fill var(--transition-duration, 0.3s) ease, transform var(--transition-duration, 0.3s) ease;
-}
-
-/* Hover and Focus Effects */
-.icon-svg:hover {
-    fill: var(--button-hover); /* Hover color from theme */
-    transform: scale(1.1); /* Slightly increase size */
-}
-
-/* Button with Labels */
-.button-with-label {
-    display: flex;
-    align-items: center;
-    gap: 5px; /* Spacing between icon and label */
-    padding: 8px 12px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    transition: background-color var(--transition-duration, 0.3s) ease;
-    color: var(--text-primary);
-    font-size: 1rem;
-    border-radius: 4px;
-}
-
-.button-with-label svg {
-    width: var(--icon-size, 24px);
-    height: var(--icon-size, 24px);
-    fill: var(--text-secondary);
-    transition: fill var(--transition-duration, 0.3s) ease;
-}
-
-.button-with-label:hover svg {
-    fill: var(--button-hover);
-}
-
-.button-with-label:hover {
-    background-color: var(--bg-container);
-    color: var(--button-hover);
-}
-
-/* Text Label Styling */
-.button-label {
-    display: inline-block; /* Ensures proper alignment */
-    font-size: 0.9rem;
-    color: var(--text-primary);
-    transition: color var(--transition-duration, 0.3s) ease;
-}
-
-/* Hide labels when toggled off */
-[data-hide-labels="true"] .button-label {
-    display: none;
-}
-
-/* Chat History Item */
+/* Chat History Item Styling */
 .chat-history-item {
     position: relative;
     padding: 10px;
@@ -75,7 +14,7 @@
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Chat Item Tools */
+/* Chat Item Tools (Hover Visibility) */
 .chat-item-tools {
     display: flex;
     align-items: center;
@@ -86,16 +25,18 @@
     transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
+/* Show Tools on Hover (Excludes Timestamp) */
 .chat-history-item:hover .chat-item-tools {
     opacity: 1;
     visibility: visible;
 }
 
-/* Time Range */
+/* Always Visible Date-Time Styling */
 .chat-item-time {
     font-size: 0.85rem;
     color: var(--text-secondary);
     font-style: italic;
+    margin-right: 10px; /* Adds spacing between timestamp and trash icon */
 }
 
 /* Toolbar Buttons */
@@ -116,38 +57,8 @@
     transform: scale(1.1);
 }
 
-/* Button Icons */
+/* Button Icon Styling */
 .toolbar-btn img {
     width: var(--icon-size, 20px);
     height: var(--icon-size, 20px);
-}
-
-/* Persistent Toolbar */
-.persistent-toolbar .toolbar-btn {
-    margin-right: 8px; /* Spacing between buttons */
-}
-
-/* Tooltip Styling */
-.toolbar-btn[title]::after {
-    content: attr(title); /* Use the title attribute */
-    position: absolute;
-    bottom: 120%; /* Position above the icon */
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: var(--bg-container);
-    color: var(--text-primary);
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    white-space: nowrap;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.2s ease, visibility 0.2s ease;
-    z-index: 1000;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.toolbar-btn:hover[title]::after {
-    opacity: 1; /* Visible on hover */
-    visibility: visible;
 }

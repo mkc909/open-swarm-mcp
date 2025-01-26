@@ -1,28 +1,36 @@
 {% load static %}
 <div class="side-panes chat-history-pane" id="chatHistoryPane">
+    <!-- Close Sidebar Button -->
     <button class="sidebar-hide-btn" id="leftSidebarHideBtn" aria-label="Hide Chat History">
         <img src="{% static 'rest_mode/svg/arrow_left.svg' %}" alt="Hide Chat Pane">
     </button>
+
+    <!-- Chat History Title -->
     <h2>📜 Chat History</h2>
+
+    <!-- Chat History Items -->
     <ul>
+        <!-- Example Chat Item 1 -->
         <li class="chat-history-item">
             <details>
                 <summary>Welcome to Open-Swarm</summary>
                 <p>Welcome to Open-Swarm Chat! Start a conversation to explore its capabilities.</p>
+                <span class="chat-item-time">January 1, 2025, 10:00 AM - 11:00 AM</span>
                 <div class="chat-item-tools">
-                    <span class="chat-item-time">January 1, 2025, 10:00 AM - 11:00 AM</span>
                     <button class="toolbar-btn" title="Delete Chat">
                         <img src="{% static 'rest_mode/svg/trash.svg' %}" alt="Delete Chat">
                     </button>
                 </div>
             </details>
         </li>
+
+        <!-- Example Chat Item 2 -->
         <li class="chat-history-item">
             <details>
                 <summary>FAQ</summary>
                 <p>Find frequently asked questions and their answers here.</p>
+                <span class="chat-item-time">January 2, 2025, 12:00 PM - 1:00 PM</span>
                 <div class="chat-item-tools">
-                    <span class="chat-item-time">January 2, 2025, 12:00 PM - 1:00 PM</span>
                     <button class="toolbar-btn" title="Delete Chat">
                         <img src="{% static 'rest_mode/svg/trash.svg' %}" alt="Delete Chat">
                     </button>

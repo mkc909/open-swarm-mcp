@@ -101,6 +101,46 @@ function setupSettingsToggleButton() {
     }
 }
 
+function setupVerticalResizers() {
+    const leftDivider = document.getElementById("divider-left");
+    const rightDivider = document.getElementById("divider-right");
+    const chatHistoryPane = document.querySelector(".chat-history-pane");
+    const mainPane = document.querySelector(".main-pane");
+    const optionsPane = document.querySelector(".options-pane");
+
+    if (!leftDivider || !rightDivider) {
+        console.warn("Resizer elements not found in the DOM.");
+        return; // Exit early if elements are missing
+    }
+
+    const handleMouseMove = (e, targetPane, isLeft) => {
+        const newWidth = isLeft
+            ? e.clientX - chatHistoryPane.getBoundingClientRect().left
+            : optionsPane.getBoundingClientRect().right - e.clientX;
+        if (newWidth > 100 && newWidth < 500) {
+            targetPane.style.flex = `0 0 ${newWidth}px`;
+        }
+    };
+
+    const setupResizer = (divider, targetPane, isLeft) => {
+        divider.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            const onMouseMove = (event) =>
+                handleMouseMove(event, targetPane, isLeft);
+            document.addEventListener("mousemove", onMouseMove);
+            document.addEventListener("mouseup", () => {
+                document.removeEventListener("mousemove", onMouseMove);
+            });
+        });
+    };
+
+    setupResizer(leftDivider, chatHistoryPane, true);
+    setupResizer(rightDivider, optionsPane, false);
+}
+
+// Initialize resizers
+document.addEventListener("DOMContentLoaded", setupVerticalResizers);
+
 /**
  * Initializes all UI components and event listeners.
  */

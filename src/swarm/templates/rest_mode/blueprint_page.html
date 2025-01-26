@@ -6,29 +6,33 @@
     </head>
     <body>
         {% include 'rest_mode/components/splash_screen.html' %}
-        <div class="container" data-theme-color="pastel" data-theme-dark="false" data-theme-layout="messenger-layout">
+        <div class="container">
             <!-- Top Bar -->
-            <div class="top-bar-container">
+            <div class="top-bar">
                 {% include 'rest_mode/components/top_bar.html' %}
             </div>
 
             <!-- Main Layout -->
-            <div class="main-layout">
+            <div class="main-content">
                 <!-- Left Sidebar -->
-                {% include 'rest_mode/components/chat_sidebar.html' %}
+                <div class="chat-history-pane">
+                    {% include 'rest_mode/components/chat_sidebar.html' %}
+                </div>
 
-                <!-- Main Content -->
-                {% include 'rest_mode/components/main_chat_pane.html' %}
+                <!-- Main Pane -->
+                <div class="main-pane">
+                    {% include 'rest_mode/components/main_chat_pane.html' %}
+                </div>
 
                 <!-- Right Sidebar -->
-                {% include 'rest_mode/components/settings_sidebar.html' %}
+                <div class="options-pane">
+                    {% include 'rest_mode/components/settings_sidebar.html' %}
+                </div>
             </div>
         </div>
 
-        <!-- Scripts (ES Modules) -->
+        <!-- Scripts -->
         <script type="module" src="{% static 'rest_mode/js/base.js' %}"></script>
-        <script type="module" src="{% static 'rest_mode/js/chatLogic.js' %}"></script>
-        <script type="module" src="{% static 'rest_mode/js/toast.js' %}"></script>
         <script type="module" src="{% static 'rest_mode/js/main.js' %}"></script>
     </body>
 </html>

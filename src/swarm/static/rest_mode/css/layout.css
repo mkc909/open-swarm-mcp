@@ -64,11 +64,24 @@
 
 /* Chat History Pane (Left) */
 .chat-history-pane {
-    flex: 0 0 250px; /* Fixed width */
+    flex: 0 0 250px; /* Initial fixed width */
     background-color: var(--bg-container);
     border-right: 2px solid var(--border-color);
     overflow-y: auto;
     z-index: 5; /* Ensure side panes stay below the top bar */
+    border: 2px dashed red; /* Debugging: visualize chat history */
+}
+
+/* Vertical Divider for Resizing */
+.vertical-divider {
+    width: 5px;
+    cursor: col-resize;
+    background-color: var(--border-color);
+    transition: background-color var(--transition-duration);
+}
+
+.vertical-divider:hover {
+    background-color: var(--button-hover); /* Highlight divider on hover */
 }
 
 /* Main Chat Pane (Center) */
@@ -76,7 +89,8 @@
     flex: 1; /* Take the remaining horizontal space */
     overflow-y: auto;
     padding: 10px;
-    position: relative; /* Ensure chat history is positioned correctly */
+    position: relative;
+    border: 2px dashed green; /* Debugging: visualize main chat */
 }
 
 /* Settings Pane (Right) */
@@ -85,18 +99,7 @@
     background-color: var(--bg-container);
     border-left: 2px solid var(--border-color);
     overflow-y: auto;
-}
-
-/* Resizable Divider */
-.resizable-divider {
-    width: 5px;
-    background-color: var(--border-color);
-    cursor: col-resize;
-    transition: background-color var(--transition-duration);
-}
-
-.resizable-divider:hover {
-    background-color: var(--button-hover);
+    border: 2px dashed blue; /* Debugging: visualize settings */
 }
 
 /* Chat History Container */

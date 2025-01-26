@@ -1,48 +1,177 @@
-/* layout.css - Containers, Panes, and Layouts */
-
-/* Top Bar */
+/* Top Bar Styling */
 .top-bar {
-    height: 60px; /* Fixed height */
-    background-color: var(--bg-container);
-    border-bottom: 2px solid var(--border-color);
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    z-index: 10; /* Stays above other content */
-    width: 100%; /* Full width */
-    position: fixed; /* Locks at the top of the screen */
-    top: 0; /* Ensure it stays at the top */
+    position: fixed;
+    top: 0;
     left: 0;
-    box-sizing: border-box; /* Include padding/border in size */
-    border: 2px dashed purple; /* Debugging: visualize top bar */
+    width: 100%; /* Full width */
+    height: 50px; /* Compact height */
+    background-color: var(--bg-container);
+    border-bottom: 1px solid var(--border-color);
+    display: flex; /* Flexbox for layout */
+    align-items: center; /* Center items vertically */
+    padding: 0 10px;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
 }
 
-/* Container Styling */
-.container {
-    position: relative;
+/* Left Section: Logo and Buttons */
+.top-bar-left {
     display: flex;
-    flex-direction: row; /* Lay out children horizontally */
-    height: calc(100vh - 60px); /* Subtract top-bar height */
-    width: 100%;
-    max-width: 1400px;
-    margin: 0 auto; /* Center horizontally */
-    margin-top: 60px; /* Prevent overlap with top-bar */
+    align-items: center;
+    gap: 10px; /* Spacing between items */
+}
+
+/* Blueprint Metadata Centered */
+.blueprint-metadata {
+    flex: 1; /* Take remaining space */
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+/* Right Section: Settings Button */
+.top-bar-right {
+    margin-left: auto; /* Push to the far right */
+    display: flex;
+    align-items: center;
+}
+
+/* Buttons in the Top Bar */
+.top-bar-btn {
+    background: none;
+    border: none;
+    display: flex; /* Flexbox for icon and label */
+    align-items: center;
+    gap: 5px; /* Spacing between icon and label */
+    padding: 5px 10px; /* Padding for clickable area */
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text-color);
+    text-decoration: none; /* No underline */
+    white-space: nowrap; /* Prevent wrapping */
+    flex-shrink: 0; /* Prevent shrinking */
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.top-bar-btn img {
+    width: 24px; /* Icon size */
+    height: 24px;
+    flex-shrink: 0; /* Prevent icon shrinking */
+}
+
+.top-bar-btn:hover {
+    background-color: var(--button-hover-bg); /* Add hover effect */
+    border-radius: 4px; /* Round corners on hover */
+}
+
+.top-bar-btn .btn-label {
+    display: inline-block; /* Ensure text remains inline */
+    white-space: nowrap; /* Prevent wrapping */
+    visibility: visible; /* Ensure text is visible */
+}
+
+/* Blueprint Title */
+.blueprint-title {
+    cursor: pointer;
+    font-weight: bold;
+    position: relative;
+    display: inline-block;
+    margin: 0;
+}
+
+/* Blueprint Dialog */
+.blueprint-dialog {
+    position: absolute;
+    top: 100%; /* Below the title */
+    left: 0;
+    z-index: 1000;
     background-color: var(--bg-container);
-    border: 2px solid var(--border-color);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
-    overflow: hidden;
-    border: 2px dashed black; /* Debugging: visualize container */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    min-width: 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    max-height: 300px;
+}
+
+.blueprint-dialog.hidden {
+    display: none; /* Hide the dialog by default */
+}
+
+.blueprint-dialog .blueprint-option {
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.blueprint-dialog .blueprint-option:hover {
+    background-color: var(--button-hover-bg);
+}
+
+.blueprint-dialog .blueprint-title {
+    font-weight: bold;
+    margin: 0 0 5px;
+}
+
+.blueprint-dialog .blueprint-description {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
 }
 
 /* Chat History Pane (Left) */
 .chat-history-pane {
-    flex: 0 0 250px; /* Fixed width */
+    flex: 0 0 250px; /* Default width */
+    min-width: 150px; /* Minimum width */
+    max-width: 500px; /* Maximum width */
     background-color: var(--bg-container);
-    border-right: 2px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
     overflow-y: auto;
     z-index: 5; /* Ensure side panes stay below the top bar */
-    border: 2px dashed red; /* Debugging: visualize chat history */
+}
+
+/* Chat History Header */
+.chat-history-header {
+    padding: 10px;
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 5px; /* Space between title and search */
+}
+
+/* Quick Search Input */
+.quick-search-input {
+    width: 100%; /* Full width */
+    height: 30px; /* Adjust height */
+    font-size: 0.85rem;
+    padding: 5px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-sizing: border-box; /* Include padding and border in width */
+}
+
+/* Main Chat Pane (Center) */
+.main-pane {
+    flex: 1; /* Take remaining horizontal space */
+    min-width: 400px; /* Ensure visibility */
+    min-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    position: relative;
+}
+
+/* Settings Pane (Right) */
+.options-pane {
+    flex: 0 0 250px; /* Default width */
+    min-width: 150px; /* Minimum width */
+    max-width: 500px; /* Maximum width */
+    background-color: var(--bg-container);
+    border-left: 1px solid var(--border-color);
+    overflow-y: auto;
 }
 
 /* Vertical Divider for Resizing */
@@ -50,50 +179,25 @@
     width: 5px;
     cursor: col-resize;
     background-color: var(--border-color);
-    transition: background-color var(--transition-duration);
+    transition: background-color 0.2s ease;
 }
 
 .vertical-divider:hover {
-    background-color: var(--button-hover); /* Highlight divider on hover */
-}
-
-/* Main Chat Pane (Center) */
-.main-pane {
-    flex: 1; /* Take the remaining horizontal space */
-    min-width: 400px; /* Ensure visibility */
-    min-height: 300px;
-    overflow-y: auto;
-    padding: 10px;
-    position: relative;
-    border: 2px dashed green; /* Debugging: visualize main chat */
-}
-
-/* Settings Pane (Right) */
-.options-pane {
-    flex: 0 0 250px; /* Fixed width */
-    background-color: var(--bg-container);
-    border-left: 2px solid var(--border-color);
-    overflow-y: auto;
-    border: 2px dashed blue; /* Debugging: visualize settings */
-}
-
-/* Debugging Borders */
-.chat-history-pane {
-    border: 2px dashed red;
-}
-
-.main-pane {
-    border: 2px dashed green;
-}
-
-.options-pane {
-    border: 2px dashed blue;
+    background-color: var(--button-hover);
 }
 
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     .chat-history-pane,
     .options-pane {
-        flex: 0 0 200px; /* Adjust for smaller screens */
+        flex: 0 0 200px; /* Narrower side panes for smaller screens */
+    }
+
+    .quick-search-input {
+        display: none; /* Hide quick search on small screens */
+    }
+
+    .btn-label {
+        display: none; /* Optionally hide labels on small screens */
     }
 }

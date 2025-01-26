@@ -20,9 +20,9 @@
     align-items: center;
     justify-content: space-between;
     margin-top: 5px;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    opacity: 0.3; /* Slightly visible */
+    visibility: visible; /* Ensure it remains interactable */
+    transition: opacity 0.3s ease; /* Smooth transition */
 }
 
 /* Show Tools on Hover (Excludes Timestamp) */
@@ -39,26 +39,59 @@
     margin-right: 10px; /* Adds spacing between timestamp and trash icon */
 }
 
-/* Toolbar Buttons */
-.toolbar-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 5px;
+/* Toolbar and Buttons */
+.message-toolbar {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    opacity: 0.7;
+    flex-direction: row; /* Align buttons horizontally */
+    gap: 10px; /* Space between buttons */
+    justify-content: start; /* Align buttons to the left */
+    align-items: center; /* Center-align buttons vertically */
 }
 
-.toolbar-btn:hover {
-    opacity: 1;
-    transform: scale(1.1);
+/* Default Button Styling */
+.message-toolbar .toolbar-btn {
+    opacity: 0.3; /* Slightly visible by default */
+    visibility: visible; /* Ensure buttons remain interactable */
+    background: none; /* No background for a cleaner look */
+    border: none; /* Remove default button border */
+    padding: 5px; /* Adjust padding for clickability */
+    cursor: pointer; /* Show pointer cursor */
+    display: flex; /* Flexbox for consistent alignment of icons */
+    align-items: center; /* Center-align icons vertically */
+    justify-content: center; /* Center-align icons horizontally */
+    transition: opacity 0.3s ease, transform 0.3s ease; /* Smooth transition */
 }
 
-/* Button Icon Styling */
-.toolbar-btn img {
-    width: var(--icon-size, 20px);
+.message-toolbar .toolbar-btn:hover {
+    opacity: 1; /* Fully visible on hover */
+    transform: scale(1.1); /* Slight zoom-in effect for better feedback */
+}
+
+/* Icon Styling */
+.message-toolbar .toolbar-btn img {
+    width: var(--icon-size, 20px); /* Use default or custom icon size */
     height: var(--icon-size, 20px);
+    border: none; /* Remove any border */
+    outline: none; /* Remove focus outline */
+    transition: transform 0.3s ease; /* Smooth transition for icon animations */
+}
+
+/* Mobile UI disabled: toolbar hidden */
+.mobile-ui-disabled .message-toolbar {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none; /* Prevent interaction when hidden */
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+/* Show toolbar on message hover */
+.chat-history-item:hover .message-toolbar {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto; /* Enable interaction */
+}
+
+/* Button-specific hover: fully opaque */
+.message-toolbar .toolbar-btn:hover {
+    opacity: 1; /* Fully visible for hovered button */
 }

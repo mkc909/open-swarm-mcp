@@ -1,9 +1,16 @@
 {% load static %}
 <div class="main-pane">
 
+    <!-- Persistent Message Area -->
     <div id="firstUserMessage" class="first-user-message"></div>
+
+    <!-- Message History -->
     <div id="messageHistory" class="message-container"></div>
+
+    <!-- Loading Indicator -->
     <div id="loadingIndicator" class="loading-indicator"></div>
+
+    <!-- User Input Form -->
     <div class="form-container">
         <button class="input-button upload-button" id="uploadButton" aria-label="Upload">
             <img src="{% static 'rest_mode/svg/plus.svg' %}" alt="Upload">

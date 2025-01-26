@@ -1,5 +1,6 @@
 import { showToast } from './toast.js';
-import { chatHistory, contextVariables } from './chatHandlers.js';
+import { chatHistory } from './chatHandlers.js';
+import { contextVariables } from './chatLogic.js';
 export { debugLog } from './settings.js';
 
 /**

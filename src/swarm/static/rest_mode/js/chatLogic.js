@@ -1,19 +1,17 @@
 import {
     chatHistory,
-    contextVariables,
     validateMessage,
-    renderFirstUserMessage,
-    populateBlueprintDropdown,
+    fetchBlueprintMetadata,
     handleLogout,
     handleUpload,
     handleVoiceRecord,
     debugLog,
 } from './chatHandlers.js';
 import { showToast } from './toast.js';
-import { fetchBlueprints } from './blueprint.js';
 import { renderMessage, appendRawMessage } from './messages.js';
-// import { showLoadingIndicator, hideLoadingIndicator } from './ui.js';
+import { showLoadingIndicator, hideLoadingIndicator } from './ui.js';
 
+export let contextVariables = { active_agent_name: null };
 
 /**
  * Processes the assistant's response and updates context variables.
@@ -32,7 +30,7 @@ function processAssistantResponse(choices, updatedContextVariables) {
 
     console.log("Processing assistant response with choices:", choices);
 
-    choices.forEach(choice => {
+    choices.forEach((choice) => {
         const rawMessage = { ...choice.message }; // Store the raw message
         chatHistory.push(rawMessage);
 
@@ -44,9 +42,7 @@ function processAssistantResponse(choices, updatedContextVariables) {
         console.log("Rendering message with:", { role, content, sender, metadata });
 
         // Render and log messages
-        if (chatHistory.length > 1) { // Avoid duplicating the first message
-            renderMessage(role, { content }, sender, metadata);
-        }
+        renderMessage(role, { content }, sender, metadata);
         appendRawMessage(role, { content }, sender, metadata);
 
         // If Debug pane is active, render relevant debug info
@@ -89,24 +85,24 @@ export async function handleSubmit() {
     chatHistory.push(userMessage);
     debugLog("User message added to chat history.", userMessage);
 
-    const isFirstUserMessage = chatHistory.filter(msg => msg.role === "user").length === 1;
+    const isFirstUserMessage = chatHistory.filter((msg) => msg.role === "user").length === 1;
 
     // Validate the message
     const error = validateMessage(userMessage);
     if (error) return;
 
-    // Render the first assistant message if it's the first user message
-    if (isFirstUserMessage) {
-        renderFirstUserMessage();
-        debugLog("First user message detected, rendering welcome message.");
-    }
-
     // Render the user message in the UI
     renderMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
     appendRawMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
 
-    // TODO
-    // showLoadingIndicator(); // Show loading spinner
+    // If it's the first user message, update the persistent message
+    if (isFirstUserMessage) {
+        const persistentMessageElement = document.getElementById('firstUserMessage');
+        persistentMessageElement.innerHTML = `<p>${userMessageContent}</p>`;
+        debugLog("Persistent message updated with the first user message.");
+    }
+
+    showLoadingIndicator(); // Show loading spinner
 
     try {
         const urlPath = window.location.pathname;
@@ -137,68 +133,22 @@ export async function handleSubmit() {
         console.error("Error submitting message:", err);
         showToast("⚠️ Error submitting message. Please try again.", "error");
     } finally {
-        //TODO
-        // hideLoadingIndicator(); // Hide loading spinner
-        pass
+        hideLoadingIndicator(); // Hide loading spinner
     }
 }
 
 /**
  * Initializes the chat logic.
- * Fetches blueprints and sets up the initial UI state.
+ * Fetches blueprint metadata and sets up the initial UI state.
  */
 export async function initializeChatLogic() {
     debugLog("Initializing chat logic.");
     try {
-        const blueprints = await fetchBlueprints();
-        debugLog("Blueprints fetched successfully.", blueprints);
-        populateBlueprintDropdown(blueprints);
+        // Fetch blueprint metadata and populate UI
+        await fetchBlueprintMetadata();
     } catch (error) {
-        showToast("⚠️ Failed to load blueprints.", "error");
-        console.error("Error initializing blueprints:", error);
-    }
-}
-
-/**
- * Handles chat deletion.
- * Confirms the action and removes the selected chat from the UI.
- * @param {HTMLElement} item - The chat item element to delete.
- */
-export async function handleDeleteChat(item) {
-    const chatName = item.firstChild.textContent.trim();
-    const chatId = item.getAttribute('data-chat-id');
-    debugLog("Attempting to delete chat.", { chatName, chatId });
-
-    // Prevent deletion of the first user message
-    if (item.classList.contains('first-user')) {
-        showToast("❌ Cannot delete the first user message.", "error");
-        debugLog("Deletion blocked for the first user message.");
-        return;
-    }
-
-    // Confirm deletion
-    const confirmed = window.confirm(`Are you sure you want to delete "${chatName}"?`);
-    if (!confirmed) {
-        debugLog("Deletion cancelled by user.");
-        return;
-    }
-
-    try {
-        const response = await fetch(`/v1/chat/delete/${chatId}`, {
-            method: "DELETE",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "",
-            },
-        });
-
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        item.remove();
-        showToast(`✅ Chat "${chatName}" deleted.`, "success");
-        debugLog("Chat deleted successfully.", { chatName });
-    } catch (err) {
-        console.error("Error deleting chat:", err);
-        showToast("❌ Error deleting chat. Please try again.", "error");
+        showToast("⚠️ Failed to load blueprint metadata.", "error");
+        console.error("Error initializing blueprint metadata:", error);
     }
 }
 
@@ -213,7 +163,7 @@ export function handleChatHistoryClick(item) {
     debugLog("Chat history item clicked.", { chatName });
 
     const chatHistoryItems = document.querySelectorAll(".chat-history-pane li");
-    chatHistoryItems.forEach(i => i.classList.remove("active"));
+    chatHistoryItems.forEach((i) => i.classList.remove("active"));
     item.classList.add("active");
 }
 

@@ -6,20 +6,33 @@
 </head>
 <body>
     <!-- Top Bar -->
+    {% include 'rest_mode/components/top_bar.html' %}
 
     <!-- Main Layout -->
     <div class="container" data-theme-color="pastel" data-theme-dark="false" data-theme-layout="messenger-layout">
         <!-- Left Sidebar -->
-        {% include 'rest_mode/components/chat_sidebar.html' %}
+        <div class="chat-history-pane" id="chatHistoryPane">
+            {% include 'rest_mode/components/chat_sidebar.html' %}
+        </div>
+        
+        <!-- Resizer Divider for Left Sidebar -->
+        <div class="vertical-divider" id="divider-left"></div>
 
         <!-- Main Content -->
-        {% include 'rest_mode/components/main_chat_pane.html' %}
+        <div class="main-pane">
+            {% include 'rest_mode/components/main_chat_pane.html' %}
+        </div>
+        
+        <!-- Resizer Divider for Right Sidebar -->
+        <div class="vertical-divider" id="divider-right"></div>
 
         <!-- Right Sidebar -->
-        {% include 'rest_mode/components/settings_sidebar.html' %}
+        <div class="options-pane" id="optionsPane">
+            {% include 'rest_mode/components/settings_sidebar.html' %}
+        </div>
     </div>
 
-    <!-- Scripts (ES Modules) -->
+    <!-- Scripts -->
     <script type="module" src="{% static 'rest_mode/js/base.js' %}"></script>
     <script type="module" src="{% static 'rest_mode/js/chatLogic.js' %}"></script>
     <script type="module" src="{% static 'rest_mode/js/toast.js' %}"></script>

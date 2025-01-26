@@ -1,8 +1,10 @@
 import { showToast } from './toast.js';
-import { fetchBlueprints } from './blueprint.js';
 import { renderMessage, appendRawMessage } from './messages.js';
 
 const DEBUG_MODE = true;
+let blueprints = [];
+let blueprintName = '';
+let blueprintMetadata = '';
 
 /**
  * Logs debug messages if debug mode is enabled.
@@ -17,7 +19,6 @@ export function debugLog(message, data = null) {
 
 // Chat History and Context Variables
 export let chatHistory = [];
-export let contextVariables = { active_agent_name: null };
 
 /**
  * Validates the user message.
@@ -25,95 +26,154 @@ export let contextVariables = { active_agent_name: null };
  * @returns {string|null} - Error message if invalid, or null if valid.
  */
 export function validateMessage(message) {
-    if (!message.content || message.content.trim() === "") {
-        showToast("❌ Message cannot be empty.", "error");
-        return "Message cannot be empty.";
+    if (!message.content || message.content.trim() === '') {
+        showToast('❌ Message cannot be empty.', 'error');
+        return 'Message cannot be empty.';
     }
-    if (message.content.length > 500) {
-        showToast("❌ Message too long. Please limit to 500 characters.", "error");
-        return "Message too long.";
+    if (message.content.length > 5000) {
+        showToast('❌ Message too long. Please limit to 5000 characters.', 'error');
+        return 'Message too long.';
     }
     return null; // Valid message
 }
 
 /**
- * Renders the first (assistant) message if none exists.
+ * Fetches and renders blueprint metadata from /v1/models/.
  */
-export function renderFirstUserMessage() {
-    const firstMessageExists = chatHistory.some((msg) => msg.role === 'user');
-    if (!firstMessageExists) {
-        const firstUserMessage = {
-            role: 'assistant',
-            content: 'Welcome to Open-Swarm Chat!',
-            sender: 'Assistant',
-            metadata: {},
-        };
-        chatHistory.push(firstUserMessage);
+export async function fetchBlueprintMetadata() {
+    const blueprintMetadataElement = document.getElementById('blueprintMetadata');
+    const persistentMessageElement = document.getElementById('firstUserMessage');
+
+    // Check if the elements exist
+    if (!blueprintMetadataElement || !persistentMessageElement) {
+        console.error("Error: Required DOM elements 'blueprintMetadata' or 'firstUserMessage' not found.");
+        return;
+    }
+
+    // Timeout messages
+    setTimeout(() => {
+        if (!blueprintName) {
+            appendRawMessage(
+                'assistant',
+                {
+                    content: 'Waiting for blueprint to download...',
+                },
+                'Assistant'
+            );
+        }
+    }, 3000);
+
+    setTimeout(() => {
+        if (!blueprintName) {
+            appendRawMessage(
+                'assistant',
+                {
+                    content:
+                        'Could not retrieve blueprint metadata. Check out the troubleshooting guide at <a href="https://github.com/matthewhand/open-swarm/TROUBLESHOOTING.md">Troubleshooting Guide</a>.',
+                },
+                'Assistant'
+            );
+        }
+    }, 8000);
+
+    try {
+        const response = await fetch('/v1/models/');
+        if (!response.ok) throw new Error('Failed to fetch metadata.');
+
+        const data = await response.json();
+        blueprints = data.data || [];
+        if (blueprints.length === 0) throw new Error('No blueprints available.');
+
+        // Set default blueprint
+        const defaultBlueprint = blueprints[0];
+        blueprintName = defaultBlueprint.title;
+        blueprintMetadata = defaultBlueprint.description;
+
+        // Update UI
+        blueprintMetadataElement.innerHTML = `<h2>${blueprintName}</h2>`;
+        persistentMessageElement.innerHTML = `<p>${blueprintMetadata}</p>`;
+
         appendRawMessage(
-            firstUserMessage.role,
-            { content: firstUserMessage.content },
-            firstUserMessage.sender,
-            firstUserMessage.metadata
+            'assistant',
+            {
+                content: `Blueprint loaded: ${blueprintName}`,
+            },
+            'Assistant'
         );
+
+        populateBlueprintDialog(blueprints); // Populate blueprint dialog options
+    } catch (error) {
+        console.error('Error fetching blueprint metadata:', error);
     }
 }
 
 /**
- * Populates the blueprint dropdown and updates the metadata for the selected blueprint.
+ * Populates the blueprint selection dialog.
  * @param {Array} blueprints - The list of blueprints fetched from the API.
  */
-export function populateBlueprintDropdown(blueprints) {
-    const blueprintDropdown = document.getElementById('blueprintDropdown');
-    const blueprintMetadata = document.getElementById('blueprintMetadata');
-
-    if (!blueprintDropdown || !blueprintMetadata) {
-        console.warn('Blueprint dropdown or metadata element not found.');
+function populateBlueprintDialog(blueprints) {
+    const blueprintDialogElement = document.getElementById('blueprintDialog');
+    if (!blueprintDialogElement) {
+        console.warn('Blueprint dialog element not found.');
         return;
     }
 
-    // Populate the dropdown
-    blueprintDropdown.innerHTML = blueprints
-        .map((bp) => `<option value="${bp.id}">${bp.title}</option>`)
+    blueprintDialogElement.innerHTML = blueprints
+        .map(
+            (bp) => `
+        <div class="blueprint-option" data-id="${bp.id}">
+            <p class="blueprint-title">${bp.title}</p>
+            <p class="blueprint-description">${bp.description}</p>
+        </div>`
+        )
         .join('');
 
-    // Get the current blueprint from the URI
-    const currentBlueprintId = window.location.pathname.split('/').filter(Boolean).pop();
-    const defaultBlueprint = blueprints.find((bp) => bp.id === currentBlueprintId) || blueprints[0];
-
-    // Set the default selection and update metadata
-    blueprintDropdown.value = defaultBlueprint.id;
-    updateBlueprintMetadata(defaultBlueprint);
-
-    // Add event listener for dropdown changes
-    blueprintDropdown.addEventListener('change', (e) => {
-        const selectedBlueprint = blueprints.find((bp) => bp.id === e.target.value);
-        if (selectedBlueprint) {
-            updateBlueprintMetadata(selectedBlueprint);
-        }
+    // Add click event for each blueprint option
+    document.querySelectorAll('.blueprint-option').forEach((option) => {
+        option.addEventListener('click', () => {
+            const selectedId = option.getAttribute('data-id');
+            const selectedBlueprint = blueprints.find((bp) => bp.id === selectedId);
+            if (selectedBlueprint) {
+                selectBlueprint(selectedBlueprint);
+            }
+        });
     });
 }
 
 /**
- * Updates the blueprint metadata section with the selected blueprint's details.
+ * Updates the UI and metadata when a blueprint is selected.
  * @param {Object} blueprint - The selected blueprint.
  */
-export function updateBlueprintMetadata(blueprint) {
-    const blueprintMetadata = document.getElementById('blueprintMetadata');
-    if (!blueprintMetadata) return;
+function selectBlueprint(blueprint) {
+    const blueprintMetadataElement = document.getElementById('blueprintMetadata');
+    const blueprintDialogElement = document.getElementById('blueprintDialog');
+    const persistentMessageElement = document.getElementById('firstUserMessage');
 
-    blueprintMetadata.innerHTML = `
-        <h2>${blueprint.title}</h2>
-        <p>${blueprint.description}</p>
-    `;
-    debugLog('Updated blueprint metadata.', blueprint);
+    blueprintName = blueprint.title;
+    blueprintMetadata = blueprint.description;
+
+    // Update UI
+    blueprintMetadataElement.innerHTML = `<h2>${blueprintName}</h2>`;
+    persistentMessageElement.innerHTML = `<p>${blueprintMetadata}</p>`;
+
+    appendRawMessage(
+        'assistant',
+        {
+            content: `Blueprint loaded: ${blueprintName}`,
+        },
+        'Assistant'
+    );
+
+    // Hide the dialog
+    blueprintDialogElement.classList.add('hidden');
 }
 
 /**
  * Handles user logout.
  */
 export function handleLogout() {
-    showToast("🚪 You have been logged out.", "info");
-    window.location.href = "/login";
+    showToast('🚪 You have been logged out.', 'info');
+    window.location.href = '/login';
 }
 
 /**
@@ -136,11 +196,11 @@ export function handleVoiceRecord() {
  */
 export function handleChatHistoryClick(item) {
     const chatName = item.firstChild.textContent.trim();
-    showToast(`Selected: "${chatName}"`, "info");
+    showToast(`Selected: "${chatName}"`, 'info');
 
-    const chatHistoryItems = document.querySelectorAll(".chat-history-pane li");
-    chatHistoryItems.forEach((i) => i.classList.remove("active"));
-    item.classList.add("active");
+    const chatHistoryItems = document.querySelectorAll('.chat-history-pane li');
+    chatHistoryItems.forEach((i) => i.classList.remove('active'));
+    item.classList.add('active');
 }
 
 /**
@@ -153,11 +213,10 @@ export async function handleDeleteChat(item) {
 
     // Prevent deletion of the first user message
     if (item.classList.contains('first-user')) {
-        showToast("❌ Cannot delete the first user message.", "error");
+        showToast('❌ Cannot delete the first user message.', 'error');
         return;
     }
 
-    // Confirm deletion
     const confirmed = window.confirm(`Are you sure you want to delete "${chatName}"?`);
     if (!confirmed) {
         return;
@@ -165,18 +224,18 @@ export async function handleDeleteChat(item) {
 
     try {
         const response = await fetch(`/v1/chat/delete/${chatId}`, {
-            method: "DELETE",
+            method: 'DELETE',
             headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
             },
         });
 
         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
         item.remove();
-        showToast(`✅ Chat "${chatName}" deleted.`, "success");
+        showToast(`✅ Chat "${chatName}" deleted.`, 'success');
     } catch (err) {
-        console.error("Error deleting chat:", err);
-        showToast("❌ Error deleting chat. Please try again.", "error");
+        console.error('Error deleting chat:', err);
+        showToast('❌ Error deleting chat. Please try again.', 'error');
     }
 }

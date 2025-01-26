@@ -4,7 +4,7 @@ import {
     handleDeleteChat,
     handleUpload,
     handleVoiceRecord,
-    renderFirstUserMessage,
+    fetchBlueprintMetadata,
 } from './chatHandlers.js';
 import { handleSubmit } from './chatLogic.js';
 import { toggleDebugPane, handleTechSupport } from './debug.js';
@@ -94,6 +94,6 @@ export function setupEventListeners() {
  * Initialize the application.
  */
 export function initializeApplication() {
-    renderFirstUserMessage();
-    setupEventListeners();
+    fetchBlueprintMetadata(); // Fetch blueprint metadata and display it
+    setupEventListeners();    // Set up event listeners
 }

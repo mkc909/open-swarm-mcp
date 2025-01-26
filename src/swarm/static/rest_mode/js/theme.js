@@ -8,24 +8,31 @@
 export function initializeTheme() {
     const colorSelect = document.getElementById('colorSelect');
     const layoutSelect = document.getElementById('layoutSelect');
-    const darkModeToggle = document.getElementById('darkModeToggle'); // Updated ID
+    const darkModeToggle = document.getElementById('darkModeToggle');
 
-    // Log warnings for missing elements
-    if (!colorSelect) console.warn("Warning: Element 'colorSelect' not found.");
-    if (!layoutSelect) console.warn("Warning: Element 'layoutSelect' not found.");
-    if (!darkModeToggle) console.warn("Warning: Element 'darkModeToggle' not found.");
+    // Default values
+    const defaultSettings = {
+        colorTheme: 'corporate',
+        layoutTheme: 'messenger-layout',
+        darkMode: true,
+    };
 
-    // Load saved preferences from localStorage
-    const savedColor = localStorage.getItem('selectedColor') || 'pastel';
-    const savedLayout = localStorage.getItem('selectedLayout') || 'messenger-layout';
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    // Load saved preferences from localStorage or use defaults
+    const savedColor = localStorage.getItem('selectedColor') || defaultSettings.colorTheme;
+    const savedLayout = localStorage.getItem('selectedLayout') || defaultSettings.layoutTheme;
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true' || defaultSettings.darkMode;
 
-    // Apply saved preferences
+    // Apply preferences
     applyColorTheme(savedColor);
     applyLayoutTheme(savedLayout);
     setDarkMode(savedDarkMode);
 
-    // Attach event listeners only if the elements exist
+    // Sync UI elements with preferences
+    if (colorSelect) colorSelect.value = savedColor;
+    if (layoutSelect) layoutSelect.value = savedLayout;
+    if (darkModeToggle) darkModeToggle.checked = savedDarkMode;
+
+    // Attach event listeners
     if (colorSelect) {
         colorSelect.addEventListener('change', (e) => {
             applyColorTheme(e.target.value);
@@ -50,34 +57,28 @@ export function initializeTheme() {
 }
 
 /**
- * Applies the selected color theme by updating the stylesheet link.
+ * Applies the selected color theme by adding a data attribute.
  * @param {string} theme - The selected style theme ('pastel', 'tropical', 'corporate').
  */
 function applyColorTheme(theme) {
-    const colorThemeLink = document.getElementById('colorThemeLink');
-    if (colorThemeLink) {
-        colorThemeLink.href = `/static/rest_mode/css/colors/${theme}.css`;
-    }
+    const rootElement = document.documentElement; // Use <html> element
+    rootElement.setAttribute('data-theme-color', theme);
 }
 
 /**
- * Applies the selected layout theme by toggling layout-specific classes.
+ * Applies the selected layout theme by adding a data attribute.
  * @param {string} layout - The selected layout theme ('messenger-layout', 'mobile-layout', 'minimalist-layout').
  */
 function applyLayoutTheme(layout) {
-    const container = document.querySelector('.container');
-    if (container) {
-        container.setAttribute('data-theme-layout', layout);
-    }
+    const rootElement = document.documentElement; // Use <html> element
+    rootElement.setAttribute('data-theme-layout', layout);
 }
 
 /**
- * Sets the dark mode by toggling a data attribute on the container.
+ * Sets the dark mode by adding a data attribute.
  * @param {boolean} isDarkMode - Whether dark mode is enabled.
  */
 function setDarkMode(isDarkMode) {
-    const container = document.querySelector('.container');
-    if (container) {
-        container.setAttribute('data-theme-dark', isDarkMode);
-    }
+    const rootElement = document.documentElement; // Use <html> element
+    rootElement.setAttribute('data-theme-dark', isDarkMode);
 }

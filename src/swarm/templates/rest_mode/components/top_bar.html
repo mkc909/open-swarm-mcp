@@ -1,46 +1,34 @@
 {% load static %}
 <div class="top-bar">
-    <!-- Logo -->
-    <div class="top-bar-logo">
-        <img src="{% static 'rest_mode/svg/logo.svg' %}" alt="Open-Swarm Logo" class="chat-logo">
+    <!-- Logo and Buttons (Left) -->
+    <div class="top-bar-left">
+        <button id="newChatButton" class="top-bar-btn" aria-label="New Chat">
+            <img src="{% static 'rest_mode/svg/new_chat.svg' %}" alt="New Chat">
+            <span class="btn-label">New Chat</span>
+        </button>
+        <button id="searchButton" class="top-bar-btn" aria-label="Search">
+            <img src="{% static 'rest_mode/svg/search.svg' %}" alt="Search">
+            <span class="btn-label">Search</span>
+        </button>
+        <button id="chatHistoryToggleButton" class="top-bar-btn" aria-label="Toggle Chat History">
+            <img src="{% static 'rest_mode/svg/chat_history.svg' %}" alt="Chat History">
+            <span class="btn-label">Chat History</span>
+        </button>
     </div>
 
-    <!-- Buttons and Dropdown -->
-    <div class="top-bar-actions">
-        <div class="top-bar-buttons">
-            <button id="newChatButton" class="top-bar-btn" aria-label="New Chat">
-                <img src="{% static 'rest_mode/svg/new_chat.svg' %}" alt="New Chat">
-                <span class="btn-label">New Chat</span>
-            </button>
-            <button id="searchButton" class="top-bar-btn" aria-label="Search">
-                <img src="{% static 'rest_mode/svg/search.svg' %}" alt="Search">
-                <span class="btn-label">Search</span>
-            </button>
-            <input 
-                type="text" 
-                id="searchInput" 
-                placeholder="Quick Search..." 
-                aria-label="Quick Search" 
-                class="quick-search-input"
-            >
-            <button id="chatHistoryToggleButton" class="top-bar-btn" aria-label="Toggle Chat History">
-                <img src="{% static 'rest_mode/svg/chat_history.svg' %}" alt="Chat History">
-                <span class="btn-label">Chat History</span>
-            </button>
-            <button id="settingsToggleButton" class="top-bar-btn" aria-label="Toggle Settings">
-                <img src="{% static 'rest_mode/svg/settings.svg' %}" alt="Settings">
-                <span class="btn-label">Settings</span>
-            </button>
+    <!-- Blueprint Name -->
+    <div class="blueprint-container">
+        <h2 id="blueprintTitle" class="blueprint-title">Loading...</h2>
+        <div id="blueprintDialog" class="blueprint-dialog hidden">
+            <!-- Blueprint options will be injected here -->
         </div>
-
-        <!-- Blueprint Dropdown -->
-        <label for="blueprintDropdown" class="blueprint-dropdown-label">Blueprint:</label>
-        <select id="blueprintDropdown" aria-label="Select Blueprint"></select>
     </div>
-
-    <!-- Blueprint Metadata -->
-    <div class="blueprint-metadata" id="blueprintMetadata">
-        <h2>Loading...</h2>
-        <p>Please wait, fetching blueprint metadata...</p>
+    
+    <!-- Settings (Right) -->
+    <div class="top-bar-right">
+        <button id="settingsToggleButton" class="top-bar-btn" aria-label="Toggle Settings">
+            <img src="{% static 'rest_mode/svg/settings.svg' %}" alt="Settings">
+            <span class="btn-label">Settings</span>
+        </button>
     </div>
 </div>

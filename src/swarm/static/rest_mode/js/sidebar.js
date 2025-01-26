@@ -1,5 +1,6 @@
 import { showToast } from './toast.js';
 
+
 /* Existing toggleSidebar function */
 export function toggleSidebar(sidebar, shouldShow) {
     const container = document.querySelector('.container');
@@ -36,59 +37,86 @@ export function toggleSidebar(sidebar, shouldShow) {
     }
 }
 
+
 /**
- * Makes a sidebar resizable by dragging a divider.
- * @param {HTMLElement} divider - The divider element to drag.
+ * Toggles the visibility of the left sidebar.
  */
-export function makeResizable(divider) {
-    let isResizing = false;
+function toggleLeftSidebar() {
+    const chatHistoryPane = document.getElementById('chatHistoryPane');
+    const leftSidebarHideBtn = document.getElementById('leftSidebarHideBtn');
+    const leftSidebarRevealBtn = document.getElementById('leftSidebarRevealBtn');
 
-    divider.addEventListener('mousedown', function(e) {
-        e.preventDefault();
-        isResizing = true;
-        document.addEventListener('mousemove', resizeSidebar);
-        document.addEventListener('mouseup', stopResizing);
-    });
-
-    function resizeSidebar(e) {
-        if (!isResizing) return;
-        const container = document.querySelector('.container');
-        const chatHistoryPane = document.getElementById('chatHistoryPane');
-        const optionsPane = document.getElementById('optionsPane');
-
-        if (!container || !chatHistoryPane || !optionsPane) return;
-
-        const containerRect = container.getBoundingClientRect();
-        const newLeftWidth = e.clientX - containerRect.left - divider.offsetWidth / 2;
-        const newRightWidth = containerRect.right - e.clientX - divider.offsetWidth / 2;
-
-        // Set minimum and maximum widths
-        const minWidth = 150; // Minimum sidebar width
-        const maxLeftWidth = containerRect.width - 300; // Maximum left sidebar width
-        const maxRightWidth = containerRect.width - 300; // Maximum right sidebar width
-
-        if (newLeftWidth >= minWidth && newLeftWidth <= maxLeftWidth) {
-            chatHistoryPane.style.flex = '0 0 ' + newLeftWidth + 'px';
-        }
-        if (newRightWidth >= minWidth && newRightWidth <= maxRightWidth) {
-            optionsPane.style.flex = '0 0 ' + newRightWidth + 'px';
-        }
+    if (!chatHistoryPane || !leftSidebarHideBtn || !leftSidebarRevealBtn) {
+        console.warn('Elements for toggling left sidebar are missing.');
+        return;
     }
 
-    function stopResizing() {
-        isResizing = false;
-        document.removeEventListener('mousemove', resizeSidebar);
-        document.removeEventListener('mouseup', stopResizing);
-    }
+    const isHidden = chatHistoryPane.classList.toggle('hidden');
+    leftSidebarHideBtn.classList.toggle('hidden', isHidden);
+    leftSidebarRevealBtn.classList.toggle('hidden', !isHidden);
+
+    showToast(isHidden ? "Chat history minimized." : "Chat history expanded.", "info");
 }
 
 /**
- * Initializes sidebar-related event listeners.
- * Should be called once during application initialization.
+ * Toggles the visibility of the right sidebar.
+ */
+function toggleRightSidebar() {
+    const optionsPane = document.getElementById('optionsPane');
+    const optionsSidebarHideBtn = document.getElementById('optionsSidebarHideBtn');
+    const optionsSidebarRevealBtn = document.getElementById('optionsSidebarRevealBtn');
+
+    if (!optionsPane || !optionsSidebarHideBtn || !optionsSidebarRevealBtn) {
+        console.warn('Elements for toggling right sidebar are missing.');
+        return;
+    }
+
+    const isHidden = optionsPane.classList.toggle('hidden');
+    optionsSidebarHideBtn.classList.toggle('hidden', isHidden);
+    optionsSidebarRevealBtn.classList.toggle('hidden', !isHidden);
+
+    showToast(isHidden ? "Settings pane minimized." : "Settings pane expanded.", "info");
+}
+
+/**
+ * Sets up resizable sidebars with draggable dividers.
+ */
+function setupResizableSidebars() {
+    const leftDivider = document.getElementById("divider-left");
+    const rightDivider = document.getElementById("divider-right");
+    const chatHistoryPane = document.querySelector(".chat-history-pane");
+    const optionsPane = document.querySelector(".options-pane");
+
+    const handleMouseMove = (e, targetPane, isLeft) => {
+        const newWidth = isLeft
+            ? e.clientX - chatHistoryPane.getBoundingClientRect().left
+            : optionsPane.getBoundingClientRect().right - e.clientX;
+        if (newWidth > 100 && newWidth < 500) {
+            targetPane.style.width = `${newWidth}px`;
+        }
+    };
+
+    const setupResizer = (divider, targetPane, isLeft) => {
+        divider.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            const onMouseMove = (event) =>
+                handleMouseMove(event, targetPane, isLeft);
+            document.addEventListener("mousemove", onMouseMove);
+            document.addEventListener("mouseup", () => {
+                document.removeEventListener("mousemove", onMouseMove);
+            });
+        });
+    };
+
+    if (leftDivider) setupResizer(leftDivider, chatHistoryPane, true);
+    if (rightDivider) setupResizer(rightDivider, optionsPane, false);
+}
+
+/**
+ * Initializes the sidebar logic.
  */
 export function initializeSidebar() {
-    const resizableDivider = document.getElementById('resizableDivider');
-    if (resizableDivider) {
-        makeResizable(resizableDivider);
-    }
+    toggleLeftSidebar();
+    toggleRightSidebar();
+    setupResizableSidebars();
 }

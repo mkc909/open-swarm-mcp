@@ -1,38 +1,28 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        {% include 'rest_mode/components/header.html' %}
-    </head>
-    <body>
-        {% include 'rest_mode/components/splash_screen.html' %}
-        <div class="container">
-            <!-- Top Bar -->
-            <div class="top-bar">
-                {% include 'rest_mode/components/top_bar.html' %}
-            </div>
+<head>
+    {% include 'rest_mode/components/header.html' %}
+</head>
+<body>
+    <!-- Top Bar -->
 
-            <!-- Main Layout -->
-            <div class="main-content">
-                <!-- Left Sidebar -->
-                <div class="chat-history-pane">
-                    {% include 'rest_mode/components/chat_sidebar.html' %}
-                </div>
+    <!-- Main Layout -->
+    <div class="container" data-theme-color="pastel" data-theme-dark="false" data-theme-layout="messenger-layout">
+        <!-- Left Sidebar -->
+        {% include 'rest_mode/components/chat_sidebar.html' %}
 
-                <!-- Main Pane -->
-                <div class="main-pane">
-                    {% include 'rest_mode/components/main_chat_pane.html' %}
-                </div>
+        <!-- Main Content -->
+        {% include 'rest_mode/components/main_chat_pane.html' %}
 
-                <!-- Right Sidebar -->
-                <div class="options-pane">
-                    {% include 'rest_mode/components/settings_sidebar.html' %}
-                </div>
-            </div>
-        </div>
+        <!-- Right Sidebar -->
+        {% include 'rest_mode/components/settings_sidebar.html' %}
+    </div>
 
-        <!-- Scripts -->
-        <script type="module" src="{% static 'rest_mode/js/base.js' %}"></script>
-        <script type="module" src="{% static 'rest_mode/js/main.js' %}"></script>
-    </body>
+    <!-- Scripts (ES Modules) -->
+    <script type="module" src="{% static 'rest_mode/js/base.js' %}"></script>
+    <script type="module" src="{% static 'rest_mode/js/chatLogic.js' %}"></script>
+    <script type="module" src="{% static 'rest_mode/js/toast.js' %}"></script>
+    <script type="module" src="{% static 'rest_mode/js/main.js' %}"></script>
+</body>
 </html>

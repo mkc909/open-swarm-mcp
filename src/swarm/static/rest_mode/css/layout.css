@@ -1,70 +1,43 @@
 /* layout.css - Containers, Panes, and Layouts */
 
-/* Container Styling */
-.container {
-    position: relative;
-    display: flex;
-    flex-direction: column; /* Stack top bar and main content vertically */
-    width: 100%;
-    max-width: 1400px;
-    margin: 20px;
-    padding: 20px;
-    background-color: var(--bg-container);
-    border: 2px solid var(--border-color);
-    border-radius: 8px;
-    height: 90vh;
-    overflow: hidden;
-}
-
 /* Top Bar */
 .top-bar {
-    flex: 0 0 auto; /* Fixed height for top bar */
+    height: 60px; /* Fixed height */
     background-color: var(--bg-container);
     border-bottom: 2px solid var(--border-color);
     padding: 10px;
     display: flex;
-    flex-direction: column; /* Stack metadata under buttons */
+    flex-direction: column;
     gap: 5px;
-    z-index: 10; /* Ensure top bar stays above other content */
+    z-index: 10; /* Stays above other content */
+    width: 100%; /* Full width */
+    position: fixed; /* Locks at the top of the screen */
+    top: 0; /* Ensure it stays at the top */
+    left: 0;
+    box-sizing: border-box; /* Include padding/border in size */
+    border: 2px dashed purple; /* Debugging: visualize top bar */
 }
 
-/* Top Bar Row - Horizontal Layout */
-.top-bar-row {
+/* Container Styling */
+.container {
+    position: relative;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px; /* Spacing between elements */
-}
-
-/* Blueprint Metadata */
-.blueprint-metadata {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    text-align: left;
-    padding-top: 5px;
-    border-top: 1px solid var(--border-color);
-}
-
-/* Search Field */
-.search-field {
-    flex: 0 0 200px;
-    padding: 8px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    font-size: 1rem;
-}
-
-/* Main Content Area */
-.main-content {
-    flex: 1; /* Take remaining space */
-    display: flex; /* Lay out children horizontally */
+    flex-direction: row; /* Lay out children horizontally */
+    height: calc(100vh - 60px); /* Subtract top-bar height */
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto; /* Center horizontally */
+    margin-top: 60px; /* Prevent overlap with top-bar */
+    background-color: var(--bg-container);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
     overflow: hidden;
-    position: relative; /* Ensure child elements are positioned correctly */
+    border: 2px dashed black; /* Debugging: visualize container */
 }
 
 /* Chat History Pane (Left) */
 .chat-history-pane {
-    flex: 0 0 250px; /* Initial fixed width */
+    flex: 0 0 250px; /* Fixed width */
     background-color: var(--bg-container);
     border-right: 2px solid var(--border-color);
     overflow-y: auto;
@@ -87,6 +60,8 @@
 /* Main Chat Pane (Center) */
 .main-pane {
     flex: 1; /* Take the remaining horizontal space */
+    min-width: 400px; /* Ensure visibility */
+    min-height: 300px;
     overflow-y: auto;
     padding: 10px;
     position: relative;
@@ -102,18 +77,20 @@
     border: 2px dashed blue; /* Debugging: visualize settings */
 }
 
-/* Chat History Container */
-.chat-history {
-    flex: 1; /* Take remaining space */
-    overflow-y: auto;
-    padding: 10px;
-    background-color: var(--bg-container);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    margin-top: 10px; /* Add margin to separate from top bar */
+/* Debugging Borders */
+.chat-history-pane {
+    border: 2px dashed red;
 }
 
-/* Adjustments for Responsiveness */
+.main-pane {
+    border: 2px dashed green;
+}
+
+.options-pane {
+    border: 2px dashed blue;
+}
+
+/* Responsive Adjustments */
 @media (max-width: 768px) {
     .chat-history-pane,
     .options-pane {

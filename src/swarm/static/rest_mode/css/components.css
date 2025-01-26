@@ -15,105 +15,70 @@
     transform: scale(1.1); /* Slightly increase size */
 }
 
-/* Button Styling */
-.upload-button,
-#voiceRecordButton,
-.toolbar-btn,
-.settings-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform var(--transition-duration, 0.3s) ease, opacity var(--transition-duration, 0.3s) ease;
-}
-
-/* Hover Effects for All Buttons */
-.upload-button:hover svg,
-#voiceRecordButton:hover svg,
-.toolbar-btn:hover svg,
-.settings-btn:hover img {
-    transform: scale(1.1); /* Slight zoom */
-    fill: var(--button-hover); /* Apply hover color */
-}
-
-/* Toolbar Button Specific Adjustments */
-.toolbar-btn {
-    padding: 5px;
-    border-radius: 50%; /* Rounded buttons */
-    opacity: 0; /* Hidden by default */
-    position: relative; /* For tooltip positioning */
-    transition: opacity var(--transition-duration, 0.3s);
-}
-
-/* Show Toolbar on Message Hover */
-.message:hover .toolbar-btn {
-    opacity: 1; /* Fully visible when parent message is hovered */
-}
-
-/* Persistent Toolbar Buttons */
-.persistent-toolbar .toolbar-btn {
-    margin-right: 8px; /* Spacing between buttons */
-}
-
-/* Tooltip Styling */
-.toolbar-btn[title]::after {
-    content: attr(title); /* Use the title attribute */
-    position: absolute;
-    bottom: 120%; /* Position above the icon */
-    left: 50%;
-    transform: translateX(-50%);
+/* Chat History Item */
+.chat-history-item {
+    position: relative;
+    padding: 10px;
+    margin: 5px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
     background-color: var(--bg-container);
-    color: var(--text-primary);
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    white-space: nowrap;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.2s ease, visibility 0.2s ease;
-    z-index: 1000;
+    transition: background-color var(--transition-duration, 0.3s) ease, box-shadow var(--transition-duration, 0.3s) ease;
+}
+
+.chat-history-item:hover {
+    background-color: var(--bg-message-other);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.toolbar-btn:hover[title]::after {
-    opacity: 1; /* Visible on hover */
+/* Chat Item Tools */
+.chat-item-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 5px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.chat-history-item:hover .chat-item-tools {
+    opacity: 1;
     visibility: visible;
 }
 
-/* Settings Button Specific Styling */
-.settings-btn {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    width: 40px;
-    height: 40px;
+/* Time Range */
+.chat-item-time {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-style: italic;
 }
 
-.settings-btn img {
-    width: 100%;
-    height: 100%;
-    fill: var(--text-primary); /* Matches theme primary text color */
+/* Toolbar Buttons */
+.toolbar-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0.7;
 }
 
-/* Input Fields */
-input[type="text"] {
-    padding: 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    width: 100%;
-    font-size: 1rem;
-    transition: border-color var(--transition-duration, 0.3s) ease;
+.toolbar-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
 }
 
-input[type="text"]:focus {
-    border-color: var(--button-hover);
-    outline: none;
+/* Button Icons */
+.toolbar-btn img {
+    width: var(--icon-size, 20px);
+    height: var(--icon-size, 20px);
 }
 
-/* Active State for Toolbar Buttons */
-.toolbar-btn:active {
-    transform: scale(0.95); /* Click feedback */
+/* Persistent Toolbar */
+.persistent-toolbar .toolbar-btn {
+    margin-right: 8px; /* Spacing between buttons */
 }

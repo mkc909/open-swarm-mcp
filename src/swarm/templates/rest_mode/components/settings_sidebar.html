@@ -6,6 +6,15 @@
     <div class="settings-container">
         <h2>⚙️ Settings</h2>
         <div class="toggle-container">
+            <div class="toggle-section theme-toggle" data-theme="light">
+                <div class="toggle-title" data-icon="☀️">
+                    Dark/Light Mode
+                </div>
+                <div class="toggle-content">
+                    <input type="checkbox" id="darkModeToggle">
+                    <label for="darkModeToggle">Enable Dark Mode</label>
+                </div>
+            </div>
             <div class="theme-dropdown theme-toggle">
                 <label for="colorSelect">🎨 Colour Theme:</label>
                 <select id="colorSelect">
@@ -22,13 +31,28 @@
                     <option value="minimalist-layout">Minimalist</option>
                 </select>
             </div>
-            <div class="toggle-section theme-toggle" data-theme="light">
-                <div class="toggle-title" data-icon="☀️">
-                    Dark/Light Mode
+        </div>
+        <!-- Mobile UI Toggles -->
+        <div class="toggle-section" id="mobileUIToggleSection">
+            <div class="toggle-title">
+                <span>📱 Mobile UI</span>
+                <input type="checkbox" id="mobileUIToggle">
+            </div>
+            <div class="toggle-content">
+                <div class="nested-toggle">
+                    <label for="chatHistoryTrashToggle">
+                        <input type="checkbox" id="chatHistoryTrashToggle"> Show Chat History Trash
+                    </label>
                 </div>
-                <div class="toggle-content">
-                    <input type="checkbox" id="darkModeToggle">
-                    <label for="darkModeToggle">Enable Dark Mode</label>
+                <div class="nested-toggle">
+                    <label for="messageActionToggle">
+                        <input type="checkbox" id="messageActionToggle"> Show Message Action Items
+                    </label>
+                </div>
+                <div class="nested-toggle">
+                    <label for="sidebarCloseToggle">
+                        <input type="checkbox" id="sidebarCloseToggle"> Show Sidebar Close Buttons
+                    </label>
                 </div>
             </div>
         </div>

@@ -5,16 +5,28 @@
     </button>
     <h2>📜 Chat History</h2>
     <ul>
-        <li>
+        <li class="chat-history-item">
             <details>
                 <summary>Welcome to Open-Swarm</summary>
                 <p>Welcome to Open-Swarm Chat! Start a conversation to explore its capabilities.</p>
+                <div class="chat-item-tools">
+                    <span class="chat-item-time">January 1, 2025, 10:00 AM - 11:00 AM</span>
+                    <button class="toolbar-btn" title="Delete Chat">
+                        <img src="{% static 'rest_mode/svg/trash.svg' %}" alt="Delete Chat">
+                    </button>
+                </div>
             </details>
         </li>
-        <li>
+        <li class="chat-history-item">
             <details>
                 <summary>FAQ</summary>
                 <p>Find frequently asked questions and their answers here.</p>
+                <div class="chat-item-tools">
+                    <span class="chat-item-time">January 2, 2025, 12:00 PM - 1:00 PM</span>
+                    <button class="toolbar-btn" title="Delete Chat">
+                        <img src="{% static 'rest_mode/svg/trash.svg' %}" alt="Delete Chat">
+                    </button>
+                </div>
             </details>
         </li>
     </ul>

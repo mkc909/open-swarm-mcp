@@ -8,14 +8,22 @@
     <!-- Chat History Header -->
     <div class="chat-history-header">
         <h2>📜 Chat History</h2>
-        <input 
-            type="text" 
-            id="searchInput" 
-            placeholder="Quick Search..." 
-            aria-label="Quick Search" 
-            class="quick-search-input"
-        >
+
+        <div>
+            <input 
+                type="text" 
+                id="searchInput" 
+                placeholder="Quick Search..." 
+                aria-label="Quick Search" 
+                class="quick-search-input"
+            >
+        </div>
     </div>
+
+    <button id="settingsToggleButton" aria-label="Toggle Settings">
+        <img src="{% static 'rest_mode/svg/settings.svg' %}" alt="Settings">
+        <span class="btn-label">Settings</span>
+    </button>
 
     <!-- Chat History Items -->
     <ul class="chat-history-list">
@@ -47,4 +55,10 @@
             </details>
         </li>
     </ul>
+
+    <button class="add-chat-btn">
+        <i class="fa fa-plus"></i>
+        New Chat
+    </button>
+
 </div>

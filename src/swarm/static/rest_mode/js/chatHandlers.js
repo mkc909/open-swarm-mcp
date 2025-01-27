@@ -43,10 +43,11 @@ export function validateMessage(message) {
 export async function fetchBlueprintMetadata() {
     const blueprintMetadataElement = document.getElementById('blueprintMetadata');
     const persistentMessageElement = document.getElementById('firstUserMessage');
+    const blueprintDropdown = document.getElementById('blueprintDropdown');
 
     // Check if the elements exist
-    if (!blueprintMetadataElement || !persistentMessageElement) {
-        console.error("Error: Required DOM elements 'blueprintMetadata' or 'firstUserMessage' not found.");
+    if (!blueprintMetadataElement || !persistentMessageElement || !blueprintDropdown) {
+        console.error("Error: Required DOM elements not found.");
         return;
     }
 
@@ -101,11 +102,10 @@ export async function fetchBlueprintMetadata() {
             'Assistant'
         );
 
-        populateBlueprintDialog(blueprints); // Populate blueprint dialog options
+        populateBlueprintDialog(blueprints); // Populate blueprint dialog and dropdown
     } catch (error) {
         console.error('Error fetching blueprint metadata:', error);
 
-        // Add fallback messages for errors
         appendRawMessage(
             'assistant',
             {
@@ -113,20 +113,24 @@ export async function fetchBlueprintMetadata() {
                     'Could not retrieve blueprint metadata. Check out the troubleshooting guide at <a href="https://github.com/matthewhand/open-swarm/TROUBLESHOOTING.md">Troubleshooting Guide</a>.',
             },
             'Assistant'
-        );    }
+        );
+    }
 }
 
 /**
- * Populates the blueprint selection dialog.
+ * Populates the blueprint selection dialog and dropdown.
  * @param {Array} blueprints - The list of blueprints fetched from the API.
  */
 function populateBlueprintDialog(blueprints) {
     const blueprintDialogElement = document.getElementById('blueprintDialog');
-    if (!blueprintDialogElement) {
-        console.warn('Blueprint dialog element not found.');
+    const blueprintDropdown = document.getElementById('blueprintDropdown');
+
+    if (!blueprintDialogElement || !blueprintDropdown) {
+        console.warn('Blueprint dialog or dropdown element not found.');
         return;
     }
 
+    // Populate dialog
     blueprintDialogElement.innerHTML = blueprints
         .map(
             (bp) => `
@@ -137,7 +141,15 @@ function populateBlueprintDialog(blueprints) {
         )
         .join('');
 
-    // Add click event for each blueprint option
+    // Populate dropdown
+    blueprintDropdown.innerHTML = blueprints
+        .map(
+            (bp) => `
+        <option value="${bp.id}">${bp.title}</option>`
+        )
+        .join('');
+
+    // Add click event for each dialog option
     document.querySelectorAll('.blueprint-option').forEach((option) => {
         option.addEventListener('click', () => {
             const selectedId = option.getAttribute('data-id');
@@ -146,6 +158,15 @@ function populateBlueprintDialog(blueprints) {
                 selectBlueprint(selectedBlueprint);
             }
         });
+    });
+
+    // Add change event for dropdown
+    blueprintDropdown.addEventListener('change', (event) => {
+        const selectedId = event.target.value;
+        const selectedBlueprint = blueprints.find((bp) => bp.id === selectedId);
+        if (selectedBlueprint) {
+            selectBlueprint(selectedBlueprint);
+        }
     });
 }
 
@@ -174,9 +195,7 @@ function selectBlueprint(blueprint) {
     );
 
     // Hide the blueprint dialog
-    if (blueprintDialogElement) {
-        blueprintDialogElement.classList.add('hidden');
-    }
+    blueprintDialogElement?.classList.add('hidden');
 }
 
 /**

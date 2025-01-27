@@ -11,13 +11,8 @@
 
     <!-- Modified User Input Form -->
     <div class="form-container">
-        <!-- First Row: Input and Submit Button -->
-        <div class="send-container">
-            <input type="text" id="userInput" class="rounded-input" placeholder="Type your message here...">
-            <button class="half-cut-button">Send</button>
-        </div>
 
-        <!-- Second Row: Dropdown and Buttons -->
+        <!-- First Row: Dropdown and Buttons -->
         <div class="dropdown-buttons-container">
             <select class="blueprint-dropdown" id="blueprintDropdown" aria-label="Select Blueprint"></select>
             <button class="input-button upload-button" id="uploadButton" aria-label="Upload">
@@ -26,6 +21,12 @@
             <button class="input-button" id="voiceRecordButton" aria-label="Record Voice">
                 <img src="{% static 'rest_mode/svg/voice.svg' %}" alt="Record Voice">
             </button>
+        </div>
+
+        <!-- Second Row: Input and Submit Button -->
+        <div class="send-container">
+            <input type="text" id="userInput" class="rounded-input" placeholder="Type your message here...">
+            <button class="half-cut-button">Send</button>
         </div>
     </div>
 </div>

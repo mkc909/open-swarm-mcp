@@ -62,7 +62,12 @@ export function initializeTheme() {
  */
 function applyColorTheme(theme) {
     const rootElement = document.documentElement; // Use <html> element
-    rootElement.setAttribute('data-theme-color', theme);
+    rootElement.setAttribute('data-theme', theme);
+
+    // Update SVG icon colors dynamically
+    document.querySelectorAll('.icon-svg').forEach((icon) => {
+        icon.style.fill = getComputedStyle(rootElement).getPropertyValue('--icon-color');
+    });
 }
 
 /**
@@ -80,5 +85,5 @@ function applyLayoutTheme(layout) {
  */
 function setDarkMode(isDarkMode) {
     const rootElement = document.documentElement; // Use <html> element
-    rootElement.setAttribute('data-theme-dark', isDarkMode);
+    rootElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
 }

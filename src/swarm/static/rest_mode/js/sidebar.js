@@ -28,12 +28,24 @@ export function toggleSidebar(sidebar, shouldShow) {
         }
     } else if (sidebar === 'options') {
         const optionsPane = document.getElementById('optionsPane');
-        optionsPane.classList.toggle('hidden');
-        const isVisible = !optionsPane.classList.contains('hidden');
+        if (!optionsPane) {
+            console.warn('Options pane element is missing.');
+            return;
+        }
+        const isVisible = shouldShow;
+        optionsPane.classList.toggle('hidden', !shouldShow);
         optionsSidebarRevealBtn.style.display = isVisible ? 'none' : 'flex';
         optionsSidebarHideBtn.style.display = isVisible ? 'flex' : 'none';
         optionsSidebarRevealBtn.innerHTML = isVisible ? '→' : '←'; /* Arrow icon */
         showToast(isVisible ? "⚙️ Settings sidebar shown." : "⚙️ Settings sidebar hidden.", "info");
+        console.log({
+            sidebar,
+            shouldShow,
+            isVisible,
+            optionsPane,
+            optionsSidebarRevealBtn,
+            optionsSidebarHideBtn
+        });
     }
 }
 

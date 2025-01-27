@@ -41,6 +41,41 @@ export function validateMessage(message) {
  * Fetches and renders blueprint metadata from /v1/models/.
  */
 export async function fetchBlueprintMetadata() {
+    const blueprintMetadataElement = document.getElementById('blueprintMetadata');
+    const persistentMessageElement = document.getElementById('firstUserMessage');
+
+    // Check if the elements exist
+    if (!blueprintMetadataElement || !persistentMessageElement) {
+        console.error("Error: Required DOM elements 'blueprintMetadata' or 'firstUserMessage' not found.");
+        return;
+    }
+
+    // Timeout messages
+    setTimeout(() => {
+        if (!blueprintName) {
+            appendRawMessage(
+                'assistant',
+                {
+                    content: 'Waiting for blueprint to download...',
+                },
+                'Assistant'
+            );
+        }
+    }, 3000);
+
+    setTimeout(() => {
+        if (!blueprintName) {
+            appendRawMessage(
+                'assistant',
+                {
+                    content:
+                        'Could not retrieve blueprint metadata. Check out the troubleshooting guide at <a href="https://github.com/matthewhand/open-swarm/TROUBLESHOOTING.md">Troubleshooting Guide</a>.',
+                },
+                'Assistant'
+            );
+        }
+    }, 8000);
+
     try {
         const response = await fetch('/v1/models/');
         if (!response.ok) throw new Error('Failed to fetch metadata.');
@@ -54,11 +89,14 @@ export async function fetchBlueprintMetadata() {
         blueprintName = defaultBlueprint.title;
         blueprintMetadata = defaultBlueprint.description;
 
-        // Post blueprint metadata as an Assistant message
+        // Update UI
+        blueprintMetadataElement.innerHTML = `<h2>${blueprintName}</h2>`;
+        persistentMessageElement.innerHTML = `<p>${blueprintMetadata}</p>`;
+
         appendRawMessage(
             'assistant',
             {
-                content: `Blueprint loaded: <strong>${blueprintName}</strong><br>${blueprintMetadata}`,
+                content: `Blueprint loaded: ${blueprintName}`,
             },
             'Assistant'
         );
@@ -75,8 +113,7 @@ export async function fetchBlueprintMetadata() {
                     'Could not retrieve blueprint metadata. Check out the troubleshooting guide at <a href="https://github.com/matthewhand/open-swarm/TROUBLESHOOTING.md">Troubleshooting Guide</a>.',
             },
             'Assistant'
-        );
-    }
+        );    }
 }
 
 /**
@@ -117,20 +154,26 @@ function populateBlueprintDialog(blueprints) {
  * @param {Object} blueprint - The selected blueprint.
  */
 function selectBlueprint(blueprint) {
+    const blueprintMetadataElement = document.getElementById('blueprintMetadata');
+    const blueprintDialogElement = document.getElementById('blueprintDialog');
+    const persistentMessageElement = document.getElementById('firstUserMessage');
+
     blueprintName = blueprint.title;
     blueprintMetadata = blueprint.description;
 
-    // Post updated blueprint metadata
+    // Update UI
+    blueprintMetadataElement.innerHTML = `<h2>${blueprintName}</h2>`;
+    persistentMessageElement.innerHTML = `<p>${blueprintMetadata}</p>`;
+
     appendRawMessage(
         'assistant',
         {
-            content: `Blueprint loaded: <strong>${blueprintName}</strong><br>${blueprintMetadata}`,
+            content: `Blueprint loaded: ${blueprintName}`,
         },
         'Assistant'
     );
 
     // Hide the blueprint dialog
-    const blueprintDialogElement = document.getElementById('blueprintDialog');
     if (blueprintDialogElement) {
         blueprintDialogElement.classList.add('hidden');
     }

@@ -65,7 +65,7 @@ export async function handleSubmit() {
 
     const userMessageContent = userInput.value.trim();
     if (!userMessageContent) {
-        showToast("❌ You cannot send an empty message.", "error");
+        // showToast("❌ You cannot send an empty message.", "error");
         debugLog("Empty message submission blocked.");
         return;
     }

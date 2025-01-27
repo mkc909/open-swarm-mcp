@@ -213,3 +213,48 @@
 .collapsible-content {
     margin-top: 10px;
 }
+/* Inline Toggle Alignment */
+.toggle-title, .nested-toggle {
+    display: flex;
+    align-items: center; /* Align items vertically */
+    justify-content: space-between; /* Push toggle to the right */
+    padding: 5px 0; /* Add vertical spacing */
+}
+
+.toggle-title label, .nested-toggle label {
+    font-weight: bold;
+    color: var(--text-primary, #333); /* Default text color */
+    flex: 1; /* Take up available space */
+    margin-right: 10px; /* Add space between label and toggle */
+}
+
+.svg-toggle {
+    width: 40px; /* Adjust toggle size */
+    height: 20px;
+    cursor: pointer;
+}
+
+.svg-toggle img {
+    width: 100%;
+    height: auto;
+}
+/* Remove border for Colour and Layout dropdowns */
+.theme-dropdown {
+    border: none; /* Ensure dropdowns have no borders */
+    background: transparent; /* Match the container background */
+    padding: 5px 0; /* Adjust padding for alignment */
+}
+
+/* Ensure dropdowns align cleanly */
+.theme-dropdown label {
+    font-weight: bold;
+    margin-right: 10px; /* Add space between label and dropdown */
+}
+
+.theme-dropdown select {
+    border: 1px solid var(--border-primary, #ccc); /* Add subtle border for dropdown */
+    background-color: var(--bg-primary, #fff);
+    padding: 5px;
+    border-radius: 5px; /* Subtle rounding for dropdown */
+    font-size: 1rem;
+}

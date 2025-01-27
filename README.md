@@ -387,3 +387,9 @@ Open Swarm is provided under the MIT License. Refer to the [LICENSE](LICENSE) fi
 
 This project is based on the [OpenAI Swarm](https://github.com/openai/swarm) framework. We would like to acknowledge the original authors and contributors of this project for their work.  
 We also wish to credit [django_chatbot](https://github.com/MattiPaivike/django_chatbot) for the Django chatbot view.
+
+### Third-Party Libraries
+- **[Marked.js](https://github.com/markedjs/marked)** (MIT License)  
+  A fast, lightweight library for parsing Markdown into HTML.
+- **[Font Awesome](https://github.com/FortAwesome/Font-Awesome)** (CC BY 4.0 License)  
+  A popular icon library for web projects. Included for styling buttons and enhancing the user interface.

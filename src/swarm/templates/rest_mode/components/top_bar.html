@@ -1,34 +1,31 @@
 {% load static %}
 <div class="top-bar">
 
+    <button id="settingsToggleButton" aria-label="Toggle Settings">
+        <img src="{% static 'rest_mode/svg/settings.svg' %}" alt="Settings">
+        <span class="btn-label">Settings</span>
+    </button>
+
+    <!-- Close Sidebar Button -->
+    <button class="sidebar-hide-btn" id="leftSidebarHideBtn">
+        <img src="{% static 'rest_mode/svg/arrow_left.svg' %}" alt="Hide Chat Pane">
+    </button>
+
     <!-- Logo and Buttons (Left) -->
     <div class="top-bar-left">
         <button id="chatHistoryToggleButton" class="top-bar-btn" aria-label="Toggle Chat History">
             <img src="{% static 'rest_mode/svg/chat_history.svg' %}" alt="Chat History">
             <span class="btn-label">Chat History</span>
         </button>
-        <button id="newChatButton" class="top-bar-btn" aria-label="New Chat">
-            <img src="{% static 'rest_mode/svg/new_chat.svg' %}" alt="New Chat">
-            <span class="btn-label">New Chat</span>
-        </button>
     </div>
 
     <!-- Settings (Right) -->
     <div class="top-bar-right">
 
-        <button id="settingsToggleButton" class="top-bar-btn" aria-label="Toggle Settings">
-            <img src="{% static 'rest_mode/svg/settings.svg' %}" alt="Settings">
-            <span class="btn-label">Settings</span>
-        </button>
-
         <!-- Blueprint Name and Dropdown -->
         <div class="blueprint-container">
             <h2 id="blueprintTitle" class="blueprint-title"></h2>
             
-            <!-- Blueprint Dropdown -->
-            <label for="blueprintDropdown" class="blueprint-dropdown-label"></label>
-            <select id="blueprintDropdown" aria-label="Select Blueprint"></select>
-
             <!-- Hidden Blueprint Metadata -->
             <div id="blueprintMetadata" class="hidden">
                 <h2>Metadata</h2>

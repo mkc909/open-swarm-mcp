@@ -125,6 +125,45 @@ export function hideLoadingIndicator() {
     }
 }
 
+
+/**
+ * Attaches sliding toolbar behavior to messages and adjusts container height.
+ * @param {HTMLElement} messageElement - The message element to attach the toolbar logic.
+ * @param {Object} options - Configuration for the toolbar behavior.
+ * @param {number} options.toolbarHeight - The height of the toolbar when visible (default: 50).
+ */
+export function enableSlidingToolbar(
+    messageElement,
+    { toolbarHeight = 50 } = {}
+) {
+    const toolbar = messageElement.querySelector('.message-toolbar');
+    if (!toolbar) return;
+
+    // Apply initial styles
+    toolbar.style.height = '0px';
+    toolbar.style.opacity = '0';
+    toolbar.style.transition = 'height 0.3s ease, opacity 0.3s ease';
+
+    messageElement.style.transition = 'height 0.3s ease';
+
+    messageElement.addEventListener('mouseenter', () => {
+        toolbar.style.height = `${toolbarHeight}px`;
+        toolbar.style.opacity = '1';
+
+        // Adjust message height to accommodate the toolbar
+        messageElement.style.height = `${messageElement.scrollHeight + toolbarHeight}px`;
+    });
+
+    messageElement.addEventListener('mouseleave', () => {
+        toolbar.style.height = '0px';
+        toolbar.style.opacity = '0';
+
+        // Reset message height when toolbar is hidden
+        messageElement.style.height = '';
+    });
+}
+
+
 /**
  * Initializes all UI components and event listeners.
  */
@@ -135,10 +174,10 @@ export function initializeUI() {
     // Integrate other initialization logic
     initializeSidebar();
     initializeApplication();
-    initializeTheme();
     setupChatHistoryPane();
     setupSettingsToggleButton();
     setupResizableSidebars();
+    initializeTheme();
 
     // Hide the splash screen after initialization
     setTimeout(hideSplashPage, 2000); // Example delay for effect

@@ -1,13 +1,10 @@
 import { debugLog } from './debug.js';
-// import { marked } from './marked.min.js';
+import { enableSlidingToolbar } from './ui.js';
+// import { marked } from '../../contrib/markedjs/marked.min.js';
 import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
-// import { marked } from 'marked';
 
 let quickPrompts = ["What is Open-Swarm?", "Explain the architecture.", "How do I set up a new blueprint?"];
 
-/**
- * Renders a message into the UI.
- */
 export function renderMessage(role, content, sender, metadata) {
     debugLog('Rendering message...', { role, content, sender, metadata });
 
@@ -55,7 +52,11 @@ export function renderMessage(role, content, sender, metadata) {
     messageContainer.appendChild(messageDiv);
     debugLog('Message rendered successfully.', { role, content, sender, metadata });
 
+    // Enable sliding toolbar with size adjustment
+    enableSlidingToolbar(messageDiv, { toolbarHeight: 70 }); 
+
     attachToolbarActions(messageDiv);
+
 }
 
 /**

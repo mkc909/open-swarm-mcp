@@ -49,13 +49,13 @@ function setupChatHistoryListeners() {
  */
 function setupGlobalEventListeners() {
     // Sidebar toggles
-    document.getElementById("leftSidebarHideBtn")?.addEventListener('click', () => toggleSidebar('left', false));
-    document.getElementById("leftSidebarRevealBtn")?.addEventListener('click', () => toggleSidebar('left', true));
+    document.getElementById("settingsToggleButton")?.addEventListener('click', () => toggleSidebar('options', true));
     document.getElementById("optionsSidebarHideBtn")?.addEventListener('click', () => toggleSidebar('options', false));
-    document.getElementById("optionsSidebarRevealBtn")?.addEventListener('click', () => toggleSidebar('options', true));
+    document.getElementById("chatHistoryToggleButton")?.addEventListener('click', () => toggleSidebar('left', true));
+    document.getElementById("leftSidebarHideBtn")?.addEventListener('click', () => toggleSidebar('left', false));
 
     // Top buttons
-    document.getElementById("searchButton")?.addEventListener('click', handleSearch);
+    // document.getElementById("searchButton")?.addEventListener('click', handleSearch);
     document.getElementById("newChatButton")?.addEventListener('click', handleNewChat);
 
     // Functional buttons

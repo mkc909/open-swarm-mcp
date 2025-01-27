@@ -2,6 +2,8 @@ const DEBUG_MODE = true;
 
 import { showToast } from './toast.js';
 
+export let llmConfig = {};
+
 /**
  * Logs debug messages if debug mode is enabled.
  * @param {string} message - The message to log.
@@ -14,83 +16,71 @@ export function debugLog(message, data = null) {
 }
 
 /**
- * Handle Dark Mode Toggle.
+ * Fetch and load LLM configuration.
  */
-function handleDarkModeToggle() {
-    const darkModeToggle = document.getElementById('darkModeToggle');
+export async function loadLLMConfig() {
+    debugLog("Attempting to load LLM configuration...");
+    try {
+        const response = await fetch('/config/swarm_config.json');
+        debugLog("Received response from LLM config fetch.", { status: response.status });
 
-    if (darkModeToggle) {
-        darkModeToggle.addEventListener('click', () => {
-            const isDarkMode = darkModeToggle.dataset.state === 'on';
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        const config = await response.json();
+        debugLog("LLM configuration loaded successfully.", config);
 
-            // Toggle dark mode class on the <body> element
-            document.body.classList.toggle('dark-mode', !isDarkMode);
+        llmConfig = config.llm || {};
+        updateLLMSettingsPane(llmConfig);
+    } catch (error) {
+        console.error("Error loading LLM config:", error);
 
-            // Update the toggle state and icon
-            darkModeToggle.dataset.state = isDarkMode ? 'off' : 'on';
-            darkModeToggle.querySelector('img').src = isDarkMode
-                ? '/static/rest_mode/svg/toggle_off.svg'
-                : '/static/rest_mode/svg/toggle_on.svg';
-
-            showToast(`Dark Mode ${isDarkMode ? 'disabled' : 'enabled'}`, isDarkMode ? 'info' : 'success');
-
-            // Reapply the active color theme with the new dark mode setting
-            applyTheme();
-        });
+        showToast("⚠️ LLM settings could not be loaded. Please check the server.", "warning");
     }
 }
 
 /**
- * Handle Theme and Layout Selection.
+ * Updates the settings pane with LLM configuration.
+ * @param {Object} config - The LLM configuration object.
  */
-function handleThemeAndLayoutSelection() {
-    const colorSelect = document.getElementById('colorSelect');
-    const layoutSelect = document.getElementById('layoutSelect');
+function updateLLMSettingsPane(config) {
+    debugLog("Updating LLM settings pane...", config);
 
-    if (colorSelect) {
-        colorSelect.addEventListener('change', applyTheme);
+    const llmContainer = document.getElementById('llmConfiguration');
+    if (!llmContainer) {
+        console.warn("[DEBUG] LLM configuration container not found in the DOM.");
+        return;
     }
 
-    if (layoutSelect) {
-        layoutSelect.addEventListener('change', applyTheme);
-    }
+    // Render LLM configuration dynamically
+    llmContainer.innerHTML = Object.entries(config)
+        .map(([mode, details]) => {
+            const fields = Object.entries(details)
+                .map(([key, value]) => `
+                    <div class="llm-field">
+                        <label>${key}:</label>
+                        <input type="text" value="${value}" readonly>
+                    </div>
+                `)
+                .join('');
+
+            return `
+                <div class="llm-mode">
+                    <h4>${mode.charAt(0).toUpperCase() + mode.slice(1)} Mode</h4>
+                    ${fields}
+                </div>
+            `;
+        })
+        .join('');
+
+    showToast("LLM configuration loaded successfully.", "success");
+    debugLog("LLM settings pane updated.");
 }
 
 /**
- * Apply the selected theme and layout.
- */
-function applyTheme() {
-    const colorSelect = document.getElementById('colorSelect');
-    const layoutSelect = document.getElementById('layoutSelect');
-    const darkModeEnabled = document.body.classList.contains('dark-mode');
-
-    const selectedColor = colorSelect ? colorSelect.value : 'pastel';
-    const selectedLayout = layoutSelect ? layoutSelect.value : 'messenger-layout';
-
-    // Update the theme stylesheet
-    const themeStylesheet = document.getElementById('themeStylesheet');
-    if (themeStylesheet) {
-        themeStylesheet.href = `/static/rest_mode/css/themes/${selectedColor}${darkModeEnabled ? '-dark' : ''}.css`;
-    }
-
-    // Update the layout stylesheet
-    const layoutStylesheet = document.getElementById('layoutStylesheet');
-    if (layoutStylesheet) {
-        layoutStylesheet.href = `/static/rest_mode/css/layouts/${selectedLayout}.css`;
-    }
-
-    showToast(`Applied ${selectedColor} theme and ${selectedLayout} layout`, 'success');
-}
-
-/**
- * Initialize Settings.
+ * Initialize settings logic.
  */
 document.addEventListener('DOMContentLoaded', () => {
     debugLog("Settings page initialized.");
 
-    handleDarkModeToggle();
-    handleThemeAndLayoutSelection();
-
-    // Apply the initial theme and layout
-    applyTheme();
+    // Load LLM configuration
+    loadLLMConfig();
 });

@@ -55,7 +55,15 @@ export function renderMessage(role, content, sender, metadata) {
 /**
  * Appends a raw message object into the chat UI.
  */
+let isAppendingMessage = false; // Prevent duplicate appending
+
 export function appendRawMessage(role, content, sender, metadata) {
+    if (isAppendingMessage) {
+        debugLog('Duplicate appendRawMessage call detected. Skipping execution.', { role, content, sender, metadata });
+        return;
+    }
+
+    isAppendingMessage = true; // Set the flag
     debugLog('Appending raw message...', { role, content, sender, metadata });
 
     renderMessage(role, content, sender, metadata);
@@ -65,7 +73,10 @@ export function appendRawMessage(role, content, sender, metadata) {
         messageContainer.scrollTop = messageContainer.scrollHeight;
         debugLog('Scrolled to the bottom of the message history.');
     }
+
+    isAppendingMessage = false; // Reset the flag
 }
+
 
 /**
  * Renders quick prompts in the UI.

@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <path d="M7 7h-1a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-  <path d="M20.385 6.585a2.1 2.1 0 0 0-2.97-2.97l-8.415 8.385v3h3l8.385-8.415z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-  <path d="M16 5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+  <!-- A simpler pencil icon for a more recognizable 'edit' shape -->
+  <path d="M2 21l1.5-6.16a.5.5 0 0 1 .13-.26l12-12a2 2 0 0 1 2.83 0l2.83 2.83a2 2 0 0 1 0 2.83l-12 12a.5.5 0 0 1-.26.13L3 22H2v-1Z"/>
+  <path d="M12 7l5 5"/>
 </svg>

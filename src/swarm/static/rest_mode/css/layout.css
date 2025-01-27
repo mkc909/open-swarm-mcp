@@ -118,6 +118,9 @@
     padding: 10px;
     background-color: var(--bg-secondary);
     border-top: 1px solid var(--border-color);
+    position: absolute;
+    bottom: 0;
+    width: 100%;
 }
 
 /* Settings Pane */

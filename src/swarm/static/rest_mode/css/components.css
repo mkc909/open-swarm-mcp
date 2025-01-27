@@ -105,7 +105,7 @@
     justify-content: start; /* Align prompts to the left */
 }
 
-/.quick-prompt-button {
+.quick-prompt-button {
     background-color: var(--button-primary);
     color: white;
     border: none;
@@ -118,6 +118,13 @@
 
 .quick-prompt-button:hover {
     background-color: var(--button-hover-bg);
+}
+
+/* Updated hidden class */
+.hidden {
+    display: none !important; /* Fully removes from layout and ensures priority */
+    visibility: hidden;
+    pointer-events: none; /* Prevent interaction when hidden */
 }
 
 /* Form Container Updates */

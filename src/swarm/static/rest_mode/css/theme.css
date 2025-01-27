@@ -9,6 +9,8 @@
     --border-color: #d3d3d3;
     --button-primary: #87cefa;
     --button-hover: #00bfff;
+    --bg-hover: #e6f7ff; /* Light hover for messages */
+    --bg-message-other: #f9f9f9; /* Subtle contrast for message toolbars */
     --transition-duration: 0.3s;
 
     --icon-size: 1.5rem; /* Shared size for SVG icons */
@@ -23,4 +25,6 @@
     --border-color: #555555;
     --button-primary: #00bfff;
     --button-hover: #87cefa;
+    --bg-hover: #333333; /* Dark hover for messages */
+    --bg-message-other: #444444; /* Subtle contrast for message toolbars */
 }

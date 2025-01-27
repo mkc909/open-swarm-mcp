@@ -322,3 +322,29 @@
 .toolbar-gap {
     width: 10px;
 }
+
+.chat-history-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.chat-history-header {
+    display: flex;
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
+    text-align: center;
+    width: 100%; /* Ensure it spans the parent container */
+    height: auto; /* Adjust height dynamically */
+    margin: 0 auto; /* Center within the parent container */
+    padding: 10px; /* Add spacing around the header */
+    /* background-color: var(--bg-secondary, #030303); Optional background color */
+    /* border-bottom: 1px solid var(--border-primary, #333); Optional bottom border */
+}
+
+.chat-history-header h2 {
+    padding: 10px; /* Adjust padding as needed */
+    margin: 0; /* Reset margin if necessary */
+    border-radius: 8px; /* Optional rounded corners */
+}

@@ -38,7 +38,7 @@ export async function loadLLMConfig() {
 }
 
 /**
- * Updates the settings pane with LLM configuration.
+ * Updates the settings pane with collapsible LLM modes and toggles.
  * @param {Object} config - The LLM configuration object.
  */
 function updateLLMSettingsPane(config) {
@@ -50,9 +50,15 @@ function updateLLMSettingsPane(config) {
         return;
     }
 
-    // Render LLM configuration dynamically
     llmContainer.innerHTML = Object.entries(config)
         .map(([mode, details]) => {
+            const isDefault = mode === 'default';
+            const toggleHTML = `
+                <div class="svg-toggle ${isDefault ? 'disabled' : ''}" data-state="on" id="toggle-${mode}">
+                    <img src="/static/rest_mode/svg/toggle_on.svg" alt="Toggle On">
+                </div>
+            `;
+
             const fields = Object.entries(details)
                 .map(([key, value]) => `
                     <div class="llm-field">
@@ -63,16 +69,60 @@ function updateLLMSettingsPane(config) {
                 .join('');
 
             return `
-                <div class="llm-mode">
-                    <h4>${mode.charAt(0).toUpperCase() + mode.slice(1)} Mode</h4>
-                    ${fields}
+                <div class="llm-mode collapsible">
+                    <h4 class="collapsible-toggle">
+                        ${toggleHTML} ${mode.charAt(0).toUpperCase() + mode.slice(1)} Mode
+                        <span>▼</span>
+                    </h4>
+                    <div class="collapsible-content hidden">
+                        ${fields}
+                    </div>
                 </div>
             `;
         })
         .join('');
 
-    showToast("LLM configuration loaded successfully.", "success");
-    debugLog("LLM settings pane updated.");
+    initializeLLMModeToggles();
+    initializeCollapsibleSections();
+}
+
+/**
+ * Initialize toggles for LLM modes.
+ */
+function initializeLLMModeToggles() {
+    Object.keys(llmConfig).forEach((mode) => {
+        const toggle = document.getElementById(`toggle-${mode}`);
+        if (toggle && mode !== 'default') {
+            toggle.addEventListener('click', (event) => {
+                // Prevent the event from triggering the collapsible toggle
+                event.stopPropagation();
+
+                const isOn = toggle.dataset.state === 'on';
+                toggle.dataset.state = isOn ? 'off' : 'on';
+                toggle.querySelector('img').src = isOn
+                    ? '/static/rest_mode/svg/toggle_off.svg'
+                    : '/static/rest_mode/svg/toggle_on.svg';
+
+                showToast(`${mode.charAt(0).toUpperCase() + mode.slice(1)} Mode ${isOn ? 'disabled' : 'enabled'}`);
+            });
+        }
+    });
+}
+
+/**
+ * Initialize collapsible behavior for LLM modes and sections.
+ */
+function initializeCollapsibleSections() {
+    document.querySelectorAll('.collapsible-toggle').forEach((toggle) => {
+        toggle.addEventListener('click', () => {
+            const content = toggle.nextElementSibling;
+            if (content) {
+                content.classList.toggle('hidden');
+                const isOpen = !content.classList.contains('hidden');
+                toggle.querySelector('span').textContent = isOpen ? '▲' : '▼';
+            }
+        });
+    });
 }
 
 /**

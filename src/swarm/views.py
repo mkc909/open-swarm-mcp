@@ -253,6 +253,18 @@ def blueprint_webpage(request, blueprint_name):
     return render(request, "rest_mode/blueprint_page.html", context)
 
 
+DEFAULT_CONFIG = {
+    "llm": {
+        "default": {
+            "provider": "openai",
+            "model": "llama3.2:latest",
+            "base_url": "http://localhost:11434/v1",
+            "api_key": "",
+            "temperature": 0.3
+        }
+    }
+}
+
 def serve_swarm_config(request):
     config_path = Path(settings.BASE_DIR) / "swarm_config.json"
     try:
@@ -261,7 +273,7 @@ def serve_swarm_config(request):
         return JsonResponse(config_data)
     except FileNotFoundError:
         logger.error(f"swarm_config.json not found at {config_path}")
-        return JsonResponse({"error": "Configuration file not found."}, status=404)
+        return JsonResponse(DEFAULT_CONFIG)
     except json.JSONDecodeError as e:
         logger.error(f"Error decoding JSON from {config_path}: {e}")
         return JsonResponse({"error": "Invalid JSON format in configuration file."}, status=500)

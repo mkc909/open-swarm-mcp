@@ -95,7 +95,7 @@ export async function handleSubmit() {
     // If it's the first user message, update the persistent message
     if (isFirstUserMessage) {
         const persistentMessageElement = document.getElementById('firstUserMessage');
-        persistentMessageElement.innerHTML = `<p>${userMessageContent}</p>`;
+        persistentMessageElement.innerHTML = `<b>Persist:</b><p>User: ${userMessageContent}</p>`;
         debugLog("Persistent message updated with the first user message.");
     }
 

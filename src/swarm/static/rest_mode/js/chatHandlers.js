@@ -92,15 +92,15 @@ export async function fetchBlueprintMetadata() {
 
         // Update UI
         blueprintMetadataElement.innerHTML = `<h2>${blueprintName}</h2>`;
-        persistentMessageElement.innerHTML = `<p>${blueprintMetadata}</p>`;
+        persistentMessageElement.innerHTML = `<h2>${blueprintName}</h2><p>${blueprintMetadata}</p>`;
 
-        appendRawMessage(
-            'assistant',
-            {
-                content: `Blueprint loaded: ${blueprintName}`,
-            },
-            'Assistant'
-        );
+        // appendRawMessage(
+        //     'assistant',
+        //     {
+        //         content: `Blueprint loaded: ${blueprintName}`,
+        //     },
+        //     'Assistant'
+        // );
 
         populateBlueprintDialog(blueprints); // Populate blueprint dialog and dropdown
     } catch (error) {
@@ -196,7 +196,7 @@ function selectBlueprint(blueprint) {
 
     // Update UI
     blueprintMetadataElement.innerHTML = `<h2>${blueprintName}</h2>`;
-    persistentMessageElement.innerHTML = `<p>${blueprintMetadata}</p>`;
+    persistentMessageElement.innerHTML = `<h2>${blueprintName}</h2><p>${blueprintMetadata}</p>`;
 
     appendRawMessage(
         'assistant',

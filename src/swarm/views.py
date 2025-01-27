@@ -1,14 +1,14 @@
 """
-REST Mode Views for Open Swarm MCP.
+  REST Mode Views for Open Swarm MCP.
 
-This module defines asynchronous views to handle chat completions and model listings,
-aligning with OpenAI's Chat Completions API.
+  This module defines asynchronous views to handle chat completions and model listings,
+  aligning with OpenAI's Chat Completions API.
 
-Endpoints:
-    - POST /v1/chat/completions: Handles chat completion requests.
-    - GET /v1/models: Lists available blueprints as models.
-    - GET /django_chat/: Lists conversations for the logged-in user.
-    - POST /django_chat/start/: Starts a new conversation.
+  Endpoints:
+      - POST /v1/chat/completions: Handles chat completion requests.
+      - GET /v1/models: Lists available blueprints as models.
+      - GET /django_chat/: Lists conversations for the logged-in user.
+      - POST /django_chat/start/: Starts a new conversation.
 """
 import os
 import json
@@ -87,10 +87,10 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
     messages = response.get("messages", []) if isinstance(response, dict) else getattr(response, "messages", [])
     active_agent = getattr(response, "agent", None)
 
-    if messages:
-        # Update the agent context if necessary
-        last_message = messages[-1]
-        context_variables["active_agent"] = active_agent.name if active_agent else "unknown"
+    assert messages, "Messages should not be empty as per view logic."
+
+    last_message = messages[-1]
+    context_variables["active_agent"] = active_agent.name if active_agent else "unknown"
 
     # Format the response for OpenAI
     response_id = f"swarm-chat-completion-{uuid.uuid4()}"
@@ -201,7 +201,7 @@ class IndexView(LoginRequiredMixin, TemplateView):
 class StartConversationView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         conversation = ChatConversation.objects.create(user=request.user)
-        return redirect(reverse('chat_page', args=[conversation.id]))
+        return redirect(reverse('chat_page', args=[conversation.pk]))
 
 
 class ChatView(LoginRequiredMixin, TemplateView):
@@ -251,3 +251,17 @@ def blueprint_webpage(request, blueprint_name):
         "dark_mode": request.session.get('dark_mode', True)  # Default to dark mode
     }
     return render(request, "rest_mode/blueprint_page.html", context)
+
+
+def serve_swarm_config(request):
+    config_path = Path(settings.BASE_DIR) / "swarm_config.json"
+    try:
+        with open(config_path, 'r') as f:
+            config_data = json.load(f)
+        return JsonResponse(config_data)
+    except FileNotFoundError:
+        logger.error(f"swarm_config.json not found at {config_path}")
+        return JsonResponse({"error": "Configuration file not found."}, status=404)
+    except json.JSONDecodeError as e:
+        logger.error(f"Error decoding JSON from {config_path}: {e}")
+        return JsonResponse({"error": "Invalid JSON format in configuration file."}, status=500)

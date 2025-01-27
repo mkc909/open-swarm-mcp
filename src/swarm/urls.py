@@ -22,5 +22,6 @@ urlpatterns = [
     re_path(r'ws/django_chat/(?P<conversation_id>[0-9a-fA-F-]+)/$', consumers.DjangoChatConsumer.as_asgi(), name="ws_django_chat"),
     path('favicon.ico', favicon, name='favicon'),
     path('accounts/', include('allauth.urls')),
+    path('static/config/swarm_config.json', views.serve_swarm_config, name='serve_swarm_config'),
     path('<str:blueprint_name>', views.blueprint_webpage, name='blueprint_webpage'),
 ]

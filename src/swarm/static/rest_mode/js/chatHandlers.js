@@ -124,6 +124,7 @@ export async function fetchBlueprintMetadata() {
 function populateBlueprintDialog(blueprints) {
     const blueprintDialogElement = document.getElementById('blueprintDialog');
     const blueprintDropdown = document.getElementById('blueprintDropdown');
+    const currentPath = window.location.pathname; // Get the current URL path
 
     if (!blueprintDialogElement || !blueprintDropdown) {
         console.warn('Blueprint dialog or dropdown element not found.');
@@ -148,6 +149,17 @@ function populateBlueprintDialog(blueprints) {
         <option value="${bp.id}">${bp.title}</option>`
         )
         .join('');
+
+    // Find the blueprint matching the current path
+    const matchedBlueprint = blueprints.find((bp) =>
+        currentPath.includes(bp.route) // Assuming each blueprint has a `route` property
+    );
+
+    // Set the default dropdown value
+    if (matchedBlueprint) {
+        blueprintDropdown.value = matchedBlueprint.id; // Set the dropdown value
+        selectBlueprint(matchedBlueprint); // Select the blueprint by default
+    }
 
     // Add click event for each dialog option
     document.querySelectorAll('.blueprint-option').forEach((option) => {
@@ -269,3 +281,57 @@ export async function handleDeleteChat(item) {
         showToast('❌ Error deleting chat. Please try again.', 'error');
     }
 }
+document.addEventListener('DOMContentLoaded', function () {
+    const chatPane = document.getElementById('chatPane');
+    const scrollIndicator = document.getElementById('scrollIndicator');
+    const autoScrollToggle = document.getElementById('autoScrollToggle');
+    let autoScrollEnabled = true;
+
+    // Initialize auto-scroll toggle
+    if (autoScrollToggle) {
+        autoScrollToggle.checked = autoScrollEnabled; // Default state
+        autoScrollToggle.addEventListener('change', function () {
+            autoScrollEnabled = this.checked;
+            showToast(`Auto scroll ${autoScrollEnabled ? 'enabled' : 'disabled'}`, 'info');
+        });
+    }
+
+    // Handle new messages
+    function handleNewMessage() {
+        if (autoScrollEnabled && chatPane) {
+            chatPane.scrollTop = chatPane.scrollHeight; // Scroll to bottom
+        }
+    }
+
+    // Show or hide scroll indicator
+    function updateScrollIndicator() {
+        if (chatPane.scrollHeight - chatPane.scrollTop > chatPane.clientHeight + 50) {
+            scrollIndicator.classList.remove('hidden');
+            scrollIndicator.classList.add('visible');
+        } else {
+            scrollIndicator.classList.add('hidden');
+            scrollIndicator.classList.remove('visible');
+        }
+    }
+
+    // Scroll to bottom on click
+    if (scrollIndicator) {
+        scrollIndicator.addEventListener('click', function () {
+            chatPane.scrollTop = chatPane.scrollHeight;
+        });
+    }
+
+    // Add scroll listener to chat pane
+    if (chatPane) {
+        chatPane.addEventListener('scroll', updateScrollIndicator);
+    }
+
+    // Simulate message addition
+    setInterval(() => {
+        // Example: Simulate adding a message
+        const message = document.createElement('div');
+        message.textContent = `Message at ${new Date().toLocaleTimeString()}`;
+        chatPane.appendChild(message);
+        handleNewMessage();
+    }, 5000); // Simulates a new message every 5 seconds
+});

@@ -1,8 +1,6 @@
-const DEBUG_MODE = true; // Toggle debug logging
+const DEBUG_MODE = true;
 
 import { showToast } from './toast.js';
-
-export let llmConfig = {};
 
 /**
  * Logs debug messages if debug mode is enabled.
@@ -16,209 +14,83 @@ export function debugLog(message, data = null) {
 }
 
 /**
- * Fetch and load LLM configuration.
+ * Handle Dark Mode Toggle.
  */
-export async function loadLLMConfig() {
-    debugLog("Attempting to load LLM configuration...");
-    try {
-        const response = await fetch('/static/config/swarm_config.json');
-        debugLog("Received response from LLM config fetch.", { status: response.status });
+function handleDarkModeToggle() {
+    const darkModeToggle = document.getElementById('darkModeToggle');
 
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        const config = await response.json();
-        debugLog("LLM configuration loaded successfully.", config);
+    if (darkModeToggle) {
+        darkModeToggle.addEventListener('click', () => {
+            const isDarkMode = darkModeToggle.dataset.state === 'on';
 
-        llmConfig = config.llm || {};
-        updateSettingsPane(llmConfig);
-    } catch (error) {
-        console.error("Error loading LLM config:", error);
+            // Toggle dark mode class on the <body> element
+            document.body.classList.toggle('dark-mode', !isDarkMode);
 
-        llmConfig = {
-            default: {
-                provider: "openai",
-                model: "gpt-4o",
-                base_url: "https://api.openai.com/v1",
-                api_key: "",
-                temperature: 0.3,
-            },
-        }; // Default fallback
+            // Update the toggle state and icon
+            darkModeToggle.dataset.state = isDarkMode ? 'off' : 'on';
+            darkModeToggle.querySelector('img').src = isDarkMode
+                ? '/static/rest_mode/svg/toggle_off.svg'
+                : '/static/rest_mode/svg/toggle_on.svg';
 
-        showToast("⚠️ LLM settings could not be loaded. Using defaults.", "warning");
-        updateSettingsPane(llmConfig);
+            showToast(`Dark Mode ${isDarkMode ? 'disabled' : 'enabled'}`, isDarkMode ? 'info' : 'success');
+
+            // Reapply the active color theme with the new dark mode setting
+            applyTheme();
+        });
     }
 }
 
 /**
- * Updates the settings pane with LLM configuration.
+ * Handle Theme and Layout Selection.
  */
-function updateSettingsPane(config) {
-    debugLog("Updating settings pane with LLM configuration...", config);
+function handleThemeAndLayoutSelection() {
+    const colorSelect = document.getElementById('colorSelect');
+    const layoutSelect = document.getElementById('layoutSelect');
 
-    const settingsPane = document.getElementById('settingsPane');
-    if (!settingsPane) {
-        console.warn("[DEBUG] Settings pane not found in the DOM.");
-        return;
+    if (colorSelect) {
+        colorSelect.addEventListener('change', applyTheme);
     }
 
-    settingsPane.innerHTML = `
-        <h3>LLM Configuration</h3>
-        <div>
-            <label for="llmSummary">Summary:</label>
-            <select id="llmSummary">
-                ${Object.keys(config).map(llm => `<option value="${llm}">${config[llm].model}</option>`).join('')}
-            </select>
-        </div>
-        <div>
-            <label for="llmReason">Reason:</label>
-            <select id="llmReason">
-                ${Object.keys(config).map(llm => `<option value="${llm}">${config[llm].model}</option>`).join('')}
-            </select>
-        </div>
-        <div>
-            <label for="llmDefault">Default:</label>
-            <select id="llmDefault">
-                ${Object.keys(config).map(llm => `<option value="${llm}">${config[llm].model}</option>`).join('')}
-            </select>
-        </div>
-    `;
-    debugLog("Settings pane updated successfully.");
+    if (layoutSelect) {
+        layoutSelect.addEventListener('change', applyTheme);
+    }
 }
-    
-document.addEventListener('DOMContentLoaded', function() {
-    // Mobile UI Toggle Handlers
-    const mobileUIToggle = document.getElementById('mobileUIToggle');
-    if (mobileUIToggle) {
-        mobileUIToggle.addEventListener('change', function() {
-            const isEnabled = this.checked;
-            // Handle Mobile UI toggle
-            if (isEnabled) {
-                showToast("Mobile UI enabled", "success");
-                // Additional logic to enable Mobile UI features
-            } else {
-                showToast("Mobile UI disabled", "info");
-                // Additional logic to disable Mobile UI features
-            }
-        });
+
+/**
+ * Apply the selected theme and layout.
+ */
+function applyTheme() {
+    const colorSelect = document.getElementById('colorSelect');
+    const layoutSelect = document.getElementById('layoutSelect');
+    const darkModeEnabled = document.body.classList.contains('dark-mode');
+
+    const selectedColor = colorSelect ? colorSelect.value : 'pastel';
+    const selectedLayout = layoutSelect ? layoutSelect.value : 'messenger-layout';
+
+    // Update the theme stylesheet
+    const themeStylesheet = document.getElementById('themeStylesheet');
+    if (themeStylesheet) {
+        themeStylesheet.href = `/static/rest_mode/css/themes/${selectedColor}${darkModeEnabled ? '-dark' : ''}.css`;
     }
 
-    const alwaysVisibleButtonsToggle = document.getElementById('alwaysVisibleButtonsToggle');
-    if (alwaysVisibleButtonsToggle) {
-        alwaysVisibleButtonsToggle.addEventListener('change', function() {
-            const isEnabled = this.checked;
-            // Handle Always Visible Buttons toggle
-            if (isEnabled) {
-                showToast("Always Visible Buttons enabled", "success");
-                // Logic to show always visible buttons
-            } else {
-                showToast("Always Visible Buttons disabled", "info");
-                // Logic to hide always visible buttons
-            }
-        });
+    // Update the layout stylesheet
+    const layoutStylesheet = document.getElementById('layoutStylesheet');
+    if (layoutStylesheet) {
+        layoutStylesheet.href = `/static/rest_mode/css/layouts/${selectedLayout}.css`;
     }
 
-    const swipeLeftSettingsToggle = document.getElementById('swipeLeftSettingsToggle');
-    if (swipeLeftSettingsToggle) {
-        swipeLeftSettingsToggle.addEventListener('change', function() {
-            const isEnabled = this.checked;
-            // Handle Swipe left for Settings toggle
-            if (isEnabled) {
-                showToast("Swipe left for Settings enabled", "success");
-                // Logic to enable swipe left for settings
-            } else {
-                showToast("Swipe left for Settings disabled", "info");
-                // Logic to disable swipe left for settings
-            }
-        });
-    }
+    showToast(`Applied ${selectedColor} theme and ${selectedLayout} layout`, 'success');
+}
 
-    const swipeRightChatHistoryToggle = document.getElementById('swipeRightChatHistoryToggle');
-    if (swipeRightChatHistoryToggle) {
-        swipeRightChatHistoryToggle.addEventListener('change', function() {
-            const isEnabled = this.checked;
-            // Handle Swipe right for Chat History toggle
-            if (isEnabled) {
-                showToast("Swipe right for Chat History enabled", "success");
-                // Logic to enable swipe right for chat history
-            } else {
-                showToast("Swipe right for Chat History disabled", "info");
-                // Logic to disable swipe right for chat history
-            }
-        });
-    }
+/**
+ * Initialize Settings.
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    debugLog("Settings page initialized.");
 
-    const swipeDownControlsToggle = document.getElementById('swipeDownControlsToggle');
-    if (swipeDownControlsToggle) {
-        swipeDownControlsToggle.addEventListener('change', function() {
-            const isEnabled = this.checked;
-            // Handle Swipe down for Controls toggle
-            if (isEnabled) {
-                showToast("Swipe down for Controls enabled", "success");
-                // Logic to enable swipe down for controls
-            } else {
-                showToast("Swipe down for Controls disabled", "info");
-                // Logic to disable swipe down for controls
-            }
-        });
-    }
+    handleDarkModeToggle();
+    handleThemeAndLayoutSelection();
+
+    // Apply the initial theme and layout
+    applyTheme();
 });
-
-    // Mobile UI Toggle Handlers
-    document.getElementById('mobileUIToggle').addEventListener('change', function() {
-        const isEnabled = this.checked;
-        // Handle Mobile UI toggle
-        if (isEnabled) {
-            showToast("Mobile UI enabled", "success");
-            // Additional logic to enable Mobile UI features
-        } else {
-            showToast("Mobile UI disabled", "info");
-            // Additional logic to disable Mobile UI features
-        }
-    });
-    
-    document.getElementById('alwaysVisibleButtonsToggle').addEventListener('change', function() {
-        const isEnabled = this.checked;
-        // Handle Always Visible Buttons toggle
-        if (isEnabled) {
-            showToast("Always Visible Buttons enabled", "success");
-            // Logic to show always visible buttons
-        } else {
-            showToast("Always Visible Buttons disabled", "info");
-            // Logic to hide always visible buttons
-        }
-    });
-    
-    document.getElementById('swipeLeftSettingsToggle').addEventListener('change', function() {
-        const isEnabled = this.checked;
-        // Handle Swipe left for Settings toggle
-        if (isEnabled) {
-            showToast("Swipe left for Settings enabled", "success");
-            // Logic to enable swipe left for settings
-        } else {
-            showToast("Swipe left for Settings disabled", "info");
-            // Logic to disable swipe left for settings
-        }
-    });
-    
-    document.getElementById('swipeRightChatHistoryToggle').addEventListener('change', function() {
-        const isEnabled = this.checked;
-        // Handle Swipe right for Chat History toggle
-        if (isEnabled) {
-            showToast("Swipe right for Chat History enabled", "success");
-            // Logic to enable swipe right for chat history
-        } else {
-            showToast("Swipe right for Chat History disabled", "info");
-            // Logic to disable swipe right for chat history
-        }
-    });
-    
-    document.getElementById('swipeDownControlsToggle').addEventListener('change', function() {
-        const isEnabled = this.checked;
-        // Handle Swipe down for Controls toggle
-        if (isEnabled) {
-            showToast("Swipe down for Controls enabled", "success");
-            // Logic to enable swipe down for controls
-        } else {
-            showToast("Swipe down for Controls disabled", "info");
-            // Logic to disable swipe down for controls
-        }
-    });

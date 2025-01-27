@@ -3,69 +3,73 @@
     <button class="sidebar-hide-btn" id="optionsSidebarHideBtn">
         <img src="{% static 'rest_mode/svg/arrow_right.svg' %}" alt="Hide Settings Pane">
     </button>
-    <div class="settings-container">
+    <div class="settings-container scrollable-container">
         <h2>⚙️ Settings</h2>
-        <div class="toggle-container">
-            <div class="toggle-section theme-toggle" data-theme="light">
-                <div class="toggle-title" data-icon="☀️">
-                    Dark/Light Mode
+
+        <!-- Dark Mode -->
+        <div class="toggle-section">
+            <div class="toggle-title">
+                <label for="darkModeToggle">🌙 Dark Mode:</label>
+                <div id="darkModeToggle" class="svg-toggle" data-state="off">
+                    <img src="{% static 'rest_mode/svg/toggle_off.svg' %}" alt="Toggle Off">
                 </div>
-                <div class="toggle-content">
-                    <input type="checkbox" id="darkModeToggle">
-                    <label for="darkModeToggle">Enable Dark Mode</label>
-                </div>
-            </div>
-            <div class="theme-dropdown theme-toggle">
-                <label for="colorSelect">🎨 Colour Theme:</label>
-                <select id="colorSelect">
-                    <option value="pastel">Pastel</option>
-                    <option value="tropical">Tropical</option>
-                    <option value="corporate">Corporate</option>
-                </select>
-            </div>
-            <div class="theme-dropdown theme-toggle">
-                <label for="layoutSelect">🖥️ Layout Theme:</label>
-                <select id="layoutSelect">
-                    <option value="messenger-layout">Messenger</option>
-                    <option value="mobile-layout">Mobile</option>
-                    <option value="minimalist-layout">Minimalist</option>
-                </select>
             </div>
         </div>
-        <!-- Mobile UI Toggles -->
-        <div class="toggle-section" id="mobileUIToggleSection">
+
+        <!-- Colour Theme -->
+        <div class="theme-dropdown theme-toggle">
+            <label for="colorSelect">🎨 Colour Theme:</label>
+            <select id="colorSelect">
+                <option value="pastel">Pastel</option>
+                <option value="tropical">Tropical</option>
+                <option value="corporate">Corporate</option>
+            </select>
+        </div>
+
+        <!-- Layout Theme -->
+        <div class="theme-dropdown theme-toggle">
+            <label for="layoutSelect">🖥️ Layout Theme:</label>
+            <select id="layoutSelect">
+                <option value="messenger-layout">Messenger</option>
+                <option value="mobile-layout">Mobile</option>
+                <option value="minimalist-layout">Minimalist</option>
+            </select>
+        </div>
+
+        <!-- Mobile UI Master Toggle -->
+        <h3>📱 Mobile UI</h3>
+        <div class="toggle-section">
             <div class="toggle-title">
-                <span>📱 Mobile UI</span>
-                <input type="checkbox" id="mobileUIToggle">
+                <label for="mobileUIToggle">Mobile UI:</label>
+                <div id="mobileUIToggle" class="svg-toggle" data-state="off">
+                    <img src="{% static 'rest_mode/svg/toggle_off.svg' %}" alt="Toggle Off">
+                </div>
             </div>
-            <div class="toggle-content">
+            <!-- Nested Toggles -->
+            <div id="mobileUIOptions" class="nested-container hidden">
                 <div class="nested-toggle">
-                    <label for="alwaysVisibleButtonsToggle">
-                        <img src="{% static 'rest_mode/svg/toggle_off.svg' %}" alt="Toggle Off" class="toggle-icon">
-                        <img src="{% static 'rest_mode/svg/toggle_on.svg' %}" alt="Toggle On" class="toggle-icon">
-                        <input type="checkbox" id="alwaysVisibleButtonsToggle"> Always Visible Buttons
-                    </label>
+                    <label for="alwaysVisibleButtonsToggle">Always Visible Buttons:</label>
+                    <div id="alwaysVisibleButtonsToggle" class="svg-toggle" data-state="off">
+                        <img src="{% static 'rest_mode/svg/toggle_off.svg' %}" alt="Toggle Off">
+                    </div>
                 </div>
                 <div class="nested-toggle">
-                    <label for="swipeLeftSettingsToggle">
-                        <img src="{% static 'rest_mode/svg/toggle_off.svg' %}" alt="Toggle Off" class="toggle-icon">
-                        <img src="{% static 'rest_mode/svg/toggle_on.svg' %}" alt="Toggle On" class="toggle-icon">
-                        <input type="checkbox" id="swipeLeftSettingsToggle"> Swipe left for Settings
-                    </label>
+                    <label for="swipeLeftSettingsToggle">Swipe Left for Settings:</label>
+                    <div id="swipeLeftSettingsToggle" class="svg-toggle" data-state="off">
+                        <img src="{% static 'rest_mode/svg/toggle_off.svg' %}" alt="Toggle Off">
+                    </div>
                 </div>
                 <div class="nested-toggle">
-                    <label for="swipeRightChatHistoryToggle">
-                        <img src="{% static 'rest_mode/svg/toggle_off.svg' %}" alt="Toggle Off" class="toggle-icon">
-                        <img src="{% static 'rest_mode/svg/toggle_on.svg' %}" alt="Toggle On" class="toggle-icon">
-                        <input type="checkbox" id="swipeRightChatHistoryToggle"> Swipe right for Chat History
-                    </label>
+                    <label for="swipeRightChatHistoryToggle">Swipe Right for Chat History:</label>
+                    <div id="swipeRightChatHistoryToggle" class="svg-toggle" data-state="off">
+                        <img src="{% static 'rest_mode/svg/toggle_off.svg' %}" alt="Toggle Off">
+                    </div>
                 </div>
                 <div class="nested-toggle">
-                    <label for="swipeDownControlsToggle">
-                        <img src="{% static 'rest_mode/svg/toggle_off.svg' %}" alt="Toggle Off" class="toggle-icon">
-                        <img src="{% static 'rest_mode/svg/toggle_on.svg' %}" alt="Toggle On" class="toggle-icon">
-                        <input type="checkbox" id="swipeDownControlsToggle"> Swipe down for Controls
-                    </label>
+                    <label for="swipeDownControlsToggle">Swipe Down for Controls:</label>
+                    <div id="swipeDownControlsToggle" class="svg-toggle" data-state="off">
+                        <img src="{% static 'rest_mode/svg/toggle_off.svg' %}" alt="Toggle Off">
+                    </div>
                 </div>
             </div>
         </div>

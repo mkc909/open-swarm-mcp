@@ -198,13 +198,21 @@ function attachToolbarActions(messageDiv) {
 /**
  * Appends the content of a message to the persistent message area.
  */
-function appendToPersistentMessage(messageDiv, persistentMessage) {
-    const content = messageDiv.querySelector('span').innerText;
-    const persistentMessageContent = persistentMessage.querySelector('.message span');
+function appendToPersistentMessage(messageDiv, persistentMessageElement) {
+    if (!persistentMessageElement) {
+        console.error("Persistent message element not found (firstUserMessage).");
+        return;
+    }
+
+    const content = messageDiv.querySelector('span')?.innerText || "No content";
+    const persistentMessageContent = persistentMessageElement.querySelector('.message span');
+
     if (persistentMessageContent) {
         persistentMessageContent.innerText = content;
+        debugLog('Message appended to persistent message area.', { content });
+    } else {
+        console.error("Persistent message content element not found.");
     }
-    debugLog('Message appended to persistent message area.', { content });
 }
 
 /**

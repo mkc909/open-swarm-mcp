@@ -198,13 +198,13 @@ function selectBlueprint(blueprint) {
     blueprintMetadataElement.innerHTML = `<h2>${blueprintName}</h2>`;
     persistentMessageElement.innerHTML = `<h2>${blueprintName}</h2><p>${blueprintMetadata}</p>`;
 
-    appendRawMessage(
-        'assistant',
-        {
-            content: `Blueprint loaded: ${blueprintName}`,
-        },
-        'Assistant'
-    );
+    // appendRawMessage(
+    //     'assistant',
+    //     {
+    //         content: `Blueprint loaded: ${blueprintName}`,
+    //     },
+    //     'Assistant'
+    // );
 
     // Hide the blueprint dialog
     blueprintDialogElement?.classList.add('hidden');
@@ -331,7 +331,8 @@ document.addEventListener('DOMContentLoaded', function () {
         // Example: Simulate adding a message
         const message = document.createElement('div');
         message.textContent = `Message at ${new Date().toLocaleTimeString()}`;
-        chatPane.appendChild(message);
+        // TODO fix
+        // chatPane.appendChild(message);
         handleNewMessage();
     }, 5000); // Simulates a new message every 5 seconds
 });

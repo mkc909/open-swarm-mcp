@@ -84,7 +84,7 @@ function persistMessage(role, message, sender = "") {
     // We'll allow multiple pinned messages by just appending
     const pinned = document.createElement("div");
     pinned.classList.add("pinned-message");
-    pinned.innerHTML = `<strong>${sender}:</strong> ${message.content}`;
+    pinned.innerHTML = `<small>${sender}:</small> ${message.content}`;
 
     firstUserMessageDiv.style.display = "block";
     firstUserMessageDiv.appendChild(pinned);

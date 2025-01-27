@@ -13,25 +13,23 @@
     <!-- Loading Indicator -->
     <div id="loadingIndicator" class="loading-indicator"></div>
 
-    <!-- User Input Form -->
+    <!-- Modified User Input Form -->
     <div class="form-container">
+        <div id="submitButton" class="send-container">
+            <input type="text" id="userInput" class="rounded-input" placeholder="Type your message here...">
+
+            <!-- Blueprint Dropdown -->
+            <select class="embedded-dropdown blueprint-dropdown" id="blueprintDropdown" aria-label="Select Blueprint"></select>
+
+            <button class="half-cut-button">Send</button>
+        </div>
+
+        <!-- Rest of your buttons -->
         <button class="input-button upload-button" id="uploadButton" aria-label="Upload">
             <img src="{% static 'rest_mode/svg/attach.svg' %}" alt="Upload">
         </button>
-        <input type="text" id="userInput" placeholder="Type your message here...">
         <button class="input-button" id="voiceRecordButton" aria-label="Record Voice">
             <img src="{% static 'rest_mode/svg/voice.svg' %}" alt="Record Voice">
         </button>
-        <button id="submitButton">Send</button>
-
-        <div class="collapsible-section">
-            <div class="collapsible-toggle" id="persistentMessagesToggle">
-            <div id="persistentMessages" class="collapsible-content hidden">
-                <!-- Persistent messages will appear here -->
-            </div>
-            </div>
-        </div>
-
     </div>
-
 </div>

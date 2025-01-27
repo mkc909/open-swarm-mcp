@@ -73,14 +73,15 @@ function hideSplashPage() {
  */
 function setupChatHistoryPane() {
     const chatHistoryPane = document.getElementById('chatHistoryPane');
-    const minimizeButton = document.getElementById('leftSidebarHideBtn');
+    const chatHistoryToggleButton = document.getElementById('chatHistoryToggleButton');
 
-    if (!chatHistoryPane || !minimizeButton) {
+    if (!chatHistoryPane || !chatHistoryToggleButton) {
         console.warn("Missing elements for chat history pane.");
         return;
     }
 
-    minimizeButton.addEventListener('click', () => {
+    // Toggle visibility on button click
+    chatHistoryToggleButton.addEventListener('click', () => {
         chatHistoryPane.classList.toggle('hidden');
         const isVisible = !chatHistoryPane.classList.contains('hidden');
         showToast(isVisible ? "Chat history expanded." : "Chat history minimized.", "info");

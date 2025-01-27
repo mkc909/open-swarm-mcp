@@ -40,7 +40,7 @@ function processAssistantResponse(choices, updatedContextVariables) {
         console.log("Rendering message with:", { role, content, sender, metadata });
 
         // Render and log messages
-        renderMessage(role, { content }, sender, metadata);
+        // renderMessage(role, { content }, sender, metadata);
         appendRawMessage(role, { content }, sender, metadata);
 
         // If Debug pane is active, render relevant debug info
@@ -89,7 +89,7 @@ export async function handleSubmit() {
     if (error) return;
 
     // Render the user message in the UI
-    renderMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
+    // renderMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
     appendRawMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
 
     // If it's the first user message, update the persistent message

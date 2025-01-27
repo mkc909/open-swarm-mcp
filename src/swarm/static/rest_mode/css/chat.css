@@ -32,6 +32,8 @@
     outline: none;
     box-sizing: border-box;
     font-size: 14px;
+    margin: 0;
+    width: 100%;
 }
 
 /* Submit Button Styling */
@@ -50,6 +52,7 @@
     justify-content: center;
     height: auto;
     transition: background-color 0.3s ease;
+    margin: 0;
 }
 
 /* Adjusted Rounded Corners */
@@ -75,7 +78,8 @@
     border-radius: 20px; /* Rounded corners for entire group */
     padding: 5px; /* Internal spacing */
     box-sizing: border-box;
-    width: 100%;
+    width: 98%;
+    margin-left: 10px; /* Adjust value to control the shift */
 }
 
 /* Dropdown Styling */
@@ -102,6 +106,8 @@
     align-items: center;
     justify-content: center;
     transition: background-color 0.3s ease;
+    margin-top: 2px; 
+    margin-right: 6px; 
 }
 
 .input-button img {

@@ -27,7 +27,7 @@ export let chatHistory = [];
  */
 export function validateMessage(message) {
     if (!message.content || message.content.trim() === '') {
-        showToast('❌ Message cannot be empty.', 'error');
+        // showToast('❌ Message cannot be empty.', 'error');
         return 'Message cannot be empty.';
     }
     if (message.content.length > 5000) {

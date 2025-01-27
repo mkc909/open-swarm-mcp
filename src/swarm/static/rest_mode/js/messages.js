@@ -25,21 +25,21 @@ export function renderMessage(role, content, sender, metadata) {
     messageDiv.innerHTML = `
         <span><strong>${sender}:</strong> ${content.text || markdownContent || 'No content available'}</span>
         <div class="message-toolbar">
-            <button class="toolbar-btn" aria-label="Thumbs Up">
-                <img src="/static/rest_mode/svg/thumbs_up.svg" alt="Thumbs Up Icon" class="icon-svg" />
+            <button class="toolbar-btn" aria-label="Copy Message">
+                <img src="/static/rest_mode/svg/copy.svg" alt="Copy Icon" class="icon-svg" />
             </button>
-            <button class="toolbar-btn" aria-label="Thumbs Down">
-                <img src="/static/rest_mode/svg/thumbs_down.svg" alt="Thumbs Down Icon" class="icon-svg" />
-            </button>
-            <div class="toolbar-gap"></div>
             <button class="toolbar-btn" aria-label="Append to Persistent Message">
-                <img src="/static/rest_mode/svg/plus.svg" alt="Plus Icon" class="icon-svg" />
+                <img src="/static/contrib/tabler-icons/playlist-add.svg" alt="Plus Icon" class="icon-svg" />
             </button>
             <button class="toolbar-btn" aria-label="Edit Message">
                 <img src="/static/rest_mode/svg/edit.svg" alt="Edit Icon" class="icon-svg" />
             </button>
-            <button class="toolbar-btn" aria-label="Copy Message">
-                <img src="/static/rest_mode/svg/copy.svg" alt="Copy Icon" class="icon-svg" />
+            <div class="toolbar-gap"></div>
+            <button class="toolbar-btn" aria-label="Thumbs Up">
+                <img src="/static/contrib/tabler-icons/thumb-up.svg" alt="Thumbs Up Icon" class="icon-svg" />
+            </button>
+            <button class="toolbar-btn" aria-label="Thumbs Down">
+                <img src="/static/contrib/tabler-icons/thumb-down.svg" alt="Thumbs Down Icon" class="icon-svg" />
             </button>
             <div class="toolbar-gap"></div>
             <button class="toolbar-btn" aria-label="Delete Message">

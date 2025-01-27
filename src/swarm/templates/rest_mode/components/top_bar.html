@@ -1,23 +1,6 @@
 {% load static %}
 <div class="top-bar">
 
-    <button id="settingsToggleButton" aria-label="Toggle Settings">
-        <img src="{% static 'rest_mode/svg/settings.svg' %}" alt="Settings">
-        <span class="btn-label">Settings</span>
-    </button>
-
-    <!-- Close Sidebar Button -->
-    <button class="sidebar-hide-btn" id="leftSidebarHideBtn">
-        <img src="{% static 'rest_mode/svg/arrow_left.svg' %}" alt="Hide Chat Pane">
-    </button>
-
-    <!-- Logo and Buttons (Left) -->
-    <div class="top-bar-left">
-        <button id="chatHistoryToggleButton" class="top-bar-btn" aria-label="Toggle Chat History">
-            <img src="{% static 'rest_mode/svg/chat_history.svg' %}" alt="Chat History">
-            <span class="btn-label">Chat History</span>
-        </button>
-    </div>
 
     <!-- Persistent Message Area -->
     <div id="firstUserMessage" class="first-user-message"></div>

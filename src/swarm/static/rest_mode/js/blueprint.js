@@ -1,3 +1,5 @@
+import { showToast } from './toast.js';
+
 const DEBUG_MODE = true;
 
 /**
@@ -8,6 +10,7 @@ const DEBUG_MODE = true;
 function debugLog(message, data = null) {
     if (DEBUG_MODE) {
         console.log(`[DEBUG] ${message}`, data);
+        showToast(`${message}`, "info");
     }
 }
 
@@ -23,9 +26,16 @@ export async function fetchBlueprints() {
 
         const data = await response.json();
         debugLog("Blueprints fetched successfully.", data);
+
+        // Show an info notification
+        showToast("Blueprints fetched successfully.", "success", 5000);
+
         return data.data || [];
     } catch (error) {
         console.error("Error fetching blueprints:", error);
+        // Show an error notification
+        showToast("Error fetching blueprints.", "error");
         throw error;
     }
 }
+

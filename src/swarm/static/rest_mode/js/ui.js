@@ -5,44 +5,6 @@ import { renderQuickPrompts } from './messages.js';
 import { showToast } from './toast.js';
 
 /**
- * Automatically replaces placeholders with all SVG icons.
- */
-function replaceAllSVGs() {
-    const placeholders = {
-        "#uploadButton": "plus.svg",
-        "#voiceRecordButton": "voice.svg",
-        "#settingsToggleButton": "settings.svg",
-        "#chatHistoryToggleButton": "chat_history.svg",
-        "#newChatButton": "new_chat.svg",
-        "#searchButton": "search.svg",
-        "#logoutButton": "logout.svg",
-        "#undoButton": "undo.svg",
-        "#saveButton": "save.svg",
-        "#thumbsUpButton": "thumbs_up.svg",
-        "#thumbsDownButton": "thumbs_down.svg",
-        "#trashButton": "trash.svg",
-        "#attachButton": "attach.svg",
-        "#visibleToggleButton": "visible.svg",
-        "#notVisibleToggleButton": "not_visible.svg",
-        "#runCodeButton": "run_code.svg",
-        "#stopButton": "stop.svg",
-        "#avatarButton": "avatar.svg",
-        "#speakerButton": "speaker.svg",
-    };
-
-    Object.entries(placeholders).forEach(([selector, svgFile]) => {
-        const element = document.querySelector(selector);
-        if (element) {
-            element.innerHTML = `
-                <img src="/static/rest_mode/svg/${svgFile}" alt="${svgFile.replace('.svg', '')}" class="icon-svg" />
-            `;
-        } else {
-            console.warn(`Element not found for selector: ${selector}`);
-        }
-    });
-}
-
-/**
  * Shows the splash page during initialization.
  */
 function showSplashPage() {
@@ -174,7 +136,6 @@ export function initializeUI() {
     initializeSidebar();
     initializeApplication();
     initializeTheme();
-    replaceAllSVGs();
     setupChatHistoryPane();
     setupSettingsToggleButton();
     setupResizableSidebars();

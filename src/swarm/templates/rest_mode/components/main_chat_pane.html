@@ -14,13 +14,33 @@
 
         <!-- First Row: Dropdown and Buttons -->
         <div class="dropdown-buttons-container">
+
             <select class="blueprint-dropdown" id="blueprintDropdown" aria-label="Select Blueprint"></select>
+
             <button class="input-button upload-button" id="uploadButton" aria-label="Upload">
-                <img src="{% static 'rest_mode/svg/attach.svg' %}" alt="Upload">
+                <img src="{% static 'contrib/tabler-icons/paperclip.svg' %}" alt="Upload">
             </button>
+
             <button class="input-button" id="voiceRecordButton" aria-label="Record Voice">
-                <img src="{% static 'rest_mode/svg/voice.svg' %}" alt="Record Voice">
+                <img src="{% static 'contrib/tabler-icons/headset.svg' %}" alt="Record Voice">
             </button>
+
+            <button class="input-button upload-button" id="settingsToggleButton" aria-label="Toggle Settings">
+                <img src="{% static 'contrib/tabler-icons/settings.svg' %}" alt="Settings">
+            </button>
+
+            <button class="input-button upload-button" id="avatarToggleButton" aria-label="Toggle Avatar">
+                <img src="{% static 'contrib/tabler-icons/robot.svg' %}" alt="Avatar">
+            </button>
+
+            <button class="input-button upload-button" id="canvasToggleButton" aria-label="Toggle Canvas">
+                <img src="{% static 'contrib/tabler-icons/artboard.svg' %}" alt="Canvas">
+            </button>
+
+            <button class="input-button upload-button" id="chatHistoryToggleButton" aria-label="Toggle Chat History">
+                <img src="{% static 'contrib/tabler-icons/message.svg' %}" alt="Chat History">
+            </button>
+
         </div>
 
         <!-- Second Row: Input and Submit Button -->

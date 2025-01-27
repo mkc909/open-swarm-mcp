@@ -164,10 +164,13 @@
 .message-toolbar {
     display: flex;
     flex-direction: row;
-    gap: 10px;
-    justify-content: start;
+    gap: 8px;
     align-items: center;
+    margin-top: 6px;
+    margin-bottom: 12px;
+    justify-content: flex-start;
 }
+
 
 .message-toolbar .toolbar-btn {
     opacity: 0.3; /* Slightly visible by default */
@@ -192,4 +195,19 @@
     width: var(--icon-size, 20px); /* Default or custom icon size */
     height: var(--icon-size, 20px);
     transition: transform 0.3s ease;
+}
+
+
+.message-toolbar .toolbar-gap {
+    width: 14px; /* Gap size between button groups */
+}
+
+/* Hover Effects */
+.chat-history-pane:hover,
+.options-pane:hover {
+    background-color: var(--bg-hover);
+}
+
+.message-toolbar:hover {
+    background-color: var(--bg-message-other);
 }

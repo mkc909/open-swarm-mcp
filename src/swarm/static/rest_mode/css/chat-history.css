@@ -1,0 +1,113 @@
+/* Chat History Component Styles */
+.chat-history-pane {
+    background-color: var(--bg-chat-history-pane);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.chat-history-header {
+    width: 100%;
+}
+
+.chat-history-pane ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 100%; /* Allow contents to fill the pane */
+}
+
+.chat-history-pane li {
+    margin-bottom: 10px;
+    max-width: 100%; /* Prevent shrinking */
+}
+
+/* Chat History Items */
+.chat-history-item {
+    position: relative;
+    /* padding: 10px; */
+    margin: 5px 0;
+    /* border: 1px solid var(--border-color); */
+    /* border-radius: 8px; */
+    background-color: var(--bg-container);
+    transition: background-color var(--transition-duration), box-shadow var(--transition-duration);
+}
+
+.chat-history-item:hover {
+    background-color: var(--bg-message-other);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Details and Summaries */
+.chat-history-pane details {
+    background-color: var(--bg-container);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 10px;
+    cursor: pointer;
+    transition: background-color var(--transition-duration);
+}
+
+.chat-history-pane details[open] {
+    background-color: var(--bg-message-other);
+}
+
+.chat-history-pane summary {
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+/* Chat History Text */
+.chat-history-pane p {
+    margin: 10px 0 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Chat Item Time and Tools */
+.chat-item-time {
+    font-size: 12px;
+    color: #888;
+}
+
+.chat-item-tools {
+    display: flex;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.chat-item-tools .toolbar-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.chat-item-tools .toolbar-btn img {
+    width: 20px;
+    height: 20px;
+}
+
+.chat-item-tools .toolbar-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* Responsive Design for Small Screens */
+@media (max-width: 600px) {
+    .chat-history-pane {
+        flex: 1;
+        width: 100%;
+    }
+
+    .side-panes {
+        flex-direction: row;
+        max-width: 100%;
+        gap: 10px;
+    }
+}

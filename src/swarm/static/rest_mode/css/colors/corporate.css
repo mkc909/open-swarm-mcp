@@ -9,6 +9,7 @@
   --bg-message-other: #4a4a4a; /* Dark grey */
   --bg-blueprint: #3a3a3a;
   --bg-debug: #2e2e2e;
+  --bg-chat-history-pane: #353535; 
   --text-primary: #f0f0f0; /* Light grey for text */
   --text-secondary: #cccccc; /* Lighter grey for secondary text */
   --border-color: #555555;
@@ -30,6 +31,7 @@
   --bg-message-other: #3c3c3c;
   --bg-blueprint: #2b2b2b;
   --bg-debug: #1f1f1f;
+  --bg-chat-history-pane: #242424;
   --text-primary: #e0e0e0; /* Slightly dimmer for better contrast */
   --text-secondary: #b3b3b3;
   --border-color: #777777;

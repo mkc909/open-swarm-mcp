@@ -21,7 +21,7 @@ export function toggleSidebar(sidebar, shouldShow) {
             showToast("📜 Chat History sidebar shown.", "info");
         } else {
             chatHistoryPane.style.display = 'none';
-            leftSidebarHideBtn.style.display = 'none';
+            // leftSidebarHideBtn.style.display = 'none';
             leftSidebarRevealBtn.style.display = 'flex';
             leftSidebarRevealBtn.innerHTML = '→'; /* Arrow icon */
             showToast("📜 Chat History sidebar hidden.", "info");
@@ -34,9 +34,9 @@ export function toggleSidebar(sidebar, shouldShow) {
         }
         const isVisible = shouldShow;
         optionsPane.classList.toggle('hidden', !shouldShow);
-        optionsSidebarRevealBtn.style.display = isVisible ? 'none' : 'flex';
-        optionsSidebarHideBtn.style.display = isVisible ? 'flex' : 'none';
-        optionsSidebarRevealBtn.innerHTML = isVisible ? '→' : '←'; /* Arrow icon */
+        // optionsSidebarRevealBtn.style.display = isVisible ? 'none' : 'flex';
+        // optionsSidebarHideBtn.style.display = isVisible ? 'flex' : 'none';
+        // optionsSidebarRevealBtn.innerHTML = isVisible ? '→' : '←'; /* Arrow icon */
         showToast(isVisible ? "⚙️ Settings sidebar shown." : "⚙️ Settings sidebar hidden.", "info");
         console.log({
             sidebar,
@@ -64,7 +64,7 @@ function toggleLeftSidebar() {
     }
 
     const isHidden = chatHistoryPane.classList.toggle('hidden');
-    leftSidebarHideBtn.classList.toggle('hidden', isHidden);
+    // leftSidebarHideBtn.classList.toggle('hidden', isHidden);
     leftSidebarRevealBtn.classList.toggle('hidden', !isHidden);
 
     showToast(isHidden ? "Chat history minimized." : "Chat history expanded.", "info");
@@ -84,7 +84,7 @@ function toggleRightSidebar() {
     }
 
     const isHidden = optionsPane.classList.toggle('hidden');
-    optionsSidebarHideBtn.classList.toggle('hidden', isHidden);
+    // optionsSidebarHideBtn.classList.toggle('hidden', isHidden);
     optionsSidebarRevealBtn.classList.toggle('hidden', !isHidden);
 
     showToast(isHidden ? "Settings pane minimized." : "Settings pane expanded.", "info");

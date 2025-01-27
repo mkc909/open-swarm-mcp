@@ -33,9 +33,10 @@
     </div>
 
     <!-- Scripts -->
+    <script type="module" src="{% static 'contrib/markedjs/marked.min.js' %}"></script> <!-- credit to https://cdn.jsdelivr.net/npm/marked/marked.min.js -->
     <script type="module" src="{% static 'rest_mode/js/base.js' %}"></script>
-    <script type="module" src="{% static 'rest_mode/js/chatLogic.js' %}"></script>
     <script type="module" src="{% static 'rest_mode/js/toast.js' %}"></script>
     <script type="module" src="{% static 'rest_mode/js/main.js' %}"></script>
+    <script type="module" src="{% static 'rest_mode/js/chatLogic.js' %}" defer></script>
 </body>
 </html>

@@ -6,7 +6,7 @@
     height: calc(100vh - 50px); /* Subtract top-bar height */
     margin: 0 auto;
     background-color: var(--bg-container);
-    border: 1px solid var(--border-color);
+    /* border: 1px solid var(--border-color); */
     border-radius: 8px;
     overflow: hidden;
 }
@@ -20,6 +20,7 @@
     background-color: var(--bg-secondary);
     padding: 10px;
     box-sizing: border-box; /* Include padding/border in width */
+    border: 0;
 }
 
 /* Top Bar Styling */

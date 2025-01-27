@@ -1,9 +1,5 @@
 {% load static %}
 <div class="main-pane">
-
-    <!-- Persistent Message Area -->
-    <div id="firstUserMessage" class="first-user-message"></div>
-
     <!-- Quick Prompts -->
     <div id="quickPromptsContainer" class="quick-prompts-container"></div>
 
@@ -15,21 +11,21 @@
 
     <!-- Modified User Input Form -->
     <div class="form-container">
-        <div id="submitButton" class="send-container">
+        <!-- First Row: Input and Submit Button -->
+        <div class="send-container">
             <input type="text" id="userInput" class="rounded-input" placeholder="Type your message here...">
-
-            <!-- Blueprint Dropdown -->
-            <select class="embedded-dropdown blueprint-dropdown" id="blueprintDropdown" aria-label="Select Blueprint"></select>
-
             <button class="half-cut-button">Send</button>
         </div>
 
-        <!-- Rest of your buttons -->
-        <button class="input-button upload-button" id="uploadButton" aria-label="Upload">
-            <img src="{% static 'rest_mode/svg/attach.svg' %}" alt="Upload">
-        </button>
-        <button class="input-button" id="voiceRecordButton" aria-label="Record Voice">
-            <img src="{% static 'rest_mode/svg/voice.svg' %}" alt="Record Voice">
-        </button>
+        <!-- Second Row: Dropdown and Buttons -->
+        <div class="dropdown-buttons-container">
+            <select class="blueprint-dropdown" id="blueprintDropdown" aria-label="Select Blueprint"></select>
+            <button class="input-button upload-button" id="uploadButton" aria-label="Upload">
+                <img src="{% static 'rest_mode/svg/attach.svg' %}" alt="Upload">
+            </button>
+            <button class="input-button" id="voiceRecordButton" aria-label="Record Voice">
+                <img src="{% static 'rest_mode/svg/voice.svg' %}" alt="Record Voice">
+            </button>
+        </div>
     </div>
 </div>

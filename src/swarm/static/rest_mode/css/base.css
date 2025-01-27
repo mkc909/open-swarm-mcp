@@ -133,16 +133,6 @@ body {
     justify-content: center;
 }
 
-/* Chat History Sidebar (Left) */
-.chat-history-pane {
-  background-color: var(--bg-debug);
-  border: 2px solid var(--border-color); /* Thicker border */
-  border-radius: 8px;
-  padding: 15px;
-  overflow-y: auto;
-  flex: 1;
-  position: relative;
-}
 
 /* Settings Sidebar (Right) */
 .options-pane {
@@ -427,12 +417,6 @@ body {
         flex-direction: row;
         max-width: 100%;
         gap: 10px;
-    }
-
-    .chat-history-pane,
-    .options-pane {
-        flex: 1;
-        width: 100%;
     }
 
     /* Adjust toggle buttons position */

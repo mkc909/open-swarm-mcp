@@ -136,3 +136,80 @@
     background-color: var(--bg-primary);
     border-top: 1px solid var(--border-color);
 }
+
+/* Collapsible Section */
+.collapsible-toggle {
+    cursor: pointer;
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.collapsible-content.hidden {
+    display: none;
+}
+
+/* LLM Toggles */
+.svg-toggle {
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.svg-toggle.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* LLM Configuration Pane */
+.llm-mode {
+    padding: 10px;
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background-color: var(--bg-secondary);
+}
+
+.llm-mode h4 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    color: var(--text-primary);
+}
+
+.llm-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.llm-field label {
+    flex: 0 0 30%;
+    font-weight: bold;
+    color: var(--text-secondary);
+}
+
+.llm-field input {
+    flex: 1;
+    padding: 5px;
+    border: 1px solid var(--border-primary);
+    border-radius: 4px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+/* Shaded Container for Settings Sections */
+.settings-container-section {
+    margin-bottom: 15px;
+    padding: 10px;
+    /* background-color: var(--bg-secondary, #f4f4f4); */
+    border-radius: 8px;
+    border: 1px solid var(--border-primary, #ccc);
+}
+
+/* Collapsible LLM Content */
+.collapsible-content {
+    margin-top: 10px;
+}

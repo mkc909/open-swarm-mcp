@@ -1,13 +1,12 @@
 {% load static %}
 <div class="side-panes chat-history-pane" id="chatHistoryPane">
-    <!-- Close Sidebar Button -->
-    <button class="sidebar-hide-btn" id="leftSidebarHideBtn">
-        <img src="{% static 'rest_mode/svg/arrow_left.svg' %}" alt="Hide Chat Pane">
-    </button>
+
 
     <!-- Chat History Header -->
     <div class="chat-history-header">
+        <!--
         <h2>📜 Chat History</h2>
+        -->
 
         <div>
             <input 
@@ -19,11 +18,6 @@
             >
         </div>
     </div>
-
-    <button id="settingsToggleButton" aria-label="Toggle Settings">
-        <img src="{% static 'rest_mode/svg/settings.svg' %}" alt="Settings">
-        <span class="btn-label">Settings</span>
-    </button>
 
     <!-- Chat History Items -->
     <ul class="chat-history-list">

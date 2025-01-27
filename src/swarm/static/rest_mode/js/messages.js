@@ -1,4 +1,7 @@
 import { debugLog } from './debug.js';
+// import { marked } from './marked.min.js';
+import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
+// import { marked } from 'marked';
 
 let quickPrompts = ["What is Open-Swarm?", "Explain the architecture.", "How do I set up a new blueprint?"];
 
@@ -14,10 +17,13 @@ export function renderMessage(role, content, sender, metadata) {
         return;
     }
 
+    const markdownRenderer = marked.parse;
+    const markdownContent = markdownRenderer(content.content);
+
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
     messageDiv.innerHTML = `
-        <span><strong>${sender}:</strong> ${content.text || content.content || 'No content available'}</span>
+        <span><strong>${sender}:</strong> ${content.text || markdownContent || 'No content available'}</span>
         <div class="message-toolbar">
             <button class="toolbar-btn" aria-label="Thumbs Up">
                 <img src="/static/rest_mode/svg/thumbs_up.svg" alt="Thumbs Up Icon" class="icon-svg" />
@@ -76,6 +82,7 @@ export function appendRawMessage(role, content, sender, metadata) {
 
     isAppendingMessage = false; // Reset the flag
 }
+
 
 
 /**

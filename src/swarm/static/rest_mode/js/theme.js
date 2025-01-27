@@ -1,6 +1,8 @@
-/**
+/** 
  * theme.js - Handles theme switching (style, layout, dark/light mode)
  */
+
+import { showToast } from './toast.js';
 
 /**
  * Initializes theme settings based on user preferences or defaults.
@@ -57,17 +59,28 @@ export function initializeTheme() {
 }
 
 /**
- * Applies the selected color theme by adding a data attribute.
+ * Applies the selected color theme by adding a data attribute and ensuring all theme-related styles are updated.
  * @param {string} theme - The selected style theme ('pastel', 'tropical', 'corporate').
  */
 function applyColorTheme(theme) {
     const rootElement = document.documentElement; // Use <html> element
     rootElement.setAttribute('data-theme', theme);
 
+    // Apply variables for custom elements and dynamic parts of the UI
+    document.querySelectorAll('.dynamic-theme-element').forEach((element) => {
+        const bgColor = getComputedStyle(rootElement).getPropertyValue('--bg-container').trim();
+        const textColor = getComputedStyle(rootElement).getPropertyValue('--text-primary').trim();
+
+        element.style.backgroundColor = bgColor;
+        element.style.color = textColor;
+    });
+
     // Update SVG icon colors dynamically
     document.querySelectorAll('.icon-svg').forEach((icon) => {
         icon.style.fill = getComputedStyle(rootElement).getPropertyValue('--icon-color');
     });
+
+    showToast(`Theme applied: ${theme.charAt(0).toUpperCase() + theme.slice(1)}`);
 }
 
 /**
@@ -80,10 +93,19 @@ function applyLayoutTheme(layout) {
 }
 
 /**
- * Sets the dark mode by adding a data attribute.
+ * Sets the dark mode by adding a data attribute and ensuring global variables are updated.
  * @param {boolean} isDarkMode - Whether dark mode is enabled.
  */
 function setDarkMode(isDarkMode) {
     const rootElement = document.documentElement; // Use <html> element
-    rootElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+    rootElement.setAttribute('data-theme-dark', isDarkMode ? 'true' : 'false');
+
+    // Optionally, adjust custom styles for dark mode
+    document.querySelectorAll('.dynamic-theme-element').forEach((element) => {
+        const bgColor = getComputedStyle(rootElement).getPropertyValue('--bg-container').trim();
+        const textColor = getComputedStyle(rootElement).getPropertyValue('--text-primary').trim();
+
+        element.style.backgroundColor = bgColor;
+        element.style.color = textColor;
+    });
 }

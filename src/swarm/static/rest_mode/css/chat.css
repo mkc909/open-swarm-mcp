@@ -1,0 +1,195 @@
+/* General Form Container Styling */
+.form-container {
+    display: flex;
+    flex-direction: column; /* Stack rows vertically */
+    align-items: stretch; /* Full-width rows */
+    gap: 5px; /* Space between rows */
+    width: 100%; /* Full width of parent */
+    background-color: var(--bg-secondary); /* Match app theme */
+    padding: 10px;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+/* Input and Submit Button Row */
+.send-container {
+    display: flex;
+    align-items: stretch; /* Ensure button matches input height */
+    width: 100%;
+    gap: 0; /* No gap between input and button */
+    margin-bottom: 5px; /* Space below this row */
+    position: relative; /* Allow absolute positioning for dropdown */
+    border-radius: 20px; /* Match rounded corners */
+    overflow: hidden; /* Ensure elements visually align with rounded corners */
+}
+
+/* Input Field Styling */
+.rounded-input {
+    flex-grow: 1; /* Take available space */
+    padding: 10px 15px;
+    border: none; /* Remove internal border */
+    border-radius: 0; /* Reset radius to align with container */
+    outline: none;
+    box-sizing: border-box;
+    font-size: 14px;
+}
+
+/* Submit Button Styling */
+.half-cut-button {
+    padding: 0 20px;
+    background-color: #707070;
+    color: white;
+    border: none;
+    border-radius: 0; /* Reset radius */
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: auto;
+    transition: background-color 0.3s ease;
+}
+
+/* Adjusted Rounded Corners */
+.send-container .rounded-input:first-child {
+    border-radius: 20px 0 0 20px; /* Rounded corners only on the left */
+}
+
+.send-container .half-cut-button:last-child {
+    border-radius: 0 20px 20px 0; /* Rounded corners only on the right */
+}
+
+.half-cut-button:hover {
+    background-color: #505050;
+}
+
+/* Dropdown and Buttons Group */
+.dropdown-buttons-container {
+    display: flex;
+    align-items: stretch; /* Ensure items are vertically aligned */
+    gap: 10px; /* Space between dropdown and buttons */
+    background-color: var(--bg-primary);
+    border: 2px solid #ccc; /* Match input field border */
+    border-radius: 20px; /* Rounded corners for entire group */
+    padding: 5px; /* Internal spacing */
+    box-sizing: border-box;
+    width: 100%;
+}
+
+/* Dropdown Styling */
+.blueprint-dropdown {
+    flex-grow: 1; /* Take available space */
+    border: none; /* Remove internal border */
+    border-radius: 20px; /* Match group corners */
+    outline: none;
+    padding: 10px;
+    font-size: 14px;
+    color: var(--text-primary);
+    background-color: transparent; /* Match container background */
+    appearance: none; /* Remove default dropdown arrow styling */
+}
+
+/* Buttons in Dropdown Group */
+.input-button {
+    background-color: var(--button-primary);
+    border: none;
+    padding: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+}
+
+.input-button img {
+    width: 20px;
+    height: 20px;
+}
+
+.input-button:hover {
+    background-color: var(--button-hover-bg);
+}
+
+/* Hover Effects */
+.half-cut-button:hover,
+.input-button:hover {
+    background-color: #505050;
+    color: #fff;
+}
+
+/* Quick Prompts Styling */
+.quick-prompts-container {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping */
+    gap: 10px; /* Space between quick prompts */
+    margin: 10px 0; /* Vertical spacing */
+    justify-content: start; /* Align prompts to the left */
+}
+
+.quick-prompt-button {
+    background-color: var(--button-primary);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.quick-prompt-button:hover {
+    background-color: var(--button-hover-bg);
+}
+
+/* Chat History Item Styling */
+.chat-history-item {
+    position: relative;
+    padding: 10px;
+    margin: 5px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--bg-container);
+    transition: background-color var(--transition-duration, 0.3s) ease, box-shadow var(--transition-duration, 0.3s) ease;
+}
+
+.chat-history-item:hover {
+    background-color: var(--bg-message-other);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Toolbar Styling */
+.message-toolbar {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    justify-content: start;
+    align-items: center;
+}
+
+.message-toolbar .toolbar-btn {
+    opacity: 0.3; /* Slightly visible by default */
+    visibility: visible; /* Ensure buttons remain interactable */
+    background: none;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.message-toolbar .toolbar-btn:hover {
+    opacity: 1; /* Fully visible on hover */
+    transform: scale(1.1); /* Slight zoom-in effect */
+}
+
+/* Toolbar Icon Styling */
+.message-toolbar .toolbar-btn img {
+    width: var(--icon-size, 20px); /* Default or custom icon size */
+    height: var(--icon-size, 20px);
+    transition: transform 0.3s ease;
+}

@@ -78,7 +78,7 @@
     border-radius: 20px; /* Rounded corners for entire group */
     padding: 5px; /* Internal spacing */
     box-sizing: border-box;
-    width: 98%;
+    width: 99%;
     margin-left: 10px; /* Adjust value to control the shift */
 }
 

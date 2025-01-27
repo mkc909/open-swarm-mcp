@@ -24,7 +24,7 @@
   /* Dark mode variables specific to corporate theme */
   --bg-primary: #1f1f1f;
   --bg-container: #2b2b2b;
-  --bg-message-user: #3c3c3c;
+  --bg-message-user: #777777;
   --bg-message-assistant: #4d4d4d;
   --bg-message-tool: #2b2b2b;
   --bg-message-other: #3c3c3c;
@@ -40,9 +40,51 @@
   --logo-color: #a9a9a9;
 }
 
-/* Corporate Theme Specific Input Styling */
-#userInput {
-    background-color: #3a3a3a; /* Dark background */
-    color: #ffffff; /* Light text */
-    border: 2px solid #555555; /* Dark border */
+/* Message Styling */
+.message.user {
+    background-color: var(--bg-message-user);
+    color: var(--text-primary);
+    border-radius: 15px;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    max-width: 70%;
+    align-self: flex-end;
+    position: relative;
+}
+
+.message.assistant {
+    background-color: var(--bg-message-assistant);
+    color: var(--text-primary);
+    border-radius: 15px;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    max-width: 70%;
+    align-self: flex-start;
+    position: relative;
+}
+
+/* Persisted Messages Styling */
+.pinned-message {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 5px 0;
+    padding: 10px;
+    border: 1px dashed #aaa;
+    border-radius: 15px;
+    background-color: #fefefe;
+    color: var(--text-primary);
+}
+
+.pinned-message .remove-pinned-button {
+    background: none;
+    border: none;
+    color: #dc3545; /* Red color */
+    font-size: 1.2em;
+    cursor: pointer;
+    transition: color var(--transition-duration) ease;
+}
+
+.pinned-message .remove-pinned-button:hover {
+    color: #ff0000; /* Brighter red on hover */
 }

@@ -75,8 +75,8 @@
     border: none;
     border-radius: 8px;
     /* Set background to match the pane by default */
-    background-color: var(--bg-chat-history-pane);
-    transition: background-color var(--transition-duration), box-shadow var(--transition-duration);
+    /* background-color: var(--bg-chat-history-pane); */
+    /* transition: background-color var(--transition-duration), box-shadow var(--transition-duration); */
 }
 
 .chat-history-item:hover {

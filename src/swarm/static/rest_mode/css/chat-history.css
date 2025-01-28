@@ -1,9 +1,8 @@
 /* Chat History Component Styles */
 .chat-history-pane {
     background-color: var(--bg-chat-history-pane);
-    border: 2px solid var(--border-color);
-    border-radius: 8px;
     padding: 0; /* Remove padding to allow flex layout */
+    margin: 0;
     display: flex;
     flex-direction: column;
     height: 100%; /* Ensure the pane takes full height of its container */

@@ -73,8 +73,7 @@
     display: flex;
     align-items: stretch; /* Ensure items are vertically aligned */
     gap: 10px; /* Space between dropdown and buttons */
-    background-color: var(--bg-primary);
-    border: 2px solid #ccc; /* Match input field border */
+    border: 2px solid var(--border-color);
     border-radius: 20px; /* Rounded corners for entire group */
     padding: 5px; /* Internal spacing */
     box-sizing: border-box;
@@ -86,6 +85,7 @@
 .blueprint-dropdown {
     flex-grow: 1; /* Take available space */
     border: none; /* Remove internal border */
+    background-color: var(--border-color);
     border-radius: 20px; /* Match group corners */
     outline: none;
     padding: 10px;
@@ -146,8 +146,8 @@
 }
 
 .input-button img {
-    width: 1.9em;
-    height: 1.9em;
+    width: 1.5em;
+    height: 1.5em;
 }
 
 .input-button:hover {

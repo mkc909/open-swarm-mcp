@@ -16,29 +16,8 @@ export function toggleSidebar(sidebar) {
         // Toggle the 'hidden' class
         const isHidden = chatHistoryPane.classList.toggle('hidden');
 
-        // // Update the toggle button icon based on visibility
-        // const toggleIcon = chatHistoryToggleButton.querySelector('img');
-        // if (isHidden) {
-        //     toggleIcon.src = window.STATIC_URLS.layoutSidebarLeftExpand; // Expanded icon
-        //     toggleIcon.alt = "Expand Chat History Pane";
-        //     showToast("📜 Chat History sidebar hidden.", "info");
-        // } else {
-        //     toggleIcon.src = window.STATIC_URLS.layoutSidebarLeftCollapse; // Collapsed icon
-        //     toggleIcon.alt = "Collapse Chat History Pane";
-        //     showToast("📜 Chat History sidebar shown.", "info");
-        // }
-    } else if (sidebar === 'options') {
-        const settingsDialog = document.getElementById('settingsDialog');
-        const settingsToggleButton = document.getElementById('settingsToggleButton');
-    
-        if (!settingsDialog || !settingsToggleButton) {
-            console.warn('Settings dialog elements are missing.');
-            return;
-        }
-    
-        // Toggle visibility
-        settingsDialog.classList.toggle('hidden');
-    }
+
+    } 
 }
 
 /**
@@ -47,21 +26,19 @@ export function toggleSidebar(sidebar) {
 function setupResizableSidebars() {
     const leftDivider = document.getElementById("divider-left");
     const rightDivider = document.getElementById("divider-right");
-    const chatHistoryPane = document.getElementById('chatHistoryPane');
-    const optionsPane = document.getElementById('optionsPane');
 
-    if (!leftDivider || !rightDivider || !chatHistoryPane || !optionsPane) {
+    if (!leftDivider || !chatHistoryPane) {
         console.warn('One or more elements for resizable sidebars are missing.');
         return;
     }
 
     const handleMouseMove = (e, targetPane, isLeft) => {
         const newWidth = isLeft
-            ? e.clientX - chatHistoryPane.getBoundingClientRect().left
-            : window.innerWidth - e.clientX - optionsPane.getBoundingClientRect().left;
-        if (newWidth > 100 && newWidth < 500) {
-            targetPane.style.width = `${newWidth}px`;
-        }
+            ? e.clientX 
+            : window.innerWidth - e.clientX;
+        // if (newWidth > 100 && newWidth < 750) {
+        //     targetPane.style.width = `${newWidth}px`;
+        // }
     };
 
     const setupResizer = (divider, targetPane, isLeft) => {
@@ -77,7 +54,6 @@ function setupResizableSidebars() {
     };
 
     setupResizer(leftDivider, chatHistoryPane, true);
-    setupResizer(rightDivider, optionsPane, false);
 }
 
 /**

@@ -1,24 +1,10 @@
-/* Parent Container */
-.container {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap; /* Prevent wrapping */
-    width: 100%; /* Full width */
-    max-width: 1400px; /* Constrain overall layout width */
-    /* margin: 20px auto; */
-    /* padding: 20px; */
-    background-color: var(--bg-container);
-    border: 2px solid var(--border-color);
-    border-radius: 8px;
-    height: 90vh;
-    overflow: hidden;
-}
+
 
 .chat-history-pane {
     flex: 0 0 33%; /* Fixed width at 33%, cannot grow or shrink */
     background-color: var(--bg-chat-history-pane);
-    border: 2px solid var(--border-color);
-    border-radius: 8px;
+    /* border: 2px solid var(--border-color); */
+    /* border-radius: 8px; */
     padding: 15px;
     overflow-y: auto; /* Vertical scrolling for contents */
 }

@@ -85,18 +85,26 @@ function setupChatHistoryPane() {
 /**
  * Sets up the settings toggle button functionality.
  */
+import { toggleSidebar } from './sidebar.js';
+
 function setupSettingsToggleButton() {
     const settingsToggleButton = document.getElementById('settingsToggleButton');
-    const optionsPane = document.getElementById('optionsPane');
+    const settingsButtonMain = document.getElementById('settingsButton-main');
 
-    if (settingsToggleButton && optionsPane) {
+    if (settingsToggleButton) {
         settingsToggleButton.addEventListener('click', () => {
-            optionsPane.classList.toggle('hidden');
-            const isVisible = !optionsPane.classList.contains('hidden');
-            showToast(isVisible ? "Settings pane expanded." : "Settings pane hidden.", "info");
+            toggleSidebar('options');
         });
     } else {
-        console.warn('Warning: Settings toggle button or options pane not found.');
+        console.warn('Warning: Settings toggle button not found.');
+    }
+
+    if (settingsButtonMain) {
+        settingsButtonMain.addEventListener('click', () => {
+            toggleSidebar('options');
+        });
+    } else {
+         console.warn('Warning: Settings button main not found.');
     }
 }
 
@@ -194,6 +202,32 @@ export function enableSlidingToolbar(
         messageElement.style.height = '';
     });
 }
+
+// TODO find home for this dropdown black text workaround...
+document.addEventListener('DOMContentLoaded', function() {
+    const blueprintDropdown = document.getElementById('blueprintDropdown');
+
+    // Function to style all options
+    function styleOptions() {
+        const options = blueprintDropdown.options;
+        for (let i = 0; i < options.length; i++) {
+            options[i].style.color = 'black';
+        }
+    }
+
+    // Style options initially
+    styleOptions();
+
+    // Style options whenever the dropdown is opened
+    blueprintDropdown.addEventListener('mousedown', function() {
+        styleOptions();
+    });
+
+    // Style options whenever the dropdown is changed
+    blueprintDropdown.addEventListener('change', function() {
+        styleOptions();
+    });
+});
 
 
 /**

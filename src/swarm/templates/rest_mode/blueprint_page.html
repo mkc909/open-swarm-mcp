@@ -3,8 +3,6 @@
 <html lang="en">
 <head>
     {% include 'rest_mode/components/header.html' %}
-    <link rel="stylesheet" href="{% static 'rest_mode/css/chat-history.css' %}">
-    <link rel="stylesheet" href="{% static 'rest_mode/css/chat.css' %}">
 
     <script>
         // Define a global object to hold static URLs
@@ -21,9 +19,10 @@
 <body>
     <!-- Top Bar -->
     {% include 'rest_mode/components/top_bar.html' %}
+    {% include 'rest_mode/components/settings_dialog.html' %}
 
     <!-- Main Layout -->
-    <div class="container" data-theme-color="pastel" data-theme-dark="false" data-theme-layout="messenger-layout">
+    <div class="container" data-theme-color="corporate" data-theme-dark="false" data-theme-layout="minimal-layout">
         <!-- Left Sidebar -->
         <div class="side-panes chat-history-pane" id="chatHistoryPane">
             {% include 'rest_mode/components/chat_sidebar.html' %}
@@ -37,10 +36,8 @@
             {% include 'rest_mode/components/main_chat_pane.html' %}
         </div>
         
-        <!-- Right Sidebar -->
+        <div id="toastContainer"></div>
     </div>
-
-    <div id="toastContainer"></div>
 
     <!-- Scripts -->
     <script type="module" src="{% static 'contrib/markedjs/marked.min.js' %}"></script> <!-- credit to https://cdn.jsdelivr.net/npm/marked/marked.min.js -->
@@ -49,3 +46,4 @@
 
 </body>
 </html>
+

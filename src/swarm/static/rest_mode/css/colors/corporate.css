@@ -1,97 +1,74 @@
-/* corporate.css - Corporate Color Theme */
-
+/* corporate.css - Revised Corporate Color Theme */
 :root {
-    --bg-primary: #2e2e2e;
-    --bg-container: #3a3a3a;
-    --bg-message-user: #4a4a4a;
-    --bg-message-assistant: #555555;
-    --bg-message-tool: #3a3a3a;
-    --bg-message-other: #4a4a4a;
-    --bg-blueprint: #3a3a3a;
-    --bg-debug: #2e2e2e;
+    /* Light Mode */
+    --bg-primary: #f8f9fa;
+    --bg-container: #ffffff;
+    --bg-message-user: #e9ecef;
+    --bg-message-assistant: #dee2e6;
+    --bg-message-tool: #f1f3f5;
+    --bg-message-other: #e9ecef;
+    --bg-blueprint: #ffffff;
+    --bg-debug: #f8f9fa;
     --bg-chat-history-header: #6c757d;
-    --bg-chat-history-pane: #353535;
-    --text-primary: #f0f0f0;
-    --text-secondary: #cccccc;
-    --border-color: #555555;
-    --button-primary: #6c757d; /* Action button background */
-    --button-hover: #007bff; /* Action button hover background */
-    --button-pane-bg: #e0e0e0; /* Pane toggle button background */
-    --button-pane-hover-bg: #d0d0d0; /* Pane toggle button hover background */
-    --button-header-bg: #4a4a4a; /* Header button background */
-    --button-header-hover-bg: #555555; /* Header button hover background */
-    --logout-button-bg: #6c757d;
-    --logout-button-hover: #5a6268;
-    --logo-color: #6c757d;
+    --bg-chat-history-pane: #e9ecef;
+    --text-primary: #212529;
+    --text-secondary: #495057;
+    --border-color: #ced4da;
+    --button-primary: #2b8ce6; /* More vibrant primary color */
+    --button-hover: #1a6eb8;
+    --button-pane-bg: #e9ecef;
+    --button-pane-hover-bg: #dee2e6;
+    --button-header-bg: #ffffff;
+    --button-header-hover-bg: #e9ecef;
+    --logout-button-bg: #e9ecef;
+    --logout-button-hover: #dee2e6;
+    --logo-color: #2b8ce6;
     --transition-duration: 0.3s;
 }
 
 [data-theme-dark="true"] {
-  /* Dark mode variables specific to corporate theme */
-  --bg-primary: #1f1f1f;
-  --bg-container: #2b2b2b;
-  --bg-message-user: #777777;
-  --bg-message-assistant: #4d4d4d;
-  --bg-message-tool: #2b2b2b;
-  --bg-message-other: #3c3c3c;
-  --bg-blueprint: #2b2b2b;
-  --bg-debug: #1f1f1f;
-  --bg-chat-history-pane: #242424;
-  --text-primary: #e0e0e0; /* Slightly dimmer for better contrast */
-  --text-secondary: #b3b3b3;
-  --border-color: #777777;
-  --button-primary: #a9a9a9;
-  --button-hover: #8c8c8c;
-  --logout-button-bg: #a9a9a9;
-  --logout-button-hover: #8c8c8c;
-  --logo-color: #a9a9a9;
+    /* Dark Mode */
+    --bg-primary: #1a1a1a;
+    --bg-container: #2d2d2d;
+    --bg-message-user: #404040;
+    --bg-message-assistant: #4d4d4d;
+    --bg-message-tool: #333333;
+    --bg-message-other: #404040;
+    --bg-blueprint: #2d2d2d;
+    --bg-debug: #1a1a1a;
+    --bg-chat-history-pane: #262626;
+    --text-primary: #f8f9fa;
+    --text-secondary: #dee2e6;
+    --border-color: #495057;
+    --button-primary: #4a9eff; /* Brighter blue for better visibility */
+    --button-hover: #357abd;
+    --logout-button-bg: #404040;
+    --logout-button-hover: #4d4d4d;
+    --logo-color: #4a9eff;
 }
 
-/* Message Styling */
+/* Message Styling Updates */
 .message.user {
     background-color: var(--bg-message-user);
     color: var(--text-primary);
-    border-radius: 15px;
-    padding: 10px 15px;
-    margin-bottom: 10px;
-    max-width: 70%;
-    align-self: flex-end;
-    position: relative;
+    border: 1px solid var(--border-color);
 }
 
 .message.assistant {
     background-color: var(--bg-message-assistant);
     color: var(--text-primary);
-    border-radius: 15px;
-    padding: 10px 15px;
-    margin-bottom: 10px;
-    max-width: 70%;
-    align-self: flex-start;
-    position: relative;
+    border: 1px solid var(--border-color);
 }
 
-/* Persisted Messages Styling */
 .pinned-message {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin: 5px 0;
-    padding: 10px;
-    border: 1px dashed #aaa;
-    border-radius: 15px;
-    background-color: #fefefe;
-    color: var(--text-primary);
+    border-color: var(--border-color);
+    background-color: var(--bg-container);
 }
 
 .pinned-message .remove-pinned-button {
-    background: none;
-    border: none;
-    color: #dc3545; /* Red color */
-    font-size: 1.2em;
-    cursor: pointer;
-    transition: color var(--transition-duration) ease;
+    color: #dc3545;
 }
 
 .pinned-message .remove-pinned-button:hover {
-    color: #ff0000; /* Brighter red on hover */
+    color: #ff1a1a;
 }

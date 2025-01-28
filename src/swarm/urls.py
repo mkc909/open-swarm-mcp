@@ -24,4 +24,5 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('config/swarm_config.json', views.serve_swarm_config, name='serve_swarm_config'),
     path('<str:blueprint_name>', views.blueprint_webpage, name='blueprint_webpage'),
+    path('', views.chatbot, name="chatbot")
 ]

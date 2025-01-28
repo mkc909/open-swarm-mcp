@@ -1,7 +1,7 @@
 {% load static %}
-<div class="side-panes options-pane" id="optionsPane">
-    <button class="sidebar-hide-btn" id="optionsSidebarHideBtn">
-        <img src="{% static 'rest_mode/svg/arrow_right.svg' %}" alt="Hide Settings Pane">
+<div class="settings-dialog hidden" id="settingsDialog">
+    <button class="dialog-close-btn" id="closeSettingsDialog">
+        <img src="{% static 'rest_mode/svg/close.svg' %}" alt="Close Settings Dialog">
     </button>
     <div class="settings-container scrollable-container">
         <h2>⚙️ Settings</h2>

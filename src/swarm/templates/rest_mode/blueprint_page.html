@@ -4,6 +4,19 @@
 <head>
     {% include 'rest_mode/components/header.html' %}
     <link rel="stylesheet" href="{% static 'rest_mode/css/chat-history.css' %}">
+    <link rel="stylesheet" href="{% static 'rest_mode/css/chat.css' %}">
+
+    <script>
+        // Define a global object to hold static URLs
+        window.STATIC_URLS = {
+            layoutSidebarLeftExpand: "{% static 'contrib/tabler-icons/layout-sidebar-left-expand.svg' %}",
+            layoutSidebarLeftCollapse: "{% static 'contrib/tabler-icons/layout-sidebar-left-collapse.svg' %}",
+            layoutSidebarRightExpand: "{% static 'contrib/tabler-icons/layout-sidebar-right-expand.svg' %}",
+            layoutSidebarRightCollapse: "{% static 'contrib/tabler-icons/layout-sidebar-right-collapse.svg' %}",
+            trashIcon: "{% static 'rest_mode/svg/trash.svg' %}"
+            // Add other static URLs as needed
+        };
+    </script>
 </head>
 <body>
     <!-- Top Bar -->
@@ -12,7 +25,7 @@
     <!-- Main Layout -->
     <div class="container" data-theme-color="pastel" data-theme-dark="false" data-theme-layout="messenger-layout">
         <!-- Left Sidebar -->
-        <div class="chat-history-pane" id="chatHistoryPane">
+        <div class="side-panes chat-history-pane" id="chatHistoryPane">
             {% include 'rest_mode/components/chat_sidebar.html' %}
         </div>
         
@@ -25,17 +38,12 @@
         </div>
         
         <!-- Right Sidebar -->
-        <div class="options-pane" id="optionsPane">
-            {% include 'rest_mode/components/settings_sidebar.html' %}
-        </div>
     </div>
 
     <div id="toastContainer"></div>
 
     <!-- Scripts -->
     <script type="module" src="{% static 'contrib/markedjs/marked.min.js' %}"></script> <!-- credit to https://cdn.jsdelivr.net/npm/marked/marked.min.js -->
-    <script type="module" src="{% static 'rest_mode/js/base.js' %}"></script>
-    <script type="module" src="{% static 'rest_mode/js/toast.js' %}"></script>
     <script type="module" src="{% static 'rest_mode/js/main.js' %}"></script>
     <script type="module" src="{% static 'rest_mode/js/chatLogic.js' %}" defer></script>
 

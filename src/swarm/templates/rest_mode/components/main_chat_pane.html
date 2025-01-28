@@ -1,5 +1,12 @@
 {% load static %}
 <div class="main-pane">
+
+    <div>
+        <button class="input-button chat-history-button" id="chatHistoryToggleButton" aria-label="Toggle Chat History">
+            <img src="{% static 'contrib/tabler-icons/layout-sidebar-left-expand.svg' %}" alt="Chat History">
+        </button>
+    </div>
+
     <!-- Quick Prompts -->
     <div id="quickPromptsContainer" class="quick-prompts-container"></div>
 
@@ -31,10 +38,6 @@
 
             <button class="input-button upload-button" id="avatarToggleButton" aria-label="Toggle Avatar">
                 <img src="{% static 'contrib/tabler-icons/robot.svg' %}" alt="Avatar">
-            </button>
-
-            <button class="input-button upload-button" id="chatHistoryToggleButton" aria-label="Toggle Chat History">
-                <img src="{% static 'contrib/tabler-icons/message.svg' %}" alt="Chat History">
             </button>
 
             <button class="input-button upload-button" id="settingsToggleButton" aria-label="Toggle Settings">

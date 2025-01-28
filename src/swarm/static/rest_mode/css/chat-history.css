@@ -8,6 +8,8 @@
     flex-direction: column;
     height: 100%; /* Ensure the pane takes full height of its container */
     overflow: hidden; /* Prevent content overflow */
+    /* Ensure pane fills available space */
+    flex: 0 1 auto;
 }
 
 /* Chat History Header */

@@ -72,7 +72,6 @@ export async function handleSubmit() {
     if (error) return;
 
     // Render the user message in the UI
-    // renderMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
     appendRawMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
 
     // If it's the first user message, update the persistent message and create a new chat history entry
@@ -89,7 +88,7 @@ export async function handleSubmit() {
 
     try {
         const urlPath = window.location.pathname;
-        const modelName = urlPath.split("/").filter(Boolean).pop() || "unknown_model";
+        const modelName = urlPath.split("/").filter(Boolean).pop() || "";
         debugLog("Submitting message to model.", { modelName, message: userMessageContent });
 
         const response = await fetch("/v1/chat/completions", {

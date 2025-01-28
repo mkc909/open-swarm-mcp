@@ -70,14 +70,9 @@
 }
 
 body {
-  font-family: Arial, sans-serif;
-  line-height: 1.6;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 .container {
@@ -85,13 +80,9 @@ body {
   display: flex;
   flex-direction: row;
   width: 100%;
-  max-width: 1400px;
-  margin: 20px;
-  padding: 20px;
+  /* max-width: 1400px; */
   background-color: var(--bg-container);
-  border: 2px solid var(--border-color); /* Thicker border */
   border-radius: 8px;
-  height: 90vh;
   overflow: hidden;
   transition: all var(--transition-duration) ease;
 }

@@ -160,18 +160,26 @@
     color: #888;
 }
 
+/* Updated: Chat Item Tools */
 .chat-item-tools {
     display: flex;
-    justify-content: space-between; /* Align tags left and delete button right */
+    /* Removed justify-content: space-between; */
     align-items: center;
     gap: 10px; /* Space between tags and delete button */
     margin-top: 5px;
 }
 
-/* Container for Tag Buttons */
+/* Updated: Container for Tag Buttons and Delete Button */
 .chat-item-tags {
     display: flex;
     gap: 8px; /* Space between individual tag buttons */
+    width: 100%; /* Allow to take full width */
+    align-items: center; /* Vertically center items */
+}
+
+/* New Addition: Push Delete Button to the Right */
+.chat-item-tags .delete-chat-btn {
+    margin-left: auto; /* Pushes the delete button to the far right */
 }
 
 /* Style for Each Tag Button */
@@ -189,6 +197,12 @@
 .tag-button:hover {
     background-color: #c0c0c0; /* Darker gray on hover */
     transform: translateY(-2px); /* Slight lift on hover */
+}
+
+/* Style for Add Tag Button */
+.add-tag-btn {
+    background-color: #d0d0d0; /* Slightly different color for add button */
+    /* Additional styles if needed */
 }
 
 /* Ensure the delete button remains on the right */

@@ -27,5 +27,5 @@ export async function initializeChatLogic() {
     debugLog('Chat logic initialized.');
 }
 
-// Initialize chat logic on DOMContentLoaded
-// document.addEventListener('DOMContentLoaded', initializeChatLogic);
+setupEventListeners();
+document.addEventListener('DOMContentLoaded', initializeChatLogic);

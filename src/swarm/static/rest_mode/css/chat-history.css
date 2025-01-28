@@ -44,7 +44,6 @@
     align-items: center;
     justify-content: center;
     transition: background-color 0.3s, transform 0.2s;
-    border-radius: 4px;
 }
 
 .chat-history-header .input-button:hover {
@@ -76,7 +75,6 @@
     margin-bottom: 5px; /* Reduced margin for compactness */
     /* Removed border to eliminate border lines */
     border: none;
-    border-radius: 8px;
     /* Set background to match the pane by default */
     /* background-color: var(--bg-chat-history-pane); */
     /* transition: background-color var(--transition-duration), box-shadow var(--transition-duration); */

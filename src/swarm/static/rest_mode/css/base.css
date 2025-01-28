@@ -400,20 +400,20 @@ body {
     }
 
     .chat-pane {
-        margin: 0 0 20px 0;
+        /* margin: 0 0 20px 0; */
         flex: 2;
     }
 
     .side-panes {
         flex-direction: row;
         max-width: 100%;
-        gap: 10px;
+        /* gap: 10px; */
     }
 
     /* Adjust toggle buttons position */
     .sidebar-reveal-btn {
-        top: 20px;
-        left: 20px; /* Left sidebar reveal on small screens */
+        /* top: 20px;
+        left: 20px; */
         right: auto;
     }
 

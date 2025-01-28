@@ -1,4 +1,4 @@
-// src/swarm/static/rest_mode/js/modules/chatHistory.js
+ // src/swarm/static/rest_mode/js/modules/chatHistory.js
 
 import { showToast } from '../toast.js';
 import { appendRawMessage } from '../messages.js';
@@ -24,7 +24,7 @@ function truncateMessage(content, maxLength = 50) {
  * Creates a new chat history entry in the sidebar.
  * @param {string} firstMessage - The user's first message in the chat.
  */
-export function createChatHistoryEntry(firstMessage) {
+export function createChatHistoryEntry(chatName, firstMessage) {
     const chatHistoryPane = document.getElementById('chatHistoryPane');
     if (!chatHistoryPane) {
         debugLog('Chat history pane element not found.');
@@ -41,7 +41,8 @@ export function createChatHistoryEntry(firstMessage) {
     // Populate the chat history item
     chatItem.innerHTML = `
         <details>
-            <summary>New Chat</summary>
+            <summary>${chatName}</summary>
+            <span class="chat-item-tags">[Tags Placeholder]</span>
             <p>${truncatedMessage}</p>
             <span class="chat-item-time">${new Date().toLocaleString()}</span>
             <div class="chat-item-tools">

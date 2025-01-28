@@ -3,8 +3,6 @@
 .chat-history-pane {
     flex: 0 0 33%; /* Fixed width at 33%, cannot grow or shrink */
     background-color: var(--bg-chat-history-pane);
-    /* border: 2px solid var(--border-color); */
-    /* border-radius: 8px; */
     padding: 15px;
     overflow-y: auto; /* Vertical scrolling for contents */
 }
@@ -78,7 +76,6 @@
 
 .top-bar-btn:hover {
     background-color: var(--button-hover-bg); /* Add hover effect */
-    border-radius: 4px; /* Round corners on hover */
 }
 
 .top-bar-btn .btn-label {

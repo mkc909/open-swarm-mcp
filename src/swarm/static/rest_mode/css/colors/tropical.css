@@ -14,8 +14,83 @@
   --border-color: #CD853F; /* Peru */
   --button-primary: #6c757d; /* Action button background */
   --button-hover: #007bff; /* Action button hover background */
+  --button-hover: #007bff; /* Action button hover background */
+  --button-pane-bg: #e0e0e0; /* Pane toggle button background */
+  --button-pane-hover-bg: #d0d0d0; /* Pane toggle button hover background */
+  --button-header-bg: #4a4a4a; /* Header button background */
+  --button-header-hover-bg: #555555; /* Header button hover background */
   --logout-button-bg: #20B2AA; /* Light Sea Green */
   --logout-button-hover: #3CB371; /* Medium Sea Green */
   --logo-color: #20B2AA; /* Light Sea Green */
   --transition-duration: 0.3s;
+}
+
+
+[data-theme-dark="true"] {
+  /* Dark mode variables */
+  --bg-primary: #1a1a1a; /* Dark background */
+  --bg-container: #2a2a2a; /* Dark container */
+  --bg-message-user: #555555; /* Darker Blue */
+  --bg-message-assistant: #445544; /* Darker Green */
+  --bg-message-tool: #554444; /* Darker Red */
+  --bg-message-other: #3a3a3a; /* Dark Gray */
+  --bg-blueprint: #2a2a2a; /* Dark Floral White */
+  --bg-debug: #2a2a2a; /* Dark Debug */
+  --text-primary: #f0f0f0; /* Light Gray */
+  --text-secondary: #bbbbbb; /* Medium Light Gray */
+  --border-color: #555555; /* Dark Gray */
+  --button-primary: #00bfff; /* Deep Sky Blue */
+  --button-hover: #87cefa; /* Light Sky Blue */
+  --logout-button-bg: #00bfff; /* Deep Sky Blue */
+  --logout-button-hover: #87cefa; /* Light Sky Blue */
+  --logo-color: #00bfff; /* Deep Sky Blue */
+}
+
+/* Message Styling */
+.message.user {
+    background-color: var(--bg-message-user);
+    color: var(--text-primary);
+    border-radius: 15px;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    max-width: 70%;
+    align-self: flex-end;
+    position: relative;
+}
+
+.message.assistant {
+    background-color: var(--bg-message-assistant);
+    color: var(--text-primary);
+    border-radius: 15px;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    max-width: 70%;
+    align-self: flex-start;
+    position: relative;
+}
+
+/* Persisted Messages Styling */
+.pinned-message {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 5px 0;
+    padding: 10px;
+    border: 1px dashed #aaa;
+    border-radius: 15px;
+    background-color: #fefefe;
+    color: var(--text-primary);
+}
+
+.pinned-message .remove-pinned-button {
+    background: none;
+    border: none;
+    color: #dc3545; /* Red color */
+    font-size: 1.2em;
+    cursor: pointer;
+    transition: color var(--transition-duration) ease;
+}
+
+.pinned-message .remove-pinned-button:hover {
+    color: #ff0000; /* Brighter red on hover */
 }

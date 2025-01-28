@@ -15,6 +15,11 @@
   --border-color: #d3d3d3; /* Light Gray */
   --button-primary: #6c757d; /* Action button background */
   --button-hover: #007bff; /* Action button hover background */
+  --button-hover: #007bff; /* Action button hover background */
+  --button-pane-bg: #e0e0e0; /* Pane toggle button background */
+  --button-pane-hover-bg: #d0d0d0; /* Pane toggle button hover background */
+  --button-header-bg: #4a4a4a; /* Header button background */
+  --button-header-hover-bg: #555555; /* Header button hover background */
   --logout-button-bg: #87cefa; /* Light Sky Blue */
   --logout-button-hover: #00bfff; /* Deep Sky Blue */
   --logo-color: #87cefa; /* Light Sky Blue */

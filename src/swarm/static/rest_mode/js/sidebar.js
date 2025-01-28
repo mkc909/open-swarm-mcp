@@ -16,17 +16,17 @@ export function toggleSidebar(sidebar) {
         // Toggle the 'hidden' class
         const isHidden = chatHistoryPane.classList.toggle('hidden');
 
-        // Update the toggle button icon based on visibility
-        const toggleIcon = chatHistoryToggleButton.querySelector('img');
-        if (isHidden) {
-            toggleIcon.src = window.STATIC_URLS.layoutSidebarLeftExpand; // Expanded icon
-            toggleIcon.alt = "Expand Chat History Pane";
-            showToast("📜 Chat History sidebar hidden.", "info");
-        } else {
-            toggleIcon.src = window.STATIC_URLS.layoutSidebarLeftCollapse; // Collapsed icon
-            toggleIcon.alt = "Collapse Chat History Pane";
-            showToast("📜 Chat History sidebar shown.", "info");
-        }
+        // // Update the toggle button icon based on visibility
+        // const toggleIcon = chatHistoryToggleButton.querySelector('img');
+        // if (isHidden) {
+        //     toggleIcon.src = window.STATIC_URLS.layoutSidebarLeftExpand; // Expanded icon
+        //     toggleIcon.alt = "Expand Chat History Pane";
+        //     showToast("📜 Chat History sidebar hidden.", "info");
+        // } else {
+        //     toggleIcon.src = window.STATIC_URLS.layoutSidebarLeftCollapse; // Collapsed icon
+        //     toggleIcon.alt = "Collapse Chat History Pane";
+        //     showToast("📜 Chat History sidebar shown.", "info");
+        // }
     } else if (sidebar === 'options') {
         const optionsPane = document.getElementById('optionsPane');
         const optionsToggleButton = document.getElementById('optionsSidebarToggleButton'); // Ensure an ID
@@ -38,17 +38,17 @@ export function toggleSidebar(sidebar) {
 
         const isHidden = optionsPane.classList.toggle('hidden');
 
-        // Update the toggle button icon based on visibility
-        const toggleIcon = optionsToggleButton.querySelector('img');
-        if (isHidden) {
-            toggleIcon.src = window.STATIC_URLS.layoutSidebarRightExpand; // Expanded icon
-            toggleIcon.alt = "Expand Options Pane";
-            showToast("⚙️ Settings sidebar hidden.", "info");
-        } else {
-            toggleIcon.src = window.STATIC_URLS.layoutSidebarRightCollapse; // Collapsed icon
-            toggleIcon.alt = "Collapse Options Pane";
-            showToast("⚙️ Settings sidebar shown.", "info");
-        }
+        // // Update the toggle button icon based on visibility
+        // const toggleIcon = optionsToggleButton.querySelector('img');
+        // if (isHidden) {
+        //     toggleIcon.src = window.STATIC_URLS.layoutSidebarRightExpand; // Expanded icon
+        //     toggleIcon.alt = "Expand Options Pane";
+        //     showToast("⚙️ Settings sidebar hidden.", "info");
+        // } else {
+        //     toggleIcon.src = window.STATIC_URLS.layoutSidebarRightCollapse; // Collapsed icon
+        //     toggleIcon.alt = "Collapse Options Pane";
+        //     showToast("⚙️ Settings sidebar shown.", "info");
+        // }
     }
 }
 

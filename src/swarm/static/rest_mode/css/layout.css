@@ -132,7 +132,7 @@
 }
 
 /* Message List */
-.message-list {
+.message-container {
     flex: 1; /* Take available vertical space */
     overflow-y: auto;
     margin-bottom: 10px; /* Space for input area */
@@ -173,4 +173,7 @@
         flex-direction: column; /* Stack inputs vertically on small screens */
         gap: 5px; /* Reduce spacing */
     }
+}
+.hidden {
+    display: none !important;
 }

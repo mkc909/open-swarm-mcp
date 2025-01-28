@@ -81,10 +81,18 @@ function setupGlobalEventListeners() {
 /**
  * Sets up all event listeners for the application.
  */
+let eventListenersInitialized = false;
+
 export function setupEventListeners() {
+    if (eventListenersInitialized) {
+        debugLog('Event listeners are already initialized.');
+        return;
+    }
+
     setupGlobalEventListeners();
     setupChatHistoryListeners();
     debugLog('All event listeners have been set up.');
+    eventListenersInitialized = true;
 }
 
 /**

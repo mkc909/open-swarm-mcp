@@ -169,12 +169,16 @@ export function enableSlidingToolbar(
  * Initializes all UI components and event listeners.
  */
 export function initializeUI() {
+    if (window.isUIInitialized) {
+        console.warn("UI is already initialized.");
+        return;
+    }
+
     showSplashPage(); // Show the splash page on load
     renderQuickPrompts(); // Render quick prompts on load
 
     // Integrate other initialization logic
     initializeSidebar();
-    initializeApplication();
     setupChatHistoryPane();
     initializeChatLogic();
     setupSettingsToggleButton();
@@ -183,6 +187,8 @@ export function initializeUI() {
 
     // Hide the splash screen after initialization
     setTimeout(hideSplashPage, 2000); // Example delay for effect
+
+    window.isUIInitialized = true;
 }
 
-document.addEventListener('DOMContentLoaded', initializeUI);
+

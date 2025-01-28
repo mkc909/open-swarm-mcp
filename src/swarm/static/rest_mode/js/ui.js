@@ -150,6 +150,7 @@ function setupResizableSidebars() {
  * Displays the loading indicator.
  */
 export function showLoadingIndicator() {
+    const loadingIndicator = document.getElementById("loadingIndicator");
     if (loadingIndicator) {
         loadingIndicator.style.display = 'flex';
     }
@@ -159,6 +160,7 @@ export function showLoadingIndicator() {
  * Hides the loading indicator.
  */
 export function hideLoadingIndicator() {
+    const loadingIndicator = document.getElementById("loadingIndicator");
     if (loadingIndicator) {
         loadingIndicator.style.display = 'none';
         loadingIndicator.innerHTML = '';
@@ -209,24 +211,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to style all options
     function styleOptions() {
-        const options = blueprintDropdown.options;
-        for (let i = 0; i < options.length; i++) {
-            options[i].style.color = 'black';
+        const options = blueprintDropdown?.options;
+        if (options) {
+            for (let i = 0; i < options.length; i++) {
+                options[i].style.color = 'black';
+            }
         }
     }
 
     // Style options initially
     styleOptions();
 
-    // Style options whenever the dropdown is opened
-    blueprintDropdown.addEventListener('mousedown', function() {
-        styleOptions();
-    });
-
-    // Style options whenever the dropdown is changed
-    blueprintDropdown.addEventListener('change', function() {
-        styleOptions();
-    });
+    if (blueprintDropdown) {
+        // Style options whenever the dropdown is opened
+        blueprintDropdown.addEventListener('mousedown', function() {
+            styleOptions();
+        });
+    
+        // Style options whenever the dropdown is changed
+        blueprintDropdown.addEventListener('change', function() {
+            styleOptions();
+        });
+    }
 });
 
 
@@ -246,7 +252,7 @@ export function initializeUI() {
     initializeSidebar();
     setupChatHistoryPane();
     initializeChatLogic();
-    setupSettingsToggleButton();
+    // setupSettingsToggleButton();
     setupResizableSidebars();
     initializeTheme();
 

@@ -42,16 +42,21 @@ export function createChatHistoryEntry(chatName, firstMessage) {
     chatItem.innerHTML = `
         <details>
             <summary>${chatName}</summary>
-            <span class="chat-item-tags">[Tags Placeholder]</span>
             <p>${truncatedMessage}</p>
             <span class="chat-item-time">${new Date().toLocaleString()}</span>
-            <div class="chat-item-tools">
-                <button class="toolbar-btn delete-chat-btn" title="Delete Chat">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="icon trash-icon">
-                        <path fill="currentColor" d="M3 6h18v2H3V6zm3 4h12v10H6V10zm5-8h2v2h-2V6zm4 0h2v2h-2V6z"/>
-                    </svg>
-                </button>
-            </div>
+                <div class="chat-item-tools">
+                    <!-- Tag Buttons and Delete Button -->
+                    <div class="chat-item-tags">
+                        <button class="tag-button" aria-label="Filter by General">General</button>
+                        <button class="tag-button" aria-label="Filter by Introduction">Introduction</button>
+                        <button class="tag-button" aria-label="Filter by Welcome">Welcome</button>
+                        <button class="tag-button add-tag-btn" aria-label="Add Tag">+</button>
+                        <!-- Delete Button -->
+                        <button class="toolbar-btn delete-chat-btn" title="Delete Chat" aria-label="Delete Chat">
+                            <img src="${window.STATIC_URLS.trashIcon}" alt="Delete Chat">
+                        </button>
+                    </div>
+                </div>
         </details>
     `;
 

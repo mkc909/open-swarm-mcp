@@ -250,7 +250,25 @@ def blueprint_webpage(request, blueprint_name):
         "blueprint_name": blueprint_name,
         "dark_mode": request.session.get('dark_mode', True)  # Default to dark mode
     }
-    return render(request, "rest_mode/blueprint_page.html", context)
+    return render(request, "simple_blueprint_page.html", context)
+
+@csrf_exempt
+def chatbot(request):
+    """
+    Serves a webpage for a specific blueprint.
+
+    Args:
+        request: The HTTP request object.
+        blueprint_name (str): The name of the blueprint.
+
+    Returns:
+        HttpResponse: The rendered blueprint webpage or a 404 error.
+    """
+    logger.debug("Rendering chatbot webui")
+    context = {
+        "dark_mode": request.session.get('dark_mode', True)  # Default to dark mode
+    }
+    return render(request, "rest_mode/chatbot.html", context)
 
 
 DEFAULT_CONFIG = {

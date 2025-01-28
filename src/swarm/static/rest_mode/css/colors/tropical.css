@@ -12,8 +12,8 @@
   --text-primary: #2F4F4F; /* Dark Slate Gray */
   --text-secondary: #696969; /* Dim Gray */
   --border-color: #CD853F; /* Peru */
-  --button-primary: #20B2AA; /* Light Sea Green */
-  --button-hover: #3CB371; /* Medium Sea Green */
+  --button-primary: #6c757d; /* Action button background */
+  --button-hover: #007bff; /* Action button hover background */
   --logout-button-bg: #20B2AA; /* Light Sea Green */
   --logout-button-hover: #3CB371; /* Medium Sea Green */
   --logo-color: #20B2AA; /* Light Sea Green */

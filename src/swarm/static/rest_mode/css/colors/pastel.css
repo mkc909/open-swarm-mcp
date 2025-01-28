@@ -13,8 +13,8 @@
   --text-primary: #333333; /* Dark Gray */
   --text-secondary: #666666; /* Medium Gray */
   --border-color: #d3d3d3; /* Light Gray */
-  --button-primary: #87cefa; /* Light Sky Blue */
-  --button-hover: #00bfff; /* Deep Sky Blue */
+  --button-primary: #6c757d; /* Action button background */
+  --button-hover: #007bff; /* Action button hover background */
   --logout-button-bg: #87cefa; /* Light Sky Blue */
   --logout-button-hover: #00bfff; /* Deep Sky Blue */
   --logo-color: #87cefa; /* Light Sky Blue */

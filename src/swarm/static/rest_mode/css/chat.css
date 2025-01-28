@@ -110,10 +110,21 @@
     margin-right: 6px;
 }
 
+.button-row {
+    display: flex; /* Use flexbox layout */
+    gap: 10px; /* Add space between buttons */
+    align-items: center; /* Center vertically */
+    justify-content: start; /* Align buttons to the left (or use center/end as needed) */
+    flex-wrap: wrap; /* Allow buttons to wrap if the container width is too small */
+}
+
 .input-button-subtle {
+    padding: 8px 12px; /* Add padding */
+    font-size: 1rem; /* Ensure consistent size */
+    cursor: pointer; /* Pointer on hover */
+    transition: background-color 0.3s ease; /* Smooth hover effect */
     background-color: #6c757d; /* Grey background */
     border: none;
-    padding: 10px;
     border-radius: 4px;
     cursor: pointer;
     display: flex;

@@ -1,5 +1,5 @@
 /* Full-Screen Settings Pane */
-.settings-pane {
+.settings-dialog {
     position: fixed;
     top: 10%; /* Leave 10% margin from the top */
     left: 10%; /* Leave 10% margin from the left */

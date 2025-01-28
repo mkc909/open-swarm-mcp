@@ -5,7 +5,6 @@
     align-items: stretch; /* Full-width rows */
     gap: 5px; /* Space between rows */
     width: 100%; /* Full width of parent */
-    background-color: var(--bg-secondary); /* Match app theme */
     padding: 10px;
     border-radius: 8px;
     box-sizing: border-box;
@@ -16,7 +15,6 @@
     display: flex;
     align-items: stretch; /* Ensure button matches input height */
     width: 100%;
-    gap: 0; /* No gap between input and button */
     margin-bottom: 5px; /* Space below this row */
     position: relative; /* Allow absolute positioning for dropdown */
     border-radius: 20px; /* Match rounded corners */
@@ -26,14 +24,16 @@
 /* Input Field Styling */
 .rounded-input {
     flex-grow: 1; /* Take available space */
-    padding: 10px 15px;
+    /* padding: 10px 15px; */
     border: none; /* Remove internal border */
     border-radius: 0; /* Reset radius to align with container */
     outline: none;
     box-sizing: border-box;
-    font-size: 14px;
+    font-size: 18px;
     margin: 0;
     width: 100%;
+    color: var(--text-primary); /* Match app theme */
+    background-color: var(--bg-secondary); /* Match app theme */
 }
 
 /* Submit Button Styling */
@@ -56,11 +56,11 @@
 }
 
 /* Adjusted Rounded Corners */
-.send-container .rounded-input:first-child {
+.send-container .rounded-input {
     border-radius: 20px 0 0 20px; /* Rounded corners only on the left */
 }
 
-.send-container .half-cut-button:last-child {
+.send-container .half-cut-button {
     border-radius: 0 20px 20px 0; /* Rounded corners only on the right */
 }
 
@@ -112,7 +112,8 @@
 
 .button-row {
     display: flex; /* Use flexbox layout */
-    gap: 10px; /* Add space between buttons */
+    gap: 3px; /* Add space between buttons */
+    border-radius: 2;
     align-items: center; /* Center vertically */
     justify-content: start; /* Align buttons to the left (or use center/end as needed) */
     flex-wrap: wrap; /* Allow buttons to wrap if the container width is too small */
@@ -125,23 +126,28 @@
     transition: background-color 0.3s ease; /* Smooth hover effect */
     background-color: #6c757d; /* Grey background */
     border: none;
-    border-radius: 4px;
+    /* border-radius: 4px; */
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: background-color 0.3s ease;
-    margin-top: 2px;
-    margin-right: 6px;
+    /* margin-top: 2px; */
+    /* margin-right: 6px; */
 }
 
 .input-button-subtle:hover {
     background-color: #007bff; /* Blue on hover */
 }
 
+.input-button-subtle img {
+    width: 1.3em;
+    height: 1.3em;
+}
+
 .input-button img {
-    width: 20px;
-    height: 20px;
+    width: 1.9em;
+    height: 1.9em;
 }
 
 .input-button:hover {

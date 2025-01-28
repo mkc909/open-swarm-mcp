@@ -8,6 +8,7 @@ import { submitMessage } from './apiService.js';
 import { debugLog } from './debugLogger.js';
 import { validateMessage } from './validation.js';
 import { chatHistory, contextVariables } from './state.js'; // Assuming state.js manages shared state
+import { createChatHistoryEntry } from './chatHistory.js';
 
 /**
  * Processes the assistant's response and updates context variables.
@@ -74,13 +75,14 @@ export async function handleSubmit() {
     // renderMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
     appendRawMessage(userMessage.role, { content: userMessage.content }, userMessage.sender, userMessage.metadata);
 
-    // If it's the first user message, update the persistent message
+    // If it's the first user message, update the persistent message and create a new chat history entry
     if (isFirstUserMessage) {
         const persistentMessageElement = document.getElementById('firstUserMessage');
         if (persistentMessageElement) {
             persistentMessageElement.innerHTML = `<b>Persist:</b><p>User: ${userMessageContent}</p>`;
             debugLog("Persistent message updated with the first user message.");
         }
+        createChatHistoryEntry("New Chat", userMessageContent);
     }
 
     showLoadingIndicator(); // Show loading spinner

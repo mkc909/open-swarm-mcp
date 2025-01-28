@@ -43,12 +43,22 @@ function setupChatHistoryPane() {
         return;
     }
 
-    // Toggle visibility on button click
+    // Toggle visibility on button clicks
+    const chatHistoryToggleButtonVisible = document.getElementById('chatHistoryToggleButtonVisible');
+    
+    // Toggle button in sidebar
     chatHistoryToggleButton.addEventListener('click', () => {
-        chatHistoryPane.classList.toggle('hidden');
-        const isVisible = !chatHistoryPane.classList.contains('hidden');
-        showToast(isVisible ? "Chat history expanded." : "Chat history minimized.", "info");
+        chatHistoryPane.classList.add('hidden');
+        showToast("Chat history minimized.", "info");
     });
+
+    // New toggle button in main pane
+    if (chatHistoryToggleButtonVisible) {
+        chatHistoryToggleButtonVisible.addEventListener('click', () => {
+            chatHistoryPane.classList.remove('hidden');
+            showToast("Chat history expanded.", "info");
+        });
+    }
 }
 
 /**

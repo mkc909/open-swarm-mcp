@@ -13,7 +13,7 @@
 
 /* Chat History Header */
 .chat-history-header {
-    display: flex;
+    display: block;
     align-items: center;
     justify-content: space-between; /* Distribute space between button groups */
     padding: 10px 15px;
@@ -22,6 +22,10 @@
     position: sticky;
     top: 0;
     z-index: 10; /* Ensure it stays above other content */
+}
+
+.new-chat-button {
+    margin-left: auto; /* Push the button to the right */
 }
 
 .chat-history-header > div {

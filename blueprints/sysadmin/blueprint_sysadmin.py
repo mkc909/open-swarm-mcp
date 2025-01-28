@@ -3,13 +3,13 @@
 """
 Sysadmin Blueprint Class for Open Swarm (MCP).
 
-This blueprint defines agents that interact with various MCP servers essential for
-system administration tasks, including filesystem operations, searching, database 
-management, installation tasks, in-memory data handling, and sequential thinking.
+This blueprint defines a SysAdmin agent and a team of assistant agents that perform
+specific system administration tasks. The SysAdmin can delegate tasks to any assistant
+agent, and assistant agents can only hand off tasks back to the SysAdmin.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Callable
 
 from swarm.extensions.blueprint import BlueprintBase
 from swarm.settings import DEBUG
@@ -28,8 +28,9 @@ if not logger.handlers:
 
 class SysadminBlueprint(BlueprintBase):
     """
-    A blueprint defining agents for various MCP server integrations, allowing them
-    to hand off control to one another for complex system administration workflows.
+    A blueprint defining a SysAdmin agent and assistant agents for various MCP server integrations.
+    The SysAdmin can delegate tasks to assistant agents, and assistant agents can only return
+    control back to the SysAdmin.
     """
 
     @property
@@ -43,7 +44,7 @@ class SysadminBlueprint(BlueprintBase):
         return {
             "title": "Sysadmin Blueprint",
             "description": (
-                "Provides agents for MCP-based system administration: "
+                "Provides a SysAdmin agent and assistant agents for MCP-based system administration: "
                 "filesystem management, searching, SQLite database operations, MCP installation, "
                 "in-memory tasks, and sequential-thinking workflows."
             ),
@@ -64,7 +65,7 @@ class SysadminBlueprint(BlueprintBase):
 
     def create_agents(self) -> Dict[str, Agent]:
         """
-        Create agents for the SysadminBlueprint, one for each MCP server.
+        Create agents for the SysadminBlueprint, including the SysAdmin and assistant agents.
 
         Returns:
             Dict[str, Agent]: Dictionary of created agents.
@@ -72,29 +73,39 @@ class SysadminBlueprint(BlueprintBase):
         import os
 
         # Retrieve environment variables
-        allowed_paths = os.getenv("ALLOWED_PATHS", "/default/path")
+        allowed_paths = os.getenv("ALLOWED_PATH", "/default/path")
         brave_api_key = os.getenv("BRAVE_API_KEY", "default-brave-key")
         sqlite_db_path = os.getenv("SQLITE_DB_PATH", "/tmp/sqlite.db")
 
         # Dictionary to hold all agents
         agents: Dict[str, Agent] = {}
 
-        # Define the agents
+        # Define the SysAdmin agent
+        agents["SysAdminAgent"] = Agent(
+            name="SysAdminAgent",
+            instructions=(
+                "You are the SysAdmin responsible for overseeing and delegating tasks to assistant agents. "
+                "You can delegate tasks to any assistant agent but cannot perform the tasks directly."
+            ),
+            env_vars={},
+        )
+
+        # Define assistant agents
         agents["FilesystemAgent"] = Agent(
             name="FilesystemAgent",
             instructions=(
                 "You manage and interact with the filesystem under allowed paths. "
-                "Use the filesystem MCP server to perform file operations."
+                "Perform file operations as delegated by the SysAdmin."
             ),
             mcp_servers=["filesystem"],
-            env_vars={"ALLOWED_PATHS": allowed_paths},
+            env_vars={"ALLOWED_PATH": allowed_paths},
         )
 
         agents["BraveSearchAgent"] = Agent(
             name="BraveSearchAgent",
             instructions=(
                 "You perform search queries using the Brave Search MCP server. "
-                "Leverage the Brave API key for authenticated search operations."
+                "Leverage the Brave API key for authenticated search operations as instructed by the SysAdmin."
             ),
             mcp_servers=["brave-search"],
             env_vars={"BRAVE_API_KEY": brave_api_key},
@@ -104,7 +115,7 @@ class SysadminBlueprint(BlueprintBase):
             name="SQLiteAgent",
             instructions=(
                 "You interact with a SQLite database via the SQLite MCP server. "
-                "Use the provided database path to manage data."
+                "Use the provided database path to manage data as directed by the SysAdmin."
             ),
             mcp_servers=["sqlite"],
             env_vars={"SQLITE_DB_PATH": sqlite_db_path},
@@ -114,7 +125,7 @@ class SysadminBlueprint(BlueprintBase):
             name="McpInstallerAgent",
             instructions=(
                 "You handle MCP installation and configuration tasks, "
-                "coordinating the setup of various MCP servers as needed."
+                "coordinating the setup of various MCP servers as needed under the direction of the SysAdmin."
             ),
             mcp_servers=["mcp-installer"],
             env_vars={},
@@ -124,7 +135,7 @@ class SysadminBlueprint(BlueprintBase):
             name="MemoryAgent",
             instructions=(
                 "You perform in-memory data operations using the memory MCP server, "
-                "allowing short-term or ephemeral data storage within workflows."
+                "allowing short-term or ephemeral data storage within workflows as requested by the SysAdmin."
             ),
             mcp_servers=["memory"],
             env_vars={},
@@ -134,39 +145,45 @@ class SysadminBlueprint(BlueprintBase):
             name="SequentialThinkingAgent",
             instructions=(
                 "You provide sequential-thinking capabilities, helping plan and structure "
-                "multi-step or branching tasks in a logical order."
+                "multi-step or branching tasks in a logical order as assigned by the SysAdmin."
             ),
             mcp_servers=["sequential-thinking"],
             env_vars={},
         )
 
-        # Define handoff functions so each agent can transfer control to any other agent
+        # Define handoff functions
+        # SysAdmin can handoff to any assistant agent
         def handoff_to_filesystem():
-            logger.debug("Handing off to FilesystemAgent")
+            logger.debug("SysAdmin is handing off to FilesystemAgent")
             return agents["FilesystemAgent"]
 
         def handoff_to_brave_search():
-            logger.debug("Handing off to BraveSearchAgent")
+            logger.debug("SysAdmin is handing off to BraveSearchAgent")
             return agents["BraveSearchAgent"]
 
         def handoff_to_sqlite():
-            logger.debug("Handing off to SQLiteAgent")
+            logger.debug("SysAdmin is handing off to SQLiteAgent")
             return agents["SQLiteAgent"]
 
         def handoff_to_mcp_installer():
-            logger.debug("Handing off to McpInstallerAgent")
+            logger.debug("SysAdmin is handing off to McpInstallerAgent")
             return agents["McpInstallerAgent"]
 
         def handoff_to_memory():
-            logger.debug("Handing off to MemoryAgent")
+            logger.debug("SysAdmin is handing off to MemoryAgent")
             return agents["MemoryAgent"]
 
         def handoff_to_sequential_thinking():
-            logger.debug("Handing off to SequentialThinkingAgent")
+            logger.debug("SysAdmin is handing off to SequentialThinkingAgent")
             return agents["SequentialThinkingAgent"]
 
-        # Assign the same handoff functions to every agent, enabling them to delegate
-        all_handoffs = [
+        # Assistant agents can only handoff back to SysAdmin
+        def handoff_back_to_sysadmin():
+            logger.debug("Assistant agent is handing off back to SysAdminAgent")
+            return agents["SysAdminAgent"]
+
+        # Assign handoff functions to the SysAdmin agent
+        agents["SysAdminAgent"].functions = [
             handoff_to_filesystem,
             handoff_to_brave_search,
             handoff_to_sqlite,
@@ -175,11 +192,21 @@ class SysadminBlueprint(BlueprintBase):
             handoff_to_sequential_thinking,
         ]
 
-        for agent in agents.values():
-            agent.functions = all_handoffs
+        # Assign handoff functions to assistant agents (only handoff back to SysAdmin)
+        assistant_agents = [
+            "FilesystemAgent",
+            "BraveSearchAgent",
+            "SQLiteAgent",
+            "McpInstallerAgent",
+            "MemoryAgent",
+            "SequentialThinkingAgent",
+        ]
 
-        # Set the starting agent (choose whichever makes sense for your workflow)
-        self.set_starting_agent(agents["MemoryAgent"])
+        for agent_name in assistant_agents:
+            agents[agent_name].functions = [handoff_back_to_sysadmin]
+
+        # Set the starting agent to SysAdminAgent
+        self.set_starting_agent(agents["SysAdminAgent"])
 
         logger.debug(f"Agents created: {list(agents.keys())}")
         return agents

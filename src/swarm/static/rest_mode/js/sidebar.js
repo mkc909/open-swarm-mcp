@@ -1,93 +1,55 @@
+// src/swarm/static/rest_mode/js/sidebar.js
+
 import { showToast } from './toast.js';
 
-
 /* Existing toggleSidebar function */
-export function toggleSidebar(sidebar, shouldShow) {
-    const container = document.querySelector('.container');
-    const leftSidebarRevealBtn = document.getElementById("leftSidebarRevealBtn");
-    const leftSidebarHideBtn = document.getElementById("leftSidebarHideBtn");
-    const optionsSidebarRevealBtn = document.getElementById("optionsSidebarRevealBtn");
-    const optionsSidebarHideBtn = document.getElementById("optionsSidebarHideBtn");
-
-    if (!container) return;
-
+export function toggleSidebar(sidebar) {
     if (sidebar === 'left') {
         const chatHistoryPane = document.getElementById('chatHistoryPane');
-        if (shouldShow) {
-            chatHistoryPane.style.display = 'block';
-            leftSidebarRevealBtn.style.display = 'none';
-            leftSidebarHideBtn.style.display = 'flex';
-            leftSidebarRevealBtn.innerHTML = '←'; /* Arrow icon */
-            showToast("📜 Chat History sidebar shown.", "info");
-        } else {
-            chatHistoryPane.style.display = 'none';
-            // leftSidebarHideBtn.style.display = 'none';
-            leftSidebarRevealBtn.style.display = 'flex';
-            leftSidebarRevealBtn.innerHTML = '→'; /* Arrow icon */
+        const chatHistoryToggleButton = document.getElementById('chatHistoryToggleButton');
+
+        if (!chatHistoryPane || !chatHistoryToggleButton) {
+            console.warn('Chat History Pane or Toggle Button is missing.');
+            return;
+        }
+
+        // Toggle the 'hidden' class
+        const isHidden = chatHistoryPane.classList.toggle('hidden');
+
+        // Update the toggle button icon based on visibility
+        const toggleIcon = chatHistoryToggleButton.querySelector('img');
+        if (isHidden) {
+            toggleIcon.src = window.STATIC_URLS.layoutSidebarLeftExpand; // Expanded icon
+            toggleIcon.alt = "Expand Chat History Pane";
             showToast("📜 Chat History sidebar hidden.", "info");
+        } else {
+            toggleIcon.src = window.STATIC_URLS.layoutSidebarLeftCollapse; // Collapsed icon
+            toggleIcon.alt = "Collapse Chat History Pane";
+            showToast("📜 Chat History sidebar shown.", "info");
         }
     } else if (sidebar === 'options') {
         const optionsPane = document.getElementById('optionsPane');
-        if (!optionsPane) {
-            console.warn('Options pane element is missing.');
+        const optionsToggleButton = document.getElementById('optionsSidebarToggleButton'); // Ensure an ID
+
+        if (!optionsPane || !optionsToggleButton) {
+            console.warn('Options Pane or Toggle Button is missing.');
             return;
         }
-        const isVisible = shouldShow;
-        optionsPane.classList.toggle('hidden', !shouldShow);
-        // optionsSidebarRevealBtn.style.display = isVisible ? 'none' : 'flex';
-        // optionsSidebarHideBtn.style.display = isVisible ? 'flex' : 'none';
-        // optionsSidebarRevealBtn.innerHTML = isVisible ? '→' : '←'; /* Arrow icon */
-        showToast(isVisible ? "⚙️ Settings sidebar shown." : "⚙️ Settings sidebar hidden.", "info");
-        console.log({
-            sidebar,
-            shouldShow,
-            isVisible,
-            optionsPane,
-            optionsSidebarRevealBtn,
-            optionsSidebarHideBtn
-        });
+
+        const isHidden = optionsPane.classList.toggle('hidden');
+
+        // Update the toggle button icon based on visibility
+        const toggleIcon = optionsToggleButton.querySelector('img');
+        if (isHidden) {
+            toggleIcon.src = window.STATIC_URLS.layoutSidebarRightExpand; // Expanded icon
+            toggleIcon.alt = "Expand Options Pane";
+            showToast("⚙️ Settings sidebar hidden.", "info");
+        } else {
+            toggleIcon.src = window.STATIC_URLS.layoutSidebarRightCollapse; // Collapsed icon
+            toggleIcon.alt = "Collapse Options Pane";
+            showToast("⚙️ Settings sidebar shown.", "info");
+        }
     }
-}
-
-
-/**
- * Toggles the visibility of the left sidebar.
- */
-function toggleLeftSidebar() {
-    const chatHistoryPane = document.getElementById('chatHistoryPane');
-    const leftSidebarHideBtn = document.getElementById('leftSidebarHideBtn');
-    const leftSidebarRevealBtn = document.getElementById('leftSidebarRevealBtn');
-
-    if (!chatHistoryPane || !leftSidebarHideBtn || !leftSidebarRevealBtn) {
-        console.warn('Elements for toggling left sidebar are missing.');
-        return;
-    }
-
-    const isHidden = chatHistoryPane.classList.toggle('hidden');
-    // leftSidebarHideBtn.classList.toggle('hidden', isHidden);
-    leftSidebarRevealBtn.classList.toggle('hidden', !isHidden);
-
-    showToast(isHidden ? "Chat history minimized." : "Chat history expanded.", "info");
-}
-
-/**
- * Toggles the visibility of the right sidebar.
- */
-function toggleRightSidebar() {
-    const optionsPane = document.getElementById('optionsPane');
-    const optionsSidebarHideBtn = document.getElementById('optionsSidebarHideBtn');
-    const optionsSidebarRevealBtn = document.getElementById('optionsSidebarRevealBtn');
-
-    if (!optionsPane || !optionsSidebarHideBtn || !optionsSidebarRevealBtn) {
-        console.warn('Elements for toggling right sidebar are missing.');
-        return;
-    }
-
-    const isHidden = optionsPane.classList.toggle('hidden');
-    // optionsSidebarHideBtn.classList.toggle('hidden', isHidden);
-    optionsSidebarRevealBtn.classList.toggle('hidden', !isHidden);
-
-    showToast(isHidden ? "Settings pane minimized." : "Settings pane expanded.", "info");
 }
 
 /**
@@ -96,13 +58,18 @@ function toggleRightSidebar() {
 function setupResizableSidebars() {
     const leftDivider = document.getElementById("divider-left");
     const rightDivider = document.getElementById("divider-right");
-    const chatHistoryPane = document.querySelector(".chat-history-pane");
-    const optionsPane = document.querySelector(".options-pane");
+    const chatHistoryPane = document.getElementById('chatHistoryPane');
+    const optionsPane = document.getElementById('optionsPane');
+
+    if (!leftDivider || !rightDivider || !chatHistoryPane || !optionsPane) {
+        console.warn('One or more elements for resizable sidebars are missing.');
+        return;
+    }
 
     const handleMouseMove = (e, targetPane, isLeft) => {
         const newWidth = isLeft
             ? e.clientX - chatHistoryPane.getBoundingClientRect().left
-            : optionsPane.getBoundingClientRect().right - e.clientX;
+            : window.innerWidth - e.clientX - optionsPane.getBoundingClientRect().left;
         if (newWidth > 100 && newWidth < 500) {
             targetPane.style.width = `${newWidth}px`;
         }
@@ -120,15 +87,30 @@ function setupResizableSidebars() {
         });
     };
 
-    if (leftDivider) setupResizer(leftDivider, chatHistoryPane, true);
-    if (rightDivider) setupResizer(rightDivider, optionsPane, false);
+    setupResizer(leftDivider, chatHistoryPane, true);
+    setupResizer(rightDivider, optionsPane, false);
 }
 
 /**
  * Initializes the sidebar logic.
  */
 export function initializeSidebar() {
-    toggleLeftSidebar();
-    toggleRightSidebar();
+    // Attach event listeners to toggle buttons
+    const chatHistoryToggleButton = document.getElementById('chatHistoryToggleButton');
+    const optionsToggleButton = document.getElementById('optionsSidebarToggleButton'); // Ensure an ID exists
+
+    if (chatHistoryToggleButton) {
+        chatHistoryToggleButton.addEventListener('click', () => toggleSidebar('left'));
+    } else {
+        console.warn('Chat History Toggle Button is missing.');
+    }
+
+    if (optionsToggleButton) {
+        optionsToggleButton.addEventListener('click', () => toggleSidebar('options'));
+    } else {
+        console.warn('Options Toggle Button is missing.');
+    }
+
+    // Setup resizable sidebars
     setupResizableSidebars();
 }

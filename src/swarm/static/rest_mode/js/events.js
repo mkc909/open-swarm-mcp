@@ -1,15 +1,15 @@
+// src/swarm/static/rest_mode/js/events.js
+
 import { toggleSidebar } from './sidebar.js';
-import {
-    handleChatHistoryClick,
-    handleDeleteChat,
-    handleUpload,
-    handleVoiceRecord,
-    fetchBlueprintMetadata,
-} from './chatHandlers.js';
-import { handleSubmit } from './chatLogic.js';
+import { handleChatHistoryClick } from './modules/chatHistory.js';
+import { deleteChat } from './modules/apiService.js';
+import { handleUpload, handleVoiceRecord } from './modules/userInteractions.js';
+import { fetchBlueprintMetadata } from './modules/apiService.js';
+import { handleSubmit } from './modules/messageProcessor.js';
 import { toggleDebugPane, handleTechSupport } from './debug.js';
 import { showToast } from './toast.js';
 import { handleLogout } from './auth.js';
+import { debugLog } from './modules/debugLogger.js';
 
 /**
  * Handles "Search" button click.
@@ -38,7 +38,7 @@ function setupChatHistoryListeners() {
         if (trashCan) {
             trashCan.addEventListener('click', (e) => {
                 e.stopPropagation();
-                handleDeleteChat(item);
+                deleteChat(item);
             });
         }
     });
@@ -84,14 +84,15 @@ function setupGlobalEventListeners() {
 export function setupEventListeners() {
     setupGlobalEventListeners();
     setupChatHistoryListeners();
+    debugLog('All event listeners have been set up.');
 }
 
 /**
  * Initialize the application.
  */
 export function initializeApplication() {
-    console.log('[DEBUG] Initializing application...');
+    debugLog('[DEBUG] Initializing application...');
     fetchBlueprintMetadata(); // Fetch blueprint metadata and display it
     setupEventListeners();    // Set up event listeners
-    console.log('[DEBUG] Application initialized.');
+    debugLog('[DEBUG] Application initialized.');
 }

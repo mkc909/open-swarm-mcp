@@ -1,5 +1,6 @@
 import { initializeSidebar } from './sidebar.js';
 import { initializeApplication } from './events.js';
+import { initializeChatLogic } from './chatLogic.js';
 import { initializeTheme } from './theme.js';
 import { renderQuickPrompts } from './messages.js';
 import { showToast } from './toast.js';
@@ -175,6 +176,7 @@ export function initializeUI() {
     initializeSidebar();
     initializeApplication();
     setupChatHistoryPane();
+    initializeChatLogic();
     setupSettingsToggleButton();
     setupResizableSidebars();
     initializeTheme();

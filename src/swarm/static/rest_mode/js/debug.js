@@ -1,7 +1,9 @@
+// src/swarm/static/rest_mode/js/debug.js
+
 import { showToast } from './toast.js';
-import { chatHistory } from './chatHandlers.js';
-import { contextVariables } from './chatLogic.js';
-export { debugLog } from './settings.js';
+import { chatHistory } from './modules/state.js'; 
+import { contextVariables } from './modules/state.js'; 
+export { debugLog } from './modules/debugLogger.js'; 
 
 /**
  * Toggles the Debug pane.

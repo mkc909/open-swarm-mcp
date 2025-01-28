@@ -28,4 +28,3 @@ export async function initializeChatLogic() {
 }
 
 setupEventListeners();
-document.addEventListener('DOMContentLoaded', initializeChatLogic);

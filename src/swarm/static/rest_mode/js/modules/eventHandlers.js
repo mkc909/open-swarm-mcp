@@ -33,6 +33,7 @@ function handleNewChat() {
 function setupChatHistoryListeners() {
     const chatHistoryItems = document.querySelectorAll('.chat-history-pane li');
     chatHistoryItems.forEach((item) => {
+        item.removeEventListener('click', () => handleChatHistoryClick(item));
         item.addEventListener('click', () => handleChatHistoryClick(item));
 
         const trashCan = item.querySelector('.trash-can');
@@ -50,10 +51,10 @@ function setupChatHistoryListeners() {
  */
 function setupGlobalEventListeners() {
     // Sidebar toggles
+    document.getElementById("settingsToggleButton")?.removeEventListener('click', () => toggleSidebar('options', true));
     document.getElementById("settingsToggleButton")?.addEventListener('click', () => toggleSidebar('options', true));
     document.getElementById("optionsSidebarHideBtn")?.addEventListener('click', () => toggleSidebar('options', false));
-    document.getElementById("chatHistoryToggleButton")?.addEventListener('click', () => toggleSidebar('left', true));
-    document.getElementById("leftSidebarHideBtn")?.addEventListener('click', () => toggleSidebar('left', false));
+    // Removed event listeners for chatHistoryToggleButton and leftSidebarHideBtn
 
     // Top buttons
     // document.getElementById("searchButton")?.addEventListener('click', handleSearch);

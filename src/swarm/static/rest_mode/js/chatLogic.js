@@ -22,7 +22,7 @@ export async function initializeChatLogic() {
     const modelName = 'default_model'; // Replace with actual logic
 
     // Attach event listeners
-    setupEventListeners(modelName, chatHistory, contextVariables);
+    // Removed setupEventListeners call
 
     debugLog('Chat logic initialized.');
 }

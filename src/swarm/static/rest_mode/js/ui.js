@@ -49,13 +49,16 @@ function setupChatHistoryPane() {
     // Toggle button in sidebar
     chatHistoryToggleButton.addEventListener('click', () => {
         chatHistoryPane.classList.add('hidden');
+        chatHistoryToggleButtonVisible.style.display = 'block';
         showToast("Chat history minimized.", "info");
+ 
     });
 
     // New toggle button in main pane
     if (chatHistoryToggleButtonVisible) {
         chatHistoryToggleButtonVisible.addEventListener('click', () => {
             chatHistoryPane.classList.remove('hidden');
+            chatHistoryToggleButtonVisible.style.display = 'none';
             showToast("Chat history expanded.", "info");
         });
     }

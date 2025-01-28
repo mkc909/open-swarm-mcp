@@ -1,96 +1,82 @@
-/* tropical.css - Tropical Color Theme */
-
+/* tropical.css - Revised Tropical Color Theme */
 :root {
-  --bg-primary: #FFFBF0; /* Light Cream */
-  --bg-container: #FFDAB9; /* Peach Puff */
-  --bg-message-user: #FFE4B5; /* Moccasin */
-  --bg-message-assistant: #FFDEAD; /* Navajo White */
-  --bg-message-tool: #FFDAB9; /* Peach Puff */
-  --bg-message-other: #FFE4B5; /* Moccasin */
-  --bg-blueprint: #FFFAF0; /* Floral White */
-  --bg-debug: #FFF5EE; /* Seashell */
-  --text-primary: #2F4F4F; /* Dark Slate Gray */
-  --text-secondary: #696969; /* Dim Gray */
-  --border-color: #CD853F; /* Peru */
-  --button-primary: #6c757d; /* Action button background */
-  --button-hover: #007bff; /* Action button hover background */
-  --button-hover: #007bff; /* Action button hover background */
-  --button-pane-bg: #e0e0e0; /* Pane toggle button background */
-  --button-pane-hover-bg: #d0d0d0; /* Pane toggle button hover background */
-  --button-header-bg: #4a4a4a; /* Header button background */
-  --button-header-hover-bg: #555555; /* Header button hover background */
-  --logout-button-bg: #20B2AA; /* Light Sea Green */
-  --logout-button-hover: #3CB371; /* Medium Sea Green */
-  --logo-color: #20B2AA; /* Light Sea Green */
-  --transition-duration: 0.3s;
-}
-
-
-[data-theme-dark="true"] {
-  /* Dark mode variables */
-  --bg-primary: #1a1a1a; /* Dark background */
-  --bg-container: #2a2a2a; /* Dark container */
-  --bg-message-user: #555555; /* Darker Blue */
-  --bg-message-assistant: #445544; /* Darker Green */
-  --bg-message-tool: #554444; /* Darker Red */
-  --bg-message-other: #3a3a3a; /* Dark Gray */
-  --bg-blueprint: #2a2a2a; /* Dark Floral White */
-  --bg-debug: #2a2a2a; /* Dark Debug */
-  --text-primary: #f0f0f0; /* Light Gray */
-  --text-secondary: #bbbbbb; /* Medium Light Gray */
-  --border-color: #555555; /* Dark Gray */
-  --button-primary: #00bfff; /* Deep Sky Blue */
-  --button-hover: #87cefa; /* Light Sky Blue */
-  --logout-button-bg: #00bfff; /* Deep Sky Blue */
-  --logout-button-hover: #87cefa; /* Light Sky Blue */
-  --logo-color: #00bfff; /* Deep Sky Blue */
-}
-
-/* Message Styling */
-.message.user {
-    background-color: var(--bg-message-user);
-    color: var(--text-primary);
-    border-radius: 15px;
-    padding: 10px 15px;
-    margin-bottom: 10px;
-    max-width: 70%;
-    align-self: flex-end;
-    position: relative;
-}
-
-.message.assistant {
-    background-color: var(--bg-message-assistant);
-    color: var(--text-primary);
-    border-radius: 15px;
-    padding: 10px 15px;
-    margin-bottom: 10px;
-    max-width: 70%;
-    align-self: flex-start;
-    position: relative;
-}
-
-/* Persisted Messages Styling */
-.pinned-message {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin: 5px 0;
-    padding: 10px;
-    border: 1px dashed #aaa;
-    border-radius: 15px;
-    background-color: #fefefe;
-    color: var(--text-primary);
-}
-
-.pinned-message .remove-pinned-button {
-    background: none;
-    border: none;
-    color: #dc3545; /* Red color */
-    font-size: 1.2em;
-    cursor: pointer;
-    transition: color var(--transition-duration) ease;
-}
-
-.pinned-message .remove-pinned-button:hover {
-    color: #ff0000; /* Brighter red on hover */
-}
+    /* Light Mode */
+    --bg-primary: #fff7ed; /* Coconut Cream */
+    --bg-container: #ffe4c4; /* Sandy Beach */
+    --bg-message-user: #ffd8a8; /* Papaya Whip */
+    --bg-message-assistant: #d4f1dd; /* Sea Foam */
+    --bg-message-tool: #ffe0f0; /* Hibiscus Pink */
+    --bg-message-other: #f0fff0; /* Palm Frond */
+    --bg-blueprint: #fffaf0; /* White Sand */
+    --bg-debug: #fff5ee; /* Seashell */
+    --text-primary: #2d4738; /* Jungle Green */
+    --text-secondary: #5a6d5a; 
+    --border-color: #c8a27a; /* Driftwood */
+    --button-primary: #38a89d; /* Tropical Teal */
+    --button-hover: #2e897f;
+    --button-pane-bg: #ffe8d6;
+    --button-pane-hover-bg: #ffd8b3;
+    --button-header-bg: #ff9f4b; /* Mango */
+    --button-header-hover-bg: #ff8c31;
+    --logout-button-bg: #ff6b6b; /* Coral */
+    --logout-button-hover: #ff5252;
+    --logo-color: #38a89d;
+    --transition-duration: 0.3s;
+  }
+  
+  [data-theme-dark="true"] {
+    /* Night Mode */
+    --bg-primary: #0a1a2a; /* Midnight Ocean */
+    --bg-container: #1a2b3a;
+    --bg-message-user: #2a3b4a; /* Moonlit Wave */
+    --bg-message-assistant: #1a3a2a; /* Palm Shadow */
+    --bg-message-tool: #3a1a2a; /* Volcanic Soil */
+    --bg-message-other: #2a2a3a; /* Twilight Lagoon */
+    --bg-blueprint: #142a3a;
+    --bg-debug: #0a1a1a;
+    --text-primary: #e0f0ff; /* Moonlight */
+    --text-secondary: #b0c4de;
+    --border-color: #3a4b5a;
+    --button-primary: #4ac6b5; /* Bioluminescent Teal */
+    --button-hover: #38a89d;
+    --logout-button-bg: #ff8c6b; /* Lava Glow */
+    --logout-button-hover: #ff7a52;
+    --logo-color: #4ac6b5;
+  }
+  
+  /* Tropical Message Styling */
+  .message {
+      border-radius: 20px;
+      padding: 12px 18px;
+      margin-bottom: 15px;
+      max-width: 75%;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+      border: 2px solid var(--border-color);
+  }
+  
+  .message.user {
+      background-color: var(--bg-message-user);
+      align-self: flex-end;
+  }
+  
+  .message.assistant {
+      background-color: var(--bg-message-assistant);
+      align-self: flex-start;
+  }
+  
+  /* Island-inspired Pinned Messages */
+  .pinned-message {
+      background-color: var(--bg-container);
+      border: 2px dashed var(--border-color);
+      border-radius: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+  
+  .pinned-message .remove-pinned-button {
+      color: #ff4757; /* Tropical Red */
+  }
+  
+  .pinned-message .remove-pinned-button:hover {
+      color: #ff2d42;
+  }
+  

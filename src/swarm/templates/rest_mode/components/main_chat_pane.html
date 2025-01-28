@@ -1,10 +1,22 @@
 {% load static %}
 <div class="main-pane">
 
-    <div>
+    <div class="button-row">
         <button class="input-button-subtle" aria-label="Toggle Chat History" id="chatHistoryToggleButtonVisible" style="display: none;">
-            <img src="{% static 'contrib/tabler-icons/layout-sidebar-left-expand.svg' %}" alt="Chat History">
-        </button>
+                <img src="{% static 'contrib/tabler-icons/layout-sidebar-left-expand.svg' %}" alt="Chat History">
+            </button>
+        
+            <button class="input-button-subtle" aria-label="Settings" id="settingsButton-main" style="display: none;">
+                <img src="{% static 'contrib/tabler-icons/settings.svg' %}" alt="Settings">
+            </button>
+        
+            <button class="input-button-subtle" aria-label="Search" id="searchButton-main" style="display: none;">
+                <img src="{% static 'contrib/tabler-icons/search.svg' %}" alt="Search">
+            </button>
+        
+            <button class="input-button-subtle" aria-label="New Chat" id="newChatButton-main" style="display: none;">
+                <img src="{% static 'contrib/tabler-icons/message-chatbot.svg' %}" alt="New Chat">&nbsp;New Chat
+            </button>
     </div>
 
 

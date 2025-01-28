@@ -28,27 +28,16 @@ export function toggleSidebar(sidebar) {
         //     showToast("📜 Chat History sidebar shown.", "info");
         // }
     } else if (sidebar === 'options') {
-        const optionsPane = document.getElementById('optionsPane');
-        const optionsToggleButton = document.getElementById('optionsSidebarToggleButton'); // Ensure an ID
-
-        if (!optionsPane || !optionsToggleButton) {
-            console.warn('Options Pane or Toggle Button is missing.');
+        const settingsDialog = document.getElementById('settingsDialog');
+        const settingsToggleButton = document.getElementById('settingsToggleButton');
+    
+        if (!settingsDialog || !settingsToggleButton) {
+            console.warn('Settings dialog elements are missing.');
             return;
         }
-
-        const isHidden = optionsPane.classList.toggle('hidden');
-
-        // // Update the toggle button icon based on visibility
-        // const toggleIcon = optionsToggleButton.querySelector('img');
-        // if (isHidden) {
-        //     toggleIcon.src = window.STATIC_URLS.layoutSidebarRightExpand; // Expanded icon
-        //     toggleIcon.alt = "Expand Options Pane";
-        //     showToast("⚙️ Settings sidebar hidden.", "info");
-        // } else {
-        //     toggleIcon.src = window.STATIC_URLS.layoutSidebarRightCollapse; // Collapsed icon
-        //     toggleIcon.alt = "Collapse Options Pane";
-        //     showToast("⚙️ Settings sidebar shown.", "info");
-        // }
+    
+        // Toggle visibility
+        settingsDialog.classList.toggle('hidden');
     }
 }
 
@@ -106,6 +95,19 @@ export function initializeSidebar() {
     }
 
     if (optionsToggleButton) {
+// Add event listener for closing the dialog when clicking outside
+document.addEventListener('click', function(event) {
+    if (event.target === settingsDialog) {
+        settingsDialog.classList.add('hidden');
+    }
+});
+
+// Add event listener for closing the dialog when pressing Escape
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && !settingsDialog.classList.contains('hidden')) {
+        settingsDialog.classList.add('hidden');
+    }
+});
         optionsToggleButton.addEventListener('click', () => toggleSidebar('options'));
     } else {
         console.warn('Options Toggle Button is missing.');

@@ -30,13 +30,17 @@ function hideSplashPage() {
         appContainer.style.display = 'flex';
     }
 }
-
 /**
  * Sets up the chat history pane, including toggle visibility.
  */
 function setupChatHistoryPane() {
     const chatHistoryPane = document.getElementById('chatHistoryPane');
     const chatHistoryToggleButton = document.getElementById('chatHistoryToggleButton');
+    const buttonsToToggle = [
+        'settingsButton-main',
+        'searchButton-main',
+        'newChatButton-main',
+    ].map(id => document.getElementById(id));
 
     if (!chatHistoryPane || !chatHistoryToggleButton) {
         console.warn("Missing elements for chat history pane.");
@@ -50,6 +54,13 @@ function setupChatHistoryPane() {
     chatHistoryToggleButton.addEventListener('click', () => {
         chatHistoryPane.classList.add('hidden');
         chatHistoryToggleButtonVisible.style.display = 'block';
+
+        buttonsToToggle.forEach(button => {
+            if (button) {
+                button.style.display = 'block';
+            }
+        });
+
         showToast("Chat history minimized.", "info");
  
     });
@@ -60,8 +71,15 @@ function setupChatHistoryPane() {
             chatHistoryPane.classList.remove('hidden');
             chatHistoryToggleButtonVisible.style.display = 'none';
             showToast("Chat history expanded.", "info");
+
+            buttonsToToggle.forEach(button => {
+                if (button) {
+                    button.style.display = 'none';
+                }
+            });
         });
     }
+
 }
 
 /**

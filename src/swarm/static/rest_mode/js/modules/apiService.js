@@ -17,6 +17,7 @@ export async function fetchBlueprintMetadata() {
         if (!response.ok) throw new Error('Failed to fetch metadata.');
 
         const data = await response.json();
+        showToast('Retrieved blueprint metadata.', 'info');
         return data.data || [];
     } catch (error) {
         debugLog('Error fetching blueprint metadata:', error);

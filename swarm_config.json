@@ -1,6 +1,7 @@
 {
 
     "llm": {
+
         "default": {
             "provider": "openai",
             "model": "gpt-4o",
@@ -8,6 +9,7 @@
             "api_key": "${OPENAI_API_KEY}",
             "temperature": 0.3
         },
+
         "reason": {
             "provider": "openai",
             "model": "sonar-reasoning",
@@ -37,6 +39,16 @@
             "speed": 0.1,
             "intelligence": 0.1,
             "temperature": 0.0
+        },
+        "gpt-4o-mini": {
+            "provider": "openai",
+            "model": "gpt-4o-mini",
+            "base_url": "https://api.openai.com/v1",
+            "api_key": "${OPENAI_API_KEY}",
+            "cost": 0.3,
+            "speed": 0.7,
+            "intelligence": 0.3,
+            "temperature": 0.1
         }
     },
 

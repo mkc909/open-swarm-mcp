@@ -81,7 +81,7 @@ def load_server_config(file_path: str = None) -> dict:
         ValueError: If the file contains invalid JSON or unresolved placeholders.
     """
     if file_path is None:
-        file_path = os.path.join(os.getcwd(), "swarm_settings.json")
+        file_path = os.path.join(os.getcwd(), "swarm_config.json")
     
     logger.debug(f"Attempting to load configuration from {file_path}")
     

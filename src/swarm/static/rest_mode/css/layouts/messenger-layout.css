@@ -8,12 +8,6 @@
     /* border: 2px dashed orange; */
 }
 
-/* Message History */
-.message-container {
-    flex: 1;
-    /* border: 2px dashed cyan; */
-}
-
 /* Form Container */
 .form-container {
     display: flex;

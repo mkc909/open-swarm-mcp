@@ -94,12 +94,6 @@
     box-sizing: border-box;
 }
 
-/* Message List */
-.message-container {
-    flex: 1; /* Take available vertical space */
-    overflow-y: auto;
-    margin-bottom: 10px; /* Space for input area */
-}
 
 /* Message Input Area */
 .message-input-container {

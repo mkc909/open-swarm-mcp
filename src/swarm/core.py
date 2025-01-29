@@ -8,6 +8,7 @@ of conversations between agents and MCP servers.
 """
 
 # Standard library imports
+import os
 import copy
 import inspect
 import json
@@ -33,7 +34,10 @@ from .types import (
     Tool,
 )
 
-from .extensions.config.config_loader import load_server_config, validate_api_keys, validate_mcp_server_env
+from .extensions.config.config_loader import (load_server_config,
+                                              validate_api_keys,
+                                              validate_mcp_server_env,
+                                              load_llm_config)
 from .extensions.mcp.mcp_client import MCPClient
 from .extensions.mcp.mcp_tool_provider import MCPToolProvider
 from .settings import DEBUG
@@ -68,51 +72,39 @@ class Swarm:
         self.agents: Dict[str, Agent] = {}
         self.mcp_tool_providers: Dict[str, MCPToolProvider] = {}  # Cache for MCPToolProvider instances
         self.config = config or {}
-        
-        # # Validate LLM environment variables based on configuration
-        # for llm_name, llm_config in self.config.get('llm', {}).items():
-        #     api_key = llm_config.get('api_key', '')
-        #     if api_key:
-        #         logger.debug(f"LLM '{llm_name}' API key is set.")
-        #     else:
-        #         logger.debug(f"LLM '{llm_name}' does not require an API key.")
-
         try:
-            # Removed environment variable validation based on blueprint metadata to delegate to BlueprintBase
+            self.current_llm_config = load_llm_config(self.config, self.model)
+        except ValueError:
+            logger.warning(f"LLM config for model '{self.model}' not found. Falling back to 'default'.")
+            self.current_llm_config = load_llm_config(self.config, "default")
 
-            # Override default settings from configuration
-            llm_config = self.config.get("llm", {}).get("default", {})
-            self.model = llm_config.get("model", self.model)
-            self.temperature = llm_config.get("temperature", self.temperature)
-            self.tool_choice = llm_config.get("tool_choice", self.tool_choice)
-            self.parallel_tool_calls = llm_config.get(
-                "parallel_tool_calls", self.parallel_tool_calls
-            )
+        import os
+        if not self.current_llm_config.get("api_key"):
+            if not os.getenv("SUPPRESS_DUMMY_KEY"):
+                self.current_llm_config["api_key"] = "sk-DUMMYKEY"
+            else:
+                logger.debug("SUPPRESS_DUMMY_KEY is set; leaving API key empty.")
 
-            logger.debug(f"Swarm initialized with model={self.model}, "
-                         f"temperature={self.temperature}, tool_choice={self.tool_choice}, "
-                         f"parallel_tool_calls={self.parallel_tool_calls}.")
+        if not client:
+            client_kwargs = {}
+            if "api_key" in self.current_llm_config:
+                client_kwargs["api_key"] = self.current_llm_config["api_key"]
+            if "base_url" in self.current_llm_config:
+                client_kwargs["base_url"] = self.current_llm_config["base_url"]
 
-            # Initialize the OpenAI client after processing the LLM configuration
-            if not client:
-                client_kwargs = {}
-                if "api_key" in llm_config:
-                    client_kwargs["api_key"] = llm_config["api_key"]
-                if "base_url" in llm_config:
-                    client_kwargs["base_url"] = llm_config["base_url"]
+            # Log the client kwargs with sensitive data redacted
+            redacted_kwargs = redact_sensitive_data(client_kwargs, sensitive_keys=["api_key"])
+            logger.debug(f"Initializing OpenAI client with kwargs: {redacted_kwargs}")
 
-                # Log the client kwargs with sensitive data redacted
-                redacted_kwargs = redact_sensitive_data(client_kwargs, sensitive_keys=["api_key"])
-                logger.debug(f"Initializing OpenAI client with kwargs: {redacted_kwargs}")
+            client = OpenAI(**client_kwargs)
+        self.client = client
 
-                client = OpenAI(**client_kwargs)
-            self.client = client
-
-        except (ValueError, KeyError) as e:
-            logger.error(f"Failed to initialize Swarm due to configuration error: {e}")
-            raise
+        # except (ValueError, KeyError) as e:
+        #     logger.error(f"Failed to initialize Swarm due to configuration error: {e}")
+        #     raise
 
         logger.info("Swarm initialized successfully.")
+
 
     async def discover_and_merge_agent_tools(self, agent: Agent, debug: bool = False):
         """
@@ -204,6 +196,37 @@ class Swarm:
         Returns:
             ChatCompletionMessage: The response from the OpenAI API.
         """
+        # Load the new llm config from config_loader
+        try:
+            new_llm_config = load_llm_config(self.config, agent.model or "default")
+        except ValueError:
+            logger.warning(f"LLM config for model '{agent.model}' not found. Falling back to 'default'.")
+            new_llm_config = load_llm_config(self.config, "default")
+
+        # If no API key is provided, insert a dummy key unless SUPPRESS_DUMMY_KEY is set
+        if not new_llm_config.get("api_key"):
+            if not os.getenv("SUPPRESS_DUMMY_KEY"):
+                new_llm_config["api_key"] = "sk-DUMMYKEY"
+            else:
+                logger.debug("SUPPRESS_DUMMY_KEY is set; leaving API key empty.")
+
+        # Only re-init if the base_url changed
+        if new_llm_config.get("base_url") != self.current_llm_config.get("base_url"):
+            logger.info(f"Detected base_url change. Re-initializing client for agent '{agent.name}' model '{agent.model}'.")
+
+            client_kwargs = {}
+            if "api_key" in new_llm_config:
+                client_kwargs["api_key"] = new_llm_config["api_key"]
+            if "base_url" in new_llm_config:
+                client_kwargs["base_url"] = new_llm_config["base_url"]
+
+            redacted_kwargs = redact_sensitive_data(client_kwargs, sensitive_keys=["api_key"])
+            logger.debug(f"Re-initializing OpenAI client with new kwargs: {redacted_kwargs}")
+
+            self.client = OpenAI(**client_kwargs)
+
+        self.current_llm_config = new_llm_config
+
         # Ensure the context variables default to strings
         context_variables = defaultdict(str, context_variables)
 

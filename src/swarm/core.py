@@ -34,10 +34,12 @@ from .types import (
     Tool,
 )
 
-from .extensions.config.config_loader import (load_server_config,
-                                              validate_api_keys,
-                                              validate_mcp_server_env,
-                                              load_llm_config)
+from .extensions.config.config_loader import (
+    load_server_config,
+    validate_api_keys,
+    validate_mcp_server_env,
+    load_llm_config,
+)
 from .extensions.mcp.mcp_client import MCPClient
 from .extensions.mcp.mcp_tool_provider import MCPToolProvider
 from .settings import DEBUG
@@ -64,8 +66,10 @@ class Swarm:
             client: Custom OpenAI client instance.
             config (Optional[dict]): Preloaded configuration dictionary.
         """
-        # Default settings
-        self.model = "gpt-4o"
+        # Fetch the selected LLM from the environment variable 'LLM', defaulting to 'default'
+        self.model = os.getenv("LLM", "default")
+        logger.debug(f"Initialized Swarm with model: {self.model}")
+
         self.temperature = 0.7
         self.tool_choice = "sequential"
         self.parallel_tool_calls = False
@@ -78,7 +82,6 @@ class Swarm:
             logger.warning(f"LLM config for model '{self.model}' not found. Falling back to 'default'.")
             self.current_llm_config = load_llm_config(self.config, "default")
 
-        import os
         if not self.current_llm_config.get("api_key"):
             if not os.getenv("SUPPRESS_DUMMY_KEY"):
                 self.current_llm_config["api_key"] = "sk-DUMMYKEY"
@@ -99,12 +102,7 @@ class Swarm:
             client = OpenAI(**client_kwargs)
         self.client = client
 
-        # except (ValueError, KeyError) as e:
-        #     logger.error(f"Failed to initialize Swarm due to configuration error: {e}")
-        #     raise
-
         logger.info("Swarm initialized successfully.")
-
 
     async def discover_and_merge_agent_tools(self, agent: Agent, debug: bool = False):
         """
@@ -170,7 +168,7 @@ class Swarm:
             logger.debug(f"[DEBUG] Existing functions: {[func.name for func in agent.functions if hasattr(func, 'name')]}")
             logger.debug(f"[DEBUG] Discovered tools: {[tool.name for tool in discovered_tools if hasattr(tool, 'name')]}")
             logger.debug(f"[DEBUG] Combined functions: {[func.name for func in all_functions if hasattr(func, 'name')]}")
-
+        
         return all_functions
 
     def get_chat_completion(
@@ -212,7 +210,7 @@ class Swarm:
 
         # Only re-init if the base_url changed
         if new_llm_config.get("base_url") != self.current_llm_config.get("base_url"):
-            logger.info(f"Detected base_url change. Re-initializing client for agent '{agent.name}' model '{agent.model}'.")
+            logger.info(f"Detected base_url change. Re-initializing client for agent '{agent.name}' model '{self.model}'.")
 
             client_kwargs = {}
             if "api_key" in new_llm_config:
@@ -243,13 +241,6 @@ class Swarm:
         # Repair message payload before validation
         messages = self.repair_message_payload(messages)
 
-        # # Validate the sequence of messages
-        # for i in range(1, len(messages)):
-        #     if messages[i]["role"] == "tool" and not messages[i - 1].get("tool_calls"):
-        #         raise ValueError(
-        #             f"Invalid message sequence: 'tool' message at index {i} must follow an 'assistant' message with 'tool_calls'."
-        #         )
-
         # Serialize agent functions into 'tools'
         serialized_functions = [function_to_json(f) for f in agent.functions]
         tools = [func_dict for func_dict in serialized_functions]
@@ -270,7 +261,7 @@ class Swarm:
 
         # Construct the payload
         create_params = {
-            "model": model_override or agent.model,
+            "model": model_override or new_llm_config.get("model"),  # Updated line
             "messages": messages,
             "tools": tools or None,
             "tool_choice": agent.tool_choice,
@@ -326,7 +317,6 @@ class Swarm:
                     )
                     logger.debug(error_message)
                     raise TypeError(error_message)
-
 
     def handle_tool_calls(
         self,
@@ -556,7 +546,6 @@ class Swarm:
                 context_variables=context_variables,
             )
         }
-
 
     def run(
         self,

@@ -15,7 +15,7 @@ import os
 import json
 import re
 import logging
-from typing import Any, Dict, List, Tuple, Union, Optional
+from typing import Any, Dict, List, Tuple, Optional
 from dotenv import load_dotenv
 from .server_config import save_server_config
 from swarm.settings import DEBUG
@@ -82,9 +82,9 @@ def load_server_config(file_path: str = None) -> dict:
     """
     if file_path is None:
         file_path = os.path.join(os.getcwd(), "swarm_config.json")
-    
+
     logger.debug(f"Attempting to load configuration from {file_path}")
-    
+
     try:
         with open(file_path, "r") as file:
             config = json.load(file)
@@ -275,3 +275,62 @@ def load_llm_config(config: Dict[str, Any], llm_name: Optional[str] = None) -> D
 
     logger.debug(f"Loaded LLM configuration for '{llm_name}': {redact_sensitive_data(llm_config)}")
     return llm_config
+
+def get_llm_model(config: Dict[str, Any], llm_name: Optional[str] = None) -> str:
+    """
+    Retrieves the model name for a specific LLM.
+
+    Args:
+        config (Dict[str, Any]): The full configuration dictionary.
+        llm_name (Optional[str]): The name of the LLM to load. Defaults to None.
+
+    Returns:
+        str: The model name for the specified LLM.
+
+    Raises:
+        ValueError: If the LLM configuration cannot be found or is invalid.
+    """
+    llm_config = load_llm_config(config, llm_name)
+    model_name = llm_config.get("model")
+    if not model_name:
+        error_message = f"Model name not found in LLM configuration for '{llm_name}'"
+        logger.error(error_message)
+        raise ValueError(error_message)
+
+    logger.debug(f"Retrieved model name '{model_name}' for LLM '{llm_name}'")
+    return model_name
+
+def load_and_validate_llm(config: Dict[str, Any], llm_name: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Loads and validates the configuration for a specific LLM.
+
+    Args:
+        config (Dict[str, Any]): The full configuration dictionary.
+        llm_name (Optional[str]): The name of the LLM to load. Defaults to None.
+
+    Returns:
+        Dict[str, Any]: The validated LLM configuration.
+
+    Raises:
+        ValueError: If validation fails.
+    """
+    logger.debug(f"Loading and validating LLM configuration for: {llm_name or 'unspecified'}")
+
+    # Load the LLM configuration
+    llm_config = load_llm_config(config, llm_name)
+
+    # Validate the API keys
+    validate_api_keys(config, llm_name)
+
+    logger.debug(f"LLM configuration for '{llm_name}' is valid and loaded.")
+    return llm_config
+
+# # Example usage
+# if __name__ == "__main__":
+#     try:
+#         config = load_server_config()
+#         validate_mcp_server_env(config.get("mcpServers", {}))
+#         llm_config = load_and_validate_llm(config, "default")
+#         print("LLM Configuration:", redact_sensitive_data(llm_config))
+#     except Exception as e:
+#         logger.error(f"Error: {e}")

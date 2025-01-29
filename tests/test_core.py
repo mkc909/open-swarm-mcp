@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 from src.swarm.core import Swarm
 from src.swarm.types import Agent, ChatCompletionMessage
 
-@pytest.mark.asyncio
+# @pytest.mark.asyncio
 @patch("src.swarm.core.OpenAI")
 def test_swarm_baseurl_reinit_and_dummy_key(mock_openai):
     """

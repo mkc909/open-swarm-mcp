@@ -100,6 +100,7 @@ class SysadminBlueprint(BlueprintBase):
             ),
             mcp_servers=["filesystem"],
             env_vars={"ALLOWED_PATH": allowed_paths},
+            model="reason"
         )
 
         agents["BraveSearchAgent"] = Agent(
@@ -110,6 +111,7 @@ class SysadminBlueprint(BlueprintBase):
             ),
             mcp_servers=["brave-search"],
             env_vars={"BRAVE_API_KEY": brave_api_key},
+            model="invalid" # Demonstrates fallback to 'default'
         )
 
         agents["SQLiteAgent"] = Agent(
@@ -120,6 +122,7 @@ class SysadminBlueprint(BlueprintBase):
             ),
             mcp_servers=["sqlite"],
             env_vars={"SQLITE_DB_PATH": sqlite_db_path},
+            model="gpt-4o-mini"
         )
 
         agents["McpInstallerAgent"] = Agent(

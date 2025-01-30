@@ -1,5 +1,3 @@
-# mcp_tool_provider.py
-
 """
 MCPToolProvider Module for Open-Swarm
 
@@ -66,9 +64,23 @@ class MCPToolProvider:
         """
         cache_key = f"mcp_tools_{self.server_name}"
         cached_tools = self.cache.get(cache_key)
+
         if cached_tools:
             logger.debug(f"Retrieved tools for server '{self.server_name}' from cache.")
-            return [Tool(**tool_data) for tool_data in cached_tools]
+
+            # ✅ Ensure `func` is properly assigned from cache
+            tools = []
+            for tool_data in cached_tools:
+                tool_name = tool_data["name"]
+                tool = Tool(
+                    name=tool_name,
+                    description=tool_data["description"],
+                    input_schema=tool_data.get("input_schema", {}),
+                    func=self._create_tool_callable(tool_name),  # ✅ Attach missing function
+                )
+                tools.append(tool)
+
+            return tools
 
         logger.debug(
             f"Starting tool discovery from MCP server '{self.server_name}' for agent '{agent.name}'."
@@ -103,3 +115,35 @@ class MCPToolProvider:
             raise RuntimeError(
                 f"Tool discovery failed for MCP server '{self.server_name}': {e}"
             ) from e
+
+    def _create_tool_callable(self, tool_name: str):
+        """
+        Create a callable function for a dynamically discovered tool.
+
+        Args:
+            tool_name (str): The name of the tool.
+
+        Returns:
+            Callable: An async callable function for the tool.
+        """
+        async def dynamic_tool_func(**kwargs) -> Any:
+            """
+            Executes the tool with the provided arguments.
+
+            Args:
+                kwargs (dict): Arguments for the tool execution.
+
+            Returns:
+                Any: The result of executing the tool.
+            """
+            try:
+                logger.info(f"Executing tool '{tool_name}' with arguments: {kwargs}")
+                result = await self.client.call_tool(tool_name, kwargs)
+                logger.info(f"Tool '{tool_name}' executed successfully: {result}")
+                return result
+
+            except Exception as e:
+                logger.error(f"Error executing tool '{tool_name}': {e}")
+                raise RuntimeError(f"Tool execution failed: {e}") from e
+
+        return dynamic_tool_func

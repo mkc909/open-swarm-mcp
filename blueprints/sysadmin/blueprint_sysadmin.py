@@ -96,7 +96,7 @@ class SysadminBlueprint(BlueprintBase):
             instructions=(
                 "You manage and interact with the filesystem under allowed paths. "
                 "You have been provided with the tools need to do this."
-                "If the request is unrelated to filesystem operations then you may pass back to Sysadmin."
+                "After executing filesystem tools on behalf of the user, you may pass back to Sysadmin."
             ),
             mcp_servers=["filesystem"],
             env_vars={"ALLOWED_PATH": allowed_paths},

@@ -1,14 +1,14 @@
 """
-  REST Mode Views for Open Swarm MCP.
+REST Mode Views for Open Swarm MCP.
 
-  This module defines asynchronous views to handle chat completions and model listings,
-  aligning with OpenAI's Chat Completions API.
+This module defines asynchronous views to handle chat completions and model listings,
+aligning with OpenAI's Chat Completions API.
 
-  Endpoints:
-      - POST /v1/chat/completions: Handles chat completion requests.
-      - GET /v1/models: Lists available blueprints as models.
-      - GET /django_chat/: Lists conversations for the logged-in user.
-      - POST /django_chat/start/: Starts a new conversation.
+Endpoints:
+    - POST /v1/chat/completions: Handles chat completion requests.
+    - GET /v1/models: Lists available blueprints as models.
+    - GET /django_chat/: Lists conversations for the logged-in user.
+    - POST /django_chat/start/: Starts a new conversation.
 """
 import os
 import json
@@ -72,34 +72,67 @@ except ValueError as e:
 
 
 def serialize_swarm_response(response: Any, model_name: str, context_variables: Dict[str, Any]) -> Dict[str, Any]:
-    messages = response.get("messages", []) if isinstance(response, dict) else getattr(response, "messages", [])
+    """
+    Serializes the Swarm response while removing non-serializable objects like functions.
     
+    Args:
+        response (Any): The response object from the LLM or blueprint.
+        model_name (str): The name of the model used.
+        context_variables (Dict[str, Any]): Additional context variables maintained across interactions.
+    
+    Returns:
+        Dict[str, Any]: A structured JSON response that includes the full conversation history,
+        tool calls, and additional context.
+    """
+    # ✅ Convert to dictionary if response is a Pydantic object
+    if hasattr(response, "dict"):
+        response = response.dict()
+
+    messages = response.get("messages", [])
+
+    # ✅ Ensure function objects are removed everywhere
+    def remove_functions(obj):
+        """Recursively remove function objects and other non-serializable types."""
+        if isinstance(obj, dict):
+            return {k: remove_functions(v) for k, v in obj.items() if not callable(v)}
+        elif isinstance(obj, list):
+            return [remove_functions(item) for item in obj if not callable(item)]
+        elif isinstance(obj, tuple):
+            return tuple(remove_functions(item) for item in obj if not callable(item))
+        return obj  # Return the object if it's neither a dict nor a list
+
+    # ✅ Strip out any functions from agent details
+    if "agent" in response:
+        response["agent"] = remove_functions(response["agent"])
+
+    # ✅ Strip out functions from context variables
+    clean_context_variables = remove_functions(context_variables)
+
+    # ✅ Remove all function references from response
+    clean_response = remove_functions(response)
+
     formatted_messages = [
         {
             "index": i,
-            "message": {
-                "role": msg.get("role"),
-                "content": msg.get("content"),
-                "tool_calls": msg.get("tool_calls", None),
-                "sender": msg.get("sender", None)
-            },
-            "finish_reason": "stop"  # Assuming the conversation is complete
+            "message": msg,  # ✅ Preserve full raw message, without filtering fields
+            "finish_reason": "stop"
         }
         for i, msg in enumerate(messages)
     ]
-    
+
     return {
         "id": f"swarm-chat-completion-{uuid.uuid4()}",
         "object": "chat.completion",
         "created": int(time.time()),
         "model": model_name,
-        "choices": formatted_messages,  # 🔥 Now returning the full message history
+        "choices": formatted_messages,
         "usage": {
             "prompt_tokens": sum(len((msg.get("content") or "").split()) for msg in messages),
             "completion_tokens": sum(len((msg.get("content") or "").split()) for msg in messages if msg.get("role") == "assistant"),
             "total_tokens": len(messages),
         },
-        "context_variables": context_variables,
+        "context_variables": clean_context_variables,  # ✅ Ensure no functions in context
+        "full_response": clean_response,  # ✅ Fully cleaned response
     }
 
 
@@ -130,9 +163,20 @@ def chat_completions(request):
 
     try:
         blueprint_instance = blueprint_class(config=config)
+
+        # 🔥 Ensure we use the active agent from context_variables
+        active_agent = context_variables.get("active_agent_name", "SysAdminAgent")
+
+        if active_agent not in blueprint_instance.swarm.agents:
+            logger.warning(f"Invalid active agent '{active_agent}', defaulting to SysAdminAgent.")
+            active_agent = "SysAdminAgent"
+
+        logger.debug(f"Using active agent: {active_agent}")
+        blueprint_instance.set_active_agent(active_agent)
+
     except Exception as e:
-        logger.error(f"Error initializing blueprint: {redact_sensitive_data(e)}", exc_info=True)
-        return JsonResponse({"error": f"Error initializing blueprint: {redact_sensitive_data(str(e))}"}, status=500)
+        logger.error(f"Error initializing blueprint: {e}", exc_info=True)
+        return JsonResponse({"error": f"Error initializing blueprint: {str(e)}"}, status=500)
 
     try:
         # Run the blueprint with the provided messages and context
@@ -140,15 +184,19 @@ def chat_completions(request):
         response = result["response"]
         updated_context = result["context_variables"]
 
-        # Serialize response and include updated context
+        # 🔥 Ensure response is a dictionary
+        if hasattr(response, "dict"):
+            response = response.dict()
+
+        # Return updated response
         return JsonResponse(
-            serialize_swarm_response(response, model, updated_context), 
+            serialize_swarm_response(response, model, updated_context),
             status=200
         )
-    except Exception as e:
-        logger.error(f"Error during execution: {redact_sensitive_data(e)}", exc_info=True)
-        return JsonResponse({"error": f"Error during execution: {redact_sensitive_data(str(e))}"}, status=500)
 
+    except Exception as e:
+        logger.error(f"Error during execution: {e}", exc_info=True)
+        return JsonResponse({"error": f"Error during execution: {str(e)}"}, status=500)
 
 @csrf_exempt
 def list_models(request):
@@ -282,3 +330,4 @@ def serve_swarm_config(request):
     except json.JSONDecodeError as e:
         logger.error(f"Error decoding JSON from {config_path}: {e}")
         return JsonResponse({"error": "Invalid JSON format in configuration file."}, status=500)
+

@@ -385,12 +385,19 @@ class Swarm:
                 )
                 partial_response.context_variables.update(result.context_variables)
 
-                # **Updated Agent Switching Logic**
+                # **✅ Updated Agent Switching Logic**
                 # Check if the tool call resulted in an agent handoff
                 if result.agent:
-                    partial_response.agent = result.agent
-                    context_variables["active_agent_name"] = result.agent.name
-                    logger.debug(f"Active agent updated to: {result.agent.name}")
+                    new_agent_name = result.agent.name
+                    if new_agent_name and new_agent_name in self.agents:
+                        partial_response.agent = result.agent
+                        context_variables["active_agent_name"] = new_agent_name  # 🔥 Update context variable
+                        logger.debug(f"🔄 Active agent updated to: {new_agent_name}")
+
+                        # **✅ Reload tools for the new agent**
+                        new_agent = self.agents[new_agent_name]
+                        new_agent.functions = asyncio.run(self.discover_and_merge_agent_tools(new_agent, debug=debug))
+                        logger.debug(f"✅ Reloaded tools for new agent: {new_agent_name}")
 
             except Exception as e:
                 error_msg = f"Error executing tool {name}: {str(e)}"

@@ -14,13 +14,39 @@ export function renderMessage(role, content, sender, metadata) {
         return;
     }
 
-    const markdownRenderer = marked.parse;
-    const markdownContent = markdownRenderer(content.content);
+    // Extract the message content
+    let messageContent = content.content || content.text || '';
+
+    // 🛑 Ignore messages with no content
+    if (!messageContent.trim()) {
+        debugLog('Skipping empty message.', { role, content, sender, metadata });
+        return;
+    }
+
+    // 🔄 Detect assistant handoff JSON (e.g., {"assistant": "WeatherAgent"})
+    let isHandoff = false;
+    try {
+        const parsedContent = JSON.parse(messageContent);
+        if (parsedContent.assistant && typeof parsedContent.assistant === 'string') {
+            const agentName = parsedContent.assistant;
+            messageContent = `<em>🔄 Handoff to <strong>${agentName}</strong></em>`;
+            role = 'system'; // Change styling for clarity
+            isHandoff = true;
+            debugLog('Detected assistant handoff.', { agentName });
+        }
+    } catch (e) {
+        // Not a JSON object, proceed with normal rendering
+    }
+
+    if (!isHandoff) {
+        // Render Markdown for regular messages
+        messageContent = `<strong>${sender}:</strong> ${marked.parse(messageContent)}`;
+    }
 
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
     messageDiv.innerHTML = `
-        <span><strong>${sender}:</strong> ${content.text || markdownContent || 'No content available'}</span>
+        <div class="message-text">${messageContent}</div>
         <div class="message-toolbar">
             <button class="toolbar-btn" aria-label="Copy Message">
                 <img src="/static/rest_mode/svg/copy.svg" alt="Copy Icon" class="icon-svg" />
@@ -45,6 +71,7 @@ export function renderMessage(role, content, sender, metadata) {
         </div>
     `;
 
+    // Set message metadata as tooltip if available
     if (metadata && Object.keys(metadata).length) {
         messageDiv.title = JSON.stringify(metadata, null, 2);
     }
@@ -53,10 +80,10 @@ export function renderMessage(role, content, sender, metadata) {
     debugLog('Message rendered successfully.', { role, content, sender, metadata });
 
     // Enable sliding toolbar with size adjustment
-    enableSlidingToolbar(messageDiv, { toolbarHeight: 70 }); 
+    enableSlidingToolbar(messageDiv, { toolbarHeight: 70 });
 
+    // Attach event listeners to toolbar buttons
     attachToolbarActions(messageDiv);
-
 }
 
 /**

@@ -110,7 +110,6 @@ class SysadminBlueprint(BlueprintBase):
             ),
             mcp_servers=["brave-search"],
             env_vars={"BRAVE_API_KEY": brave_api_key},
-            model="invalid" # Demonstrates fallback to 'default'
         )
 
         agents["SQLiteAgent"] = Agent(
@@ -121,7 +120,6 @@ class SysadminBlueprint(BlueprintBase):
             ),
             mcp_servers=["sqlite"],
             env_vars={"SQLITE_DB_PATH": sqlite_db_path},
-            model="gpt-4o-mini"
         )
 
         agents["McpInstallerAgent"] = Agent(

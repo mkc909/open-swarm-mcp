@@ -7,7 +7,7 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from swarm.types import Tool
 
-from .cache_utils import get_cache  # <-- Import the cache helper
+from .cache_utils import get_cache
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -45,7 +45,8 @@ class MCPClient:
             List[Tool]: A list of discovered tools with schemas.
         """
         # Attempt to retrieve tools from cache
-        cache_key = f"mcp_tools_{self.command}"
+        args_string = "_".join(self.args)  # e.g. "mcp-server-sqlite-npx_/tmp/test-duckdb.db"
+        cache_key = f"mcp_tools_{self.command}_{args_string}"
         cached_tools = self.cache.get(cache_key)
 
         if cached_tools:

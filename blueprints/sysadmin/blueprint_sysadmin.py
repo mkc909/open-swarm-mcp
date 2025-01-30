@@ -100,7 +100,6 @@ class SysadminBlueprint(BlueprintBase):
             ),
             mcp_servers=["filesystem"],
             env_vars={"ALLOWED_PATH": allowed_paths},
-            model="reason"
         )
 
         agents["BraveSearchAgent"] = Agent(

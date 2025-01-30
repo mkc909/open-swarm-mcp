@@ -460,3 +460,11 @@ body {
 .icon {
   font-size: 1.2em;
 }
+
+.message.tool {
+    display: none !important;
+}
+
+.message.assistant:has(.message-text p:contains("No content")) {
+    display: none !important;
+}

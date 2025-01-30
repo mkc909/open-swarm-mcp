@@ -10,80 +10,59 @@ export function renderMessage(role, content, sender, metadata) {
 
     const messageContainer = document.getElementById('messageHistory');
     if (!messageContainer) {
-        debugLog('Message container not found.', { role, content, sender, metadata });
+        debugLog('Message container not found.');
         return;
     }
 
-    // Extract the message content
     let messageContent = content.content || content.text || '';
 
-    // 🛑 Ignore messages with no content
+    // 🛑 Ignore empty messages immediately
     if (!messageContent.trim()) {
-        debugLog('Skipping empty message.', { role, content, sender, metadata });
+        debugLog('Skipping empty message.');
         return;
     }
 
-    // 🔄 Detect assistant handoff JSON (e.g., {"assistant": "WeatherAgent"})
+    // 🔄 Detect assistant handoff JSON
     let isHandoff = false;
     try {
         const parsedContent = JSON.parse(messageContent);
         if (parsedContent.assistant && typeof parsedContent.assistant === 'string') {
-            const agentName = parsedContent.assistant;
-            messageContent = `<em>🔄 Handoff to <strong>${agentName}</strong></em>`;
-            role = 'system'; // Change styling for clarity
+            messageContent = `<em>🔄 Handoff to <strong>${parsedContent.assistant}</strong></em>`;
+            role = 'system';
             isHandoff = true;
-            debugLog('Detected assistant handoff.', { agentName });
         }
     } catch (e) {
-        // Not a JSON object, proceed with normal rendering
+        // Not a JSON object, proceed
     }
 
     if (!isHandoff) {
-        // Render Markdown for regular messages
         messageContent = `<strong>${sender}:</strong> ${marked.parse(messageContent)}`;
     }
 
+    // ❌ Prevent rendering assistant messages with "No content"
+    if (role === "assistant" && messageContent.includes("<p>No content</p>")) {
+        debugLog("Skipping assistant message with 'No content'.");
+        return; // 🛑 Stop execution here
+    }
+
+    // ✅ Create the message
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
+    
     messageDiv.innerHTML = `
         <div class="message-text">${messageContent}</div>
         <div class="message-toolbar">
             <button class="toolbar-btn" aria-label="Copy Message">
                 <img src="/static/rest_mode/svg/copy.svg" alt="Copy Icon" class="icon-svg" />
             </button>
-            <button class="toolbar-btn" aria-label="Append to Persistent Message">
-                <img src="/static/contrib/tabler-icons/playlist-add.svg" alt="Plus Icon" class="icon-svg" />
-            </button>
-            <button class="toolbar-btn" aria-label="Edit Message">
-                <img src="/static/rest_mode/svg/edit.svg" alt="Edit Icon" class="icon-svg" />
-            </button>
-            <div class="toolbar-gap"></div>
-            <button class="toolbar-btn" aria-label="Thumbs Up">
-                <img src="/static/contrib/tabler-icons/thumb-up.svg" alt="Thumbs Up Icon" class="icon-svg" />
-            </button>
-            <button class="toolbar-btn" aria-label="Thumbs Down">
-                <img src="/static/contrib/tabler-icons/thumb-down.svg" alt="Thumbs Down Icon" class="icon-svg" />
-            </button>
-            <div class="toolbar-gap"></div>
             <button class="toolbar-btn" aria-label="Delete Message">
                 <img src="/static/rest_mode/svg/trash.svg" alt="Trash Icon" class="icon-svg" />
             </button>
         </div>
     `;
 
-    // Set message metadata as tooltip if available
-    if (metadata && Object.keys(metadata).length) {
-        messageDiv.title = JSON.stringify(metadata, null, 2);
-    }
-
     messageContainer.appendChild(messageDiv);
-    debugLog('Message rendered successfully.', { role, content, sender, metadata });
-
-    // Enable sliding toolbar with size adjustment
-    enableSlidingToolbar(messageDiv, { toolbarHeight: 70 });
-
-    // Attach event listeners to toolbar buttons
-    attachToolbarActions(messageDiv);
+    debugLog('Message rendered successfully.');
 }
 
 /**

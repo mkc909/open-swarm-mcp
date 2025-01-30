@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True  # Set to False in production
-#DEBUG = False
+# DEBUG = False
+# DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
@@ -183,3 +184,14 @@ ACCOUNT_SIGNUP_REDIRECT_URL = "/django_chat/"  # Redirect to homepage after sign
 ACCOUNT_AUTHENTICATION_METHOD = "username_email"  # Allow both username and email login
 ACCOUNT_USERNAME_REQUIRED = True  # Require usernames
 ACCOUNT_EMAIL_REQUIRED = False  # Emails optional for dev POC
+
+# Caching Configuration
+USE_DJANGO_CACHE = True  # Set to False to disable caching
+# swarm/settings.py
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}

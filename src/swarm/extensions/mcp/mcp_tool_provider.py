@@ -76,7 +76,7 @@ class MCPToolProvider:
                     name=tool_name,
                     description=tool_data["description"],
                     input_schema=tool_data.get("input_schema", {}),
-                    func=self._create_tool_callable(tool_name),  # ✅ Attach missing function
+                    func=self._create_tool_callable(tool_name), 
                 )
                 tools.append(tool)
 
@@ -138,7 +138,8 @@ class MCPToolProvider:
             """
             try:
                 logger.info(f"Executing tool '{tool_name}' with arguments: {kwargs}")
-                result = await self.client.call_tool(tool_name, kwargs)
+                tool_callable = self.client._create_tool_callable(tool_name)
+                result = await tool_callable(**kwargs)
                 logger.info(f"Tool '{tool_name}' executed successfully: {result}")
                 return result
 

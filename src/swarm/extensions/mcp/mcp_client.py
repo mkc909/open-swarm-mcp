@@ -129,6 +129,9 @@ class MCPClient:
             async with stdio_client(server_params) as (read, write):
                 async with ClientSession(read, write) as session:
                     try:
+                        # Initialize session explicitly
+                        await session.initialize()
+
                         # Validate input schema if available
                         if tool_name in self._tool_cache:
                             tool = self._tool_cache[tool_name]

@@ -91,6 +91,19 @@
             }
         },
 
+        "rag-docs": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@hannesrudolph/mcp-ragdocs"
+            ],
+            "env": {
+                "OPENAI_API_KEY": "${OPENAI_API_KEY}",
+                "QDRANT_URL": "${QDRANT_URL}",
+                "QDRANT_API_KEY": "${QDRANT_API_KEY}"
+            }
+        },
+
         "mcp-installer": {
             "command": "npx",
             "args": ["-y", "@anaisbetts/mcp-installer"]

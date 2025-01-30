@@ -69,42 +69,45 @@ https://github.com/user-attachments/assets/1335f7fb-ff61-4e96-881c-7d3154eb9f14
 A **Blueprint** is a Python module that wraps:
 
 - **Agent Logic**: Defines how each agent in the Swarm processes user messages, whether it calls tools, and how it decides to hand off to other agents.
-- **Tools**: Specifies which agents have which tools (e.g. a read-only SQLite database) the agents may invoke.
+- **Tools**: Specifies which agents have which tools (e.g., MCP-discovered tools, Python function calls).
 - **Environment & Configuration**: Ensures required environment variables and JSON configs are validated prior to agent execution.
 
 Once registered, a blueprint is discoverable at runtime, allowing the system to list and load agents on demand.
 
-### University Support Example
+### Personal Assistant Example
 
-Consider a **University Support Blueprint** that orchestrates multiple agents to handle campus-related queries:
+The **Personal Assistant Blueprint** demonstrates a hybrid approach, integrating **local Python function tools** with **MCP-discovered tools**. It consists of:
 
-1. **Triage Agent**  
-   - Inspects each incoming query (e.g., *“Which courses are recommended for data science?”*).  
-   - Determines whether to route it to a **Course Advisor**, **Scheduling Assistant**, or a creative **Campus Culture** responder.  
-   - Demonstrates handoffs by returning the specialised agent most suited to the query.  
+1. **Personal Assistant Agent**  
+   - Determines user intent and delegates queries accordingly.  
+   - Routes weather-related queries to the `WeatherAgent`.  
+   - Routes knowledge-based queries to the `DocumentationAgent`.  
 
-2. **Course Advisor Agent**  
-   - Relies on a read-only SQLite database (exposed as an MCP server tool) for course recommendations.  
-   - Executes queries like `SELECT * FROM courses WHERE discipline='Data Science';` via a method such as `read_query()`.
+2. **Weather Agent** (Uses Python Function Tools)  
+   - Fetches current weather and forecasts via OpenWeatherMap.  
+   - Uses a **locally defined Python function** rather than an MCP server.  
+   - Requires `WEATHER_API_KEY` as an environment variable.
 
-3. **Scheduling Assistant Agent**  
-   - Accesses a separate scheduling database to provide timetables, exam schedules, and important dates.  
-   - Responds in short, factual statements, suitable for quick reference.
+3. **Documentation Agent** (Uses MCP-Discovered Tools)  
+   - Retrieves relevant documentation via `rag-docs`.  
+   - Uses the MCP function `search_documentation` to dynamically retrieve information.  
+   - Requires the following environment variables:  
+     - `OPENAI_API_KEY`  
+     - `QDRANT_URL`  
+     - `QDRANT_API_KEY`
 
-In practice, this blueprint:
-- Bundles the agent instructions and personalities (e.g., helpful advisor, factual scheduler).  
-- Requires environment variable, `OPENAI_API_KEY` for LLM inference.  
-- Performs both **CLI** and **REST** interactions, so you can either run it locally or expose it as a service through `/v1/chat/completions`.
+This blueprint highlights **seamless multi-agent coordination** and the **flexibility of combining Python functions with MCP-discovered tools**.
 
 ### Other Examples
-Open Swarm showcases a growing library of **Blueprint** examples:
+
+Open Swarm includes a growing library of **Blueprint** examples:
 
 | Blueprint Name               | Description                                                                 |
 |------------------------------|-----------------------------------------------------------------------------|
 | **Echo Blueprint**           | A straightforward agent that simply echoes user inputs—ideal for testing or as a starter template. |
+| **Personal Assistant Blueprint** | Combines real-time weather updates (Python function) with documentation search (`rag-docs`, MCP). Demonstrates mixed tooling. |
 | **Database and Web Blueprint** | Demonstrates MCP-based integration with an SQLite database and Brave Search, illustrating how to combine data retrieval with real-time web queries. |
-| **Filesystem Blueprint**     | Provides agents that can interact with local file directories (read/write operations) through a **filesystem** MCP server. |
-| **Weather Blueprint**        | Fetches current weather and forecasts via external APIs (e.g., OpenWeatherMap), showing how environment variables and requests-based calls can be integrated. |
+| **Sysadmin Blueprint**        | Multi-agent system for handling system administration tasks using MCP tools (filesystem, SQLite, search, etc.). |
 
 ---
 

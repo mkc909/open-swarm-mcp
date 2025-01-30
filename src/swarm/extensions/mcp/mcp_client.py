@@ -49,10 +49,22 @@ class MCPClient:
         # Attempt to retrieve tools from cache
         cache_key = f"mcp_tools_{self.command}"
         cached_tools = self.cache.get(cache_key)
+
         if cached_tools:
             logger.debug("Retrieved tools from cache")
-            return [Tool(**tool_data) for tool_data in cached_tools]
+            tools = []
+            for tool_data in cached_tools:
+                tool_name = tool_data["name"]
+                tool = Tool(
+                    name=tool_name,
+                    description=tool_data["description"],
+                    input_schema=tool_data.get("input_schema", {}),
+                    func=self._create_tool_callable(tool_name),  # ✅ Attach missing function
+                )
+                tools.append(tool)
+            return tools
 
+        # Otherwise, fetch tools from the server
         server_params = StdioServerParameters(command=self.command, args=self.args, env=self.env)
         async with stdio_client(server_params) as (read, write):
             async with ClientSession(read, write) as session:
@@ -65,7 +77,7 @@ class MCPClient:
                         {
                             'name': tool.name,
                             'description': tool.description,
-                            'inputSchema': tool.inputSchema,
+                            'input_schema': tool.inputSchema,
                         }
                         for tool in tools_response.tools
                     ]

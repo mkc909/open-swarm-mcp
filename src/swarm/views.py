@@ -72,41 +72,28 @@ except ValueError as e:
 
 
 def serialize_swarm_response(response: Any, model_name: str, context_variables: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Serialize the raw Swarm response to OpenAI-like format.
-    
-    Args:
-        response (Any): The response from Swarm.
-        model_name (str): The name of the model.
-        context_variables (Dict[str, Any]): Context variables for the session.
-
-    Returns:
-        Dict[str, Any]: Serialized response in OpenAI-like format.
-    """
-    # Extract the last message and active agent
     messages = response.get("messages", []) if isinstance(response, dict) else getattr(response, "messages", [])
-    active_agent = getattr(response, "agent", None)
-
-    assert messages, "Messages should not be empty as per view logic."
-
-    last_message = messages[-1]
-    context_variables["active_agent"] = active_agent.name if active_agent else "unknown"
-
-    # Format the response for OpenAI
-    response_id = f"swarm-chat-completion-{uuid.uuid4()}"
+    
+    formatted_messages = [
+        {
+            "index": i,
+            "message": {
+                "role": msg.get("role"),
+                "content": msg.get("content"),
+                "tool_calls": msg.get("tool_calls", None),
+                "sender": msg.get("sender", None)
+            },
+            "finish_reason": "stop"  # Assuming the conversation is complete
+        }
+        for i, msg in enumerate(messages)
+    ]
+    
     return {
-        "id": response_id,
+        "id": f"swarm-chat-completion-{uuid.uuid4()}",
         "object": "chat.completion",
         "created": int(time.time()),
         "model": model_name,
-        "choices": [
-            {
-                "index": 0,
-                "message": last_message,
-                "tool_calls": last_message.get("tool_calls", []),
-                "finish_reason": "stop",
-            }
-        ],
+        "choices": formatted_messages,  # 🔥 Now returning the full message history
         "usage": {
             "prompt_tokens": sum(len((msg.get("content") or "").split()) for msg in messages),
             "completion_tokens": sum(len((msg.get("content") or "").split()) for msg in messages if msg.get("role") == "assistant"),

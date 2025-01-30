@@ -1,3 +1,5 @@
+# mcp_tool_provider.py
+
 """
 MCPToolProvider Module for Open-Swarm
 
@@ -13,6 +15,8 @@ from typing import List, Dict, Any
 from swarm.settings import DEBUG
 from swarm.types import Tool, Agent
 from swarm.extensions.mcp.mcp_client import MCPClient
+
+from .cache_utils import get_cache  # <-- Import the cache helper
 
 # Initialize logger for this module
 logger = logging.getLogger(__name__)
@@ -43,11 +47,13 @@ class MCPToolProvider:
             server_config=server_config,
             timeout=server_config.get("timeout", 30),
         )
+        self.cache = get_cache()  # <-- Initialize cache using the helper
         logger.debug(f"Initialized MCPToolProvider for server '{self.server_name}'.")
 
     async def discover_tools(self, agent: Agent) -> List[Tool]:
         """
         Discover tools from the MCP server and return them as a list of `Tool` instances.
+        Utilizes Django cache to persist tool metadata if available.
 
         Args:
             agent (Agent): The agent for which tools are being discovered.
@@ -58,6 +64,12 @@ class MCPToolProvider:
         Raises:
             RuntimeError: If tool discovery from the MCP server fails.
         """
+        cache_key = f"mcp_tools_{self.server_name}"
+        cached_tools = self.cache.get(cache_key)
+        if cached_tools:
+            logger.debug(f"Retrieved tools for server '{self.server_name}' from cache.")
+            return [Tool(**tool_data) for tool_data in cached_tools]
+
         logger.debug(
             f"Starting tool discovery from MCP server '{self.server_name}' for agent '{agent.name}'."
         )
@@ -67,7 +79,20 @@ class MCPToolProvider:
                 f"Discovered tools from MCP server '{self.server_name}': {[tool.name for tool in tools]}"
             )
 
-            # Additional processing or filtering of tools can be done here if needed
+            # Serialize tools for caching
+            serialized_tools = [
+                {
+                    'name': tool.name,
+                    'description': tool.description,
+                    'input_schema': tool.input_schema,
+                }
+                for tool in tools
+            ]
+            
+            # Cache the tools (will be a no-op if using DummyCache)
+            self.cache.set(cache_key, serialized_tools, 3600)
+            logger.debug(f"Cached tools for MCP server '{self.server_name}'.")
+
             return tools
 
         except Exception as e:

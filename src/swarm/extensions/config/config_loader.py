@@ -46,7 +46,7 @@ def resolve_placeholders(obj: Any) -> Any:
         Any: The object with all placeholders resolved.
 
     Raises:
-        ValueError: If a required environment variable is not set.
+        None
     """
     if isinstance(obj, dict):
         return {k: resolve_placeholders(v) for k, v in obj.items()}
@@ -58,8 +58,9 @@ def resolve_placeholders(obj: Any) -> Any:
         for var in matches:
             env_value = os.getenv(var)
             if env_value is None:
-                logger.error(f"Environment variable '{var}' is not set but is required.")
-                raise ValueError(f"Environment variable '{var}' is not set but is required.")
+                logger.warning(f"Environment variable '{var}' is not set but is referenced in the configuration. Placeholder will be left unresolved.")
+                # Do not replace the placeholder if the env variable is not set
+                continue
             logger.debug(f"Resolved placeholder '${{{var}}}' with value '{redact_sensitive_data(env_value)}'")
             obj = obj.replace(f'${{{var}}}', env_value)
         return obj

@@ -15,7 +15,7 @@ import json
 import logging
 import uuid
 from collections import defaultdict
-from typing import List, Callable, Union, Optional, Dict, Any
+from typing import List, Optional, Dict, Any
 
 # Package/library imports
 import asyncio
@@ -31,16 +31,11 @@ from .types import (
     Function,
     Response,
     Result,
-    Tool,
 )
 
 from .extensions.config.config_loader import (
-    load_server_config,
-    validate_api_keys,
-    validate_mcp_server_env,
     load_llm_config,
 )
-from .extensions.mcp.mcp_client import MCPClient
 from .extensions.mcp.mcp_tool_provider import MCPToolProvider
 from .settings import DEBUG
 from .utils.redact import redact_sensitive_data

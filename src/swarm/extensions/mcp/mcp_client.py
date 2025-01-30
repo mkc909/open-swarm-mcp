@@ -1,3 +1,5 @@
+# mcp_client.py
+
 import asyncio
 import logging
 import os
@@ -6,6 +8,8 @@ from typing import Any, Dict, List, Callable
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from swarm.types import Tool
+
+from .cache_utils import get_cache  # <-- Import the cache helper
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -30,6 +34,9 @@ class MCPClient:
         self.timeout = timeout
         self._tool_cache: Dict[str, Tool] = {}
 
+        # Initialize cache using the helper
+        self.cache = get_cache()
+
         logger.info(f"Initialized MCPClient with command={self.command}, args={self.args}")
 
     async def list_tools(self) -> List[Tool]:
@@ -39,12 +46,33 @@ class MCPClient:
         Returns:
             List[Tool]: A list of discovered tools with schemas.
         """
+        # Attempt to retrieve tools from cache
+        cache_key = f"mcp_tools_{self.command}"
+        cached_tools = self.cache.get(cache_key)
+        if cached_tools:
+            logger.debug("Retrieved tools from cache")
+            return [Tool(**tool_data) for tool_data in cached_tools]
+
         server_params = StdioServerParameters(command=self.command, args=self.args, env=self.env)
         async with stdio_client(server_params) as (read, write):
             async with ClientSession(read, write) as session:
                 try:
                     logger.info("Requesting tool list from MCP server...")
                     tools_response = await session.list_tools()
+
+                    # Serialize tools for caching
+                    serialized_tools = [
+                        {
+                            'name': tool.name,
+                            'description': tool.description,
+                            'inputSchema': tool.inputSchema,
+                        }
+                        for tool in tools_response.tools
+                    ]
+                    
+                    # Cache tools for 1 hour (no-op if DummyCache)
+                    self.cache.set(cache_key, serialized_tools, 3600)
+                    logger.debug(f"Cached {len(serialized_tools)} tools.")
 
                     tools = []
                     for tool in tools_response.tools:

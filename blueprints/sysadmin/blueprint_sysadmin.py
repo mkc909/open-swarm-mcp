@@ -1,11 +1,13 @@
-# blueprints/sysadmin/blueprint_sysadmin_extended.py
+# blueprints/sysadmin/blueprint_sysadmin.py
 
 """
-Sysadmin Blueprint Class for Open Swarm.
+Sysadmin Blueprint for Open Swarm.
 
-This blueprint defines Morpheus as the TriageAgent and assistant agents
-Trinity, Neo, and Oracle focused on filesystem management,
-running shell scripts, and Brave Search integration.
+This blueprint sets up a system administration framework with:
+  - Morpheus as the central coordinator (TriageAgent).
+  - Trinity handling filesystem operations.
+  - Neo executing shell scripts.
+  - Oracle performing search queries.
 """
 
 import logging
@@ -15,10 +17,9 @@ from swarm.extensions.blueprint import BlueprintBase
 from swarm.settings import DEBUG
 from swarm.types import Agent
 
-# Configure logger
+# Configure logging for debugging and informational messages.
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
-
 if not logger.handlers:
     stream_handler = logging.StreamHandler()
     formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(name)s - %(message)s")
@@ -28,23 +29,25 @@ if not logger.handlers:
 
 class SysadminBlueprint(BlueprintBase):
     """
-    A blueprint defining Morpheus as the TriageAgent and assistant agents Trinity, Neo, and Oracle
-    for filesystem management, running shell scripts, and Brave Search integration.
+    Blueprint for system administration tasks.
+
+    This blueprint configures:
+      - Morpheus as the central coordinator who delegates tasks.
+      - Trinity for managing filesystem operations.
+      - Neo for executing shell scripts.
+      - Oracle for processing search queries.
     """
 
     @property
     def metadata(self) -> Dict[str, Any]:
         """
-        Metadata for the SysadminBlueprint.
-
-        Returns:
-            Dict[str, Any]: Metadata with title, description, required MCP servers, and environment variables.
+        Returns blueprint metadata including title, description, required MCP servers, and environment variables.
         """
         return {
-            "title": "Sysadmin  Blueprint",
+            "title": "Sysadmin Blueprint",
             "description": (
-                "Provides Morpheus as the TriageAgent and assistant agents for MCP-based system administration: "
-                "filesystem management, running shell scripts, and Brave Search integration."
+                "Deploys Morpheus as the central coordinator and assistant agents for MCP-based system administration, "
+                "covering filesystem management, shell script execution, and search query processing."
             ),
             "required_mcp_servers": [
                 "filesystem",
@@ -59,100 +62,105 @@ class SysadminBlueprint(BlueprintBase):
 
     def create_agents(self) -> Dict[str, Agent]:
         """
-        Create agents for the SysadminBlueprint, including Morpheus as the TriageAgent
-        and assistant agents Trinity, Neo, and Oracle.
+        Creates and registers agents for the blueprint.
 
         Returns:
-            Dict[str, Agent]: Dictionary of created agents.
+            A dictionary of agents, keyed by agent names.
         """
         import os
 
-        # Retrieve environment variables
+        # Retrieve environment variables.
         allowed_paths = os.getenv("ALLOWED_PATH", "/default/path")
         brave_api_key = os.getenv("BRAVE_API_KEY", "default-brave-key")
 
-        # Dictionary to hold all agents
+        # Container for agents.
         agents: Dict[str, Agent] = {}
 
-        # Define Morpheus as the TriageAgent
+        # Define Morpheus as the central coordinator (TriageAgent).
+        # His instructions clearly state which tasks should be routed to which assistant.
         agents["Morpheus"] = Agent(
             name="Morpheus",
             instructions=(
-                "You are Morpheus, the TriageAgent responsible for overseeing and delegating tasks to assistant agents. "
-                "You can delegate tasks to any assistant agent but cannot perform the tasks directly."
+                "You are Morpheus, the central coordinator responsible for delegating tasks. "
+                "Route filesystem operations to Trinity, shell script tasks to Neo, and search queries to Oracle. "
+                "Do not execute tasks yourself."
             ),
             env_vars={},
         )
 
-        # Define assistant agents with Matrix-themed names
+        # Define Trinity for filesystem operations.
         agents["Trinity"] = Agent(
             name="Trinity",
             instructions=(
-                "You are Trinity, managing and interacting with the filesystem under allowed paths. "
-                "You have been provided with the tools needed to do this. "
-                "After executing filesystem tools on behalf of the user, you may pass back to Morpheus."
+                "You are Trinity, responsible for managing filesystem operations within allowed paths. "
+                "Complete file management tasks and then return control to Morpheus."
             ),
             mcp_servers=["filesystem"],
             env_vars={"ALLOWED_PATH": allowed_paths},
         )
 
+        # Define Neo for executing shell scripts.
         agents["Neo"] = Agent(
             name="Neo",
             instructions=(
-                "You are Neo, executing shell scripts located at the specified script path. "
-                "Ensure scripts are executed securely and return control back to Morpheus after completion."
+                "You are Neo, tasked with executing shell scripts securely. "
+                "Process and complete script execution tasks, then return control to Morpheus."
             ),
-            mcp_servers=["mcp-shell"]
+            mcp_servers=["mcp-shell"],
         )
 
+        # Define Oracle for processing search queries.
         agents["Oracle"] = Agent(
             name="Oracle",
             instructions=(
-                "You are Oracle, performing search queries using the Brave Search MCP server. "
-                "Utilize the Brave API key for authenticated search operations as directed by Morpheus."
+                "You are Oracle, responsible for executing search queries using the Brave Search MCP server. "
+                "Utilize the API key to process queries and return results to Morpheus."
             ),
             mcp_servers=["brave-search"],
             env_vars={"BRAVE_API_KEY": brave_api_key},
         )
 
-        # Define handoff functions
+        # Explicit handoff functions with 25-word docstrings.
+
         def handoff_to_trinity():
-            logger.debug("Morpheus is handing off to Trinity")
+            """
+            Delegates task execution from Morpheus to Trinity. This function enables Trinity to securely perform filesystem operations, then returns control to Morpheus upon task completion.
+            """
             return agents["Trinity"]
 
         def handoff_to_neo():
-            logger.debug("Morpheus is handing off to Neo")
+            """
+            Delegates task execution from Morpheus to Neo. This function enables Neo to securely execute shell scripts, then promptly returns control to Morpheus after successful completion.
+            """
             return agents["Neo"]
 
         def handoff_to_oracle():
-            logger.debug("Morpheus is handing off to Oracle")
+            """
+            Delegates task execution from Morpheus to Oracle. This function enables Oracle to process search queries using Brave Search, then returns control to Morpheus upon query completion.
+            """
             return agents["Oracle"]
 
         def handoff_back_to_morpheus():
-            logger.debug("Assistant agent is handing off back to Morpheus")
+            """
+            Delegates task execution from an assistant agent back to Morpheus. This function ensures that after task completion, control reliably returns to Morpheus for further delegation.
+            """
             return agents["Morpheus"]
 
-        # Assign handoff functions to Morpheus
+        # Assign delegation functions to Morpheus.
         agents["Morpheus"].functions = [
             handoff_to_trinity,
             handoff_to_neo,
             handoff_to_oracle,
         ]
 
-        # Assign handoff functions to assistant agents (only handoff back to Morpheus)
-        assistant_agents = [
-            "Trinity",
-            "Neo",
-            "Oracle",
-        ]
-
-        for agent_name in assistant_agents:
+        # Configure each assistant agent to return control back to Morpheus.
+        for agent_name in ["Trinity", "Neo", "Oracle"]:
             agents[agent_name].functions = [handoff_back_to_morpheus]
 
-        # Set the starting agent to Morpheus
+        # Set Morpheus as the starting agent.
         self.set_starting_agent(agents["Morpheus"])
 
-        logger.debug(f"Agents created: {list(agents.keys())}")
+        logger.debug(f"Agents registered: {list(agents.keys())}")
         return agents
 
 

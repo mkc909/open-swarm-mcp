@@ -212,7 +212,9 @@ class BlueprintBase(ABC):
 
             while True:
                 # Get user input
-                user_input = input("\033[90mUser\033[0m: ")
+                print("\033[90mUser\033[0m: ", end="")
+
+                user_input = input()
                 if user_input.lower() in {"exit", "quit"}:
                     print("Exiting interactive mode.")
                     break

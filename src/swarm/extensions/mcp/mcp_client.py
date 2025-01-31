@@ -63,6 +63,10 @@ class MCPClient:
                 tools.append(tool)
             return tools
 
+        # logger.debug(
+        #     f"Starting tool discovery from MCP server '{self.server_name}' for agent '{agent.name}'."
+        # )
+
         # Otherwise, fetch tools from the server
         server_params = StdioServerParameters(command=self.command, args=self.args, env=self.env)
         async with stdio_client(server_params) as (read, write):

@@ -115,7 +115,8 @@ class Swarm:
             return agent.functions
 
         discovered_tools = []
-        logger.debug(f"Starting tool discovery for agent '{agent.name}' with MCP servers: {agent.mcp_servers}")
+        # logger.debug(f"Starting tool discovery for agent '{agent.name}' with MCP servers: {agent.mcp_servers}")
+        # print(f"Starting tool discovery for agent '{agent.name}' with MCP servers: {agent.mcp_servers}")
 
         for server_name in agent.mcp_servers:
             logger.debug(f"Looking up MCP server '{server_name}' for agent '{agent.name}'.")

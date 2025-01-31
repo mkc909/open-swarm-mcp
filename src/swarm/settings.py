@@ -5,9 +5,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True  # Set to False in production
+#DEBUG = True  # Set to False in production
 # DEBUG = False
-# DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
+DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)

@@ -9,7 +9,6 @@
             "api_key": "${OPENAI_API_KEY}",
             "temperature": 0.3
         },
-
         "reason": {
             "provider": "openai",
             "model": "sonar-reasoning",
@@ -40,19 +39,25 @@
             "intelligence": 0.1,
             "temperature": 0.0
         },
-        "gpt-4o-mini": {
+        "gpt-4o": {
             "provider": "openai",
-            "model": "gpt-4o-mini",
+            "model": "gpt-4o",
             "base_url": "https://api.openai.com/v1",
             "api_key": "${OPENAI_API_KEY}",
-            "cost": 0.3,
-            "speed": 0.7,
-            "intelligence": 0.3,
+            "cost": 0.5,
+            "speed": 0.5,
+            "intelligence": 0.5,
             "temperature": 0.1
         }
     },
 
     "mcpServers": {
+
+        "mcp-shell": {
+            "command": "npx",
+            "args": ["-y", "github:hdresearch/mcp-shell"]
+        },
+
         "brave-search": {
             "command": "npx",
             "args": ["-y", "@modelcontextprotocol/server-brave-search"],
@@ -60,6 +65,14 @@
               "BRAVE_API_KEY": "${BRAVE_API_KEY}"
             }
           },
+
+        "duckduckgo-search": {
+			"command": "npx",
+			"args": ["-y", "mcp-duckduckgo-search"],
+			"env": {
+				"SERPAPI_KEY": "${SERPAPI_API_KEY}"
+			}
+		},
 
         "sqlite": {
             "command": "npx",
@@ -78,12 +91,15 @@
         "mcp-flowise": {
             "command": "uvx",
             "args": [
+                "--refresh", 
                 "--from", 
                 "git+https://github.com/matthewhand/mcp-flowise",
-                "--with", "requests",
                 "mcp-flowise"
             ],
             "env": {
+                "DEBUG": "true",
+                "FLOWISE_LOGFILE_PATH": "/tmp/debug-mcp-flowise.log",
+                "FLOWISE_SIMPLE_MODE": "true",
                 "FLOWISE_API_KEY": "${FLOWISE_API_KEY}",
                 "FLOWISE_API_ENDPOINT": "${FLOWISE_API_ENDPOINT}",
                 "FLOWISE_CHATFLOW_ID": "",

@@ -257,16 +257,19 @@ class Swarm:
 
         # Construct the payload
         create_params = {
-            "model": model_override or new_llm_config.get("model"),  # Updated line
+            "model": model_override or new_llm_config.get("model"),
             "messages": messages,
             "tools": tools or None,
             "tool_choice": agent.tool_choice,
             "stream": stream,
         }
-
+        if "temperature" in new_llm_config:
+            create_params["temperature"] = new_llm_config["temperature"]
+        if "reasoning_effort" in new_llm_config:
+            create_params["reasoning_effort"] = new_llm_config["reasoning_effort"]
         # Include parallel tool calls only if tools are provided
-        if tools:
-            create_params["parallel_tool_calls"] = agent.parallel_tool_calls
+        # if tools:
+        #     create_params["parallel_tool_calls"] = agent.parallel_tool_calls
 
         # Debug: Log the payload before sending
         logger.debug("Chat completion payload:", create_params)

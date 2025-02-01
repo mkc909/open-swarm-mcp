@@ -13,11 +13,12 @@ AgentFunction = Callable[..., Union[str, "Agent", dict]]
 
 class Agent(BaseModel):
     name: str = "Agent"
-    model: str = "gpt-4o"
+    model: str = "default"
     instructions: Union[str, Callable[[], str]] = "You are a helpful agent."
     functions: List[AgentFunction] = []
     tool_choice: str = None
-    parallel_tool_calls: bool = True
+    #parallel_tool_calls: bool = True
+    parallel_tool_calls: bool = False
     mcp_servers: Optional[List[str]] = None  # List of MCP server names
     env_vars: Optional[Dict[str, str]] = None  # Environment variables required
 

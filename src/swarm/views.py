@@ -60,7 +60,7 @@ except Exception as e:
 # Inject LLM metadata into blueprints
 try:
     llm_config = load_llm_config(config)
-    llm_model = llm_config.get("model", "gpt-4o")
+    llm_model = llm_config.get("model", "default")
     llm_provider = llm_config.get("provider", "openai")
 
     for blueprint in blueprints_metadata.values():

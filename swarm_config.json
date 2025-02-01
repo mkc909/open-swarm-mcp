@@ -4,20 +4,16 @@
 
         "default": {
             "provider": "openai",
-            "model": "gpt-4o",
+            "model": "o3-mini",
             "base_url": "https://api.openai.com/v1",
-            "api_key": "${OPENAI_API_KEY}",
-            "temperature": 0.3
+            "api_key": "${OPENAI_API_KEY}"
         },
         "reason": {
             "provider": "openai",
-            "model": "sonar-reasoning",
-            "base_url": "https://api.perplexity.ai/",
-            "api_key": "${PERPLEXITY_API_KEY}",
-            "cost": 0.5,
-            "speed": 0.3,
-            "intelligence": 0.7,
-            "temperature": 0.5
+            "model": "o3-mini",
+            "base_url": "https://api.openai.com/v1",
+            "api_key": "${OPENAI_API_KEY}",
+            "reasoning_effort": "high"
         },
         "classify": {
             "provider": "openai",

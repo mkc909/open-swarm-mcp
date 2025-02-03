@@ -165,11 +165,11 @@ def chat_completions(request):
         blueprint_instance = blueprint_class(config=config)
 
         # 🔥 Ensure we use the active agent from context_variables
-        active_agent = context_variables.get("active_agent_name", "SysAdminAgent")
+        active_agent = context_variables.get("active_agent_name", "Assistant")
 
         if active_agent not in blueprint_instance.swarm.agents:
-            logger.warning(f"Invalid active agent '{active_agent}', defaulting to SysAdminAgent.")
-            active_agent = "SysAdminAgent"
+            logger.warning(f"Invalid active agent '{active_agent}', defaulting to Assistant.")
+            active_agent = "Assistant"
 
         logger.debug(f"Using active agent: {active_agent}")
         blueprint_instance.set_active_agent(active_agent)

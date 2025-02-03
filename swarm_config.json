@@ -4,7 +4,7 @@
 
         "default": {
             "provider": "openai",
-            "model": "o3-mini",
+            "model": "gpt-4o",
             "base_url": "https://api.openai.com/v1",
             "api_key": "${OPENAI_API_KEY}"
         },
@@ -34,6 +34,11 @@
             "speed": 0.1,
             "intelligence": 0.1,
             "temperature": 0.0
+        },
+        "litellm": {
+            "provider": "openai",
+            "model": "free",
+            "base_url": "http://localhost:4003/v1"
         },
         "gpt-4o": {
             "provider": "openai",

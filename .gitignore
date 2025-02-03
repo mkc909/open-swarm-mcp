@@ -176,3 +176,4 @@ test.db
 *.bak
 uvx
 *.log
+.env.*

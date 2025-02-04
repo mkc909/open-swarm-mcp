@@ -66,7 +66,7 @@ class Swarm:
         logger.debug(f"Initialized Swarm with model: {self.model}")
 
         self.temperature = 0.7
-        self.tool_choice = "sequential"
+        self.tool_choice = "auto"
         self.parallel_tool_calls = False
         self.agents: Dict[str, Agent] = {}
         self.mcp_tool_providers: Dict[str, MCPToolProvider] = {}  # Cache for MCPToolProvider instances
@@ -260,7 +260,7 @@ class Swarm:
             "model": model_override or new_llm_config.get("model"),
             "messages": messages,
             "tools": tools or None,
-            "tool_choice": agent.tool_choice,
+            "tool_choice": agent.tool_choice or "auto",
             "stream": stream,
         }
         if "temperature" in new_llm_config:

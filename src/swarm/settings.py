@@ -1,5 +1,7 @@
 import os
 import sys
+from django.db.backends.signals import connection_created
+from django.dispatch import receiver
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
@@ -84,6 +86,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'swarm.wsgi.application'
 ASGI_APPLICATION = 'swarm.asgi.application'
 
+
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 DATABASES = {
@@ -92,6 +95,19 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',  # Database at project root
     }
 }
+
+@receiver(connection_created)
+def set_sqlite_optimizations(sender, connection, **kwargs):
+    """Apply SQLite PRAGMA settings when a new database connection is created."""
+    if connection.vendor == 'sqlite':
+        cursor = connection.cursor()
+        cursor.execute('PRAGMA journal_mode=WAL;')  # Enable Write-Ahead Logging
+        cursor.execute('PRAGMA synchronous=NORMAL;')  # Reduce disk sync overhead
+        cursor.execute('PRAGMA temp_store=MEMORY;')  # Use memory for temp tables
+        cursor.execute('PRAGMA mmap_size=30000000000;')  # Use memory-mapped I/O
+        cursor.execute('PRAGMA cache_size=-5000;')  # Limit cache to 5MB
+        cursor.execute('PRAGMA busy_timeout=5000;')  # Prevent "database is locked" errors
+        cursor.close()
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -213,3 +229,12 @@ REST_FRAMEWORK = {
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 CSRF_TRUSTED_ORIGINS = ['http://localhost:8000']
+
+# Reduce memory usage for static hosting
+INSTALLED_APPS += [
+    'whitenoise.runserver_nostatic'
+]
+MIDDLEWARE += [
+    'whitenoise.middleware.WhiteNoiseMiddleware',  
+]
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'

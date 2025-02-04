@@ -230,11 +230,3 @@ SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 CSRF_TRUSTED_ORIGINS = ['http://localhost:8000']
 
-# Reduce memory usage for static hosting
-INSTALLED_APPS += [
-    'whitenoise.runserver_nostatic'
-]
-MIDDLEWARE += [
-    'whitenoise.middleware.WhiteNoiseMiddleware',  
-]
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'

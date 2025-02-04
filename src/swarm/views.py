@@ -140,6 +140,7 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
 
 
 @csrf_exempt
+@api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def chat_completions(request):

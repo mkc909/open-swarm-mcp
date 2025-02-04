@@ -55,13 +55,21 @@ class ViewsTest(TestCase):
         """
         url = reverse('chat_completions')
 
-        # Simulate a valid request payload
+        # Get the API token from the environment variable
+        api_token = os.environ.get('API_AUTH_TOKEN')
+        self.assertIsNotNone(api_token, "API_AUTH_TOKEN environment variable not set.")
+
+        # Simulate a valid request payload with auth header
         payload = {
             "model": "echo",  # Blueprint identifier
             "messages": [{"role": "user", "content": "hello", "sender": "User"}]
         }
-
-        response = self.client.post(url, data=json.dumps(payload), content_type="application/json")
+    
+        response = self.client.post(url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f'Token {api_token}'
+        )
 
         # Assert the response status is 200
         self.assertEqual(response.status_code, 200, f"Expected status 200, got {response.status_code}")
@@ -79,3 +87,12 @@ class ViewsTest(TestCase):
         choice = response_data["choices"][0]
         self.assertIn("message", choice, "Choice missing 'message' field.")
         self.assertIn("content", choice["message"], "Choice message missing 'content' field.")
+
+    def tearDown(self):
+        # Clean up the test user
+        from django.contrib.auth.models import User
+        try:
+            user = User.objects.get(username='testuser')
+            user.delete()
+        except User.DoesNotExist:
+            pass

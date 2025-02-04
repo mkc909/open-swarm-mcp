@@ -177,3 +177,4 @@ test.db
 uvx
 *.log
 .env.*
+staticfiles/*

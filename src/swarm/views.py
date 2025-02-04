@@ -25,6 +25,9 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from swarm.models import ChatConversation
 from swarm.extensions.blueprint import discover_blueprints
 from swarm.extensions.config.config_loader import (
@@ -137,6 +140,8 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
 
 
 @csrf_exempt
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def chat_completions(request):
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed. Use POST."}, status=405)

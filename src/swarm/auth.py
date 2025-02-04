@@ -10,30 +10,35 @@ class EnvAuthenticatedUser(AnonymousUser):
     """ Custom user class that is always authenticated. """
     @property
     def is_authenticated(self):
-        return True  # Ensure Django recognizes this user
+        return True  # Ensure Django recognizes this user as authenticated
 
 class EnvOrTokenAuthentication(TokenAuthentication):
     """
     Custom authentication that allows:
-    1. Environment variable API key (`API_AUTH_TOKEN`)
-    2. Standard Django TokenAuthentication
+    1. If API_AUTH_TOKEN is set, it enforces token authentication.
+    2. If ENABLE_API_AUTH is False/Unset, authentication is bypassed.
+    3. Otherwise, falls back to Django's TokenAuthentication.
     """
     def authenticate(self, request):
         auth_header = request.headers.get("Authorization", "")
-        # logger.info(f"Received Auth Header: {auth_header}")
-
-        if not auth_header.startswith("Bearer "):
-            raise AuthenticationFailed("Invalid token format.")
-
-        token = auth_header.split("Bearer ")[-1].strip()
-
-        # Log both received and expected tokens
         env_token = os.getenv("API_AUTH_TOKEN", None)
-        # logger.info(f"Received Token: {token}")
-        # logger.info(f"Expected Env Token: {env_token}")
+        enable_auth = os.getenv("ENABLE_API_AUTH", "false").lower() in ("true", "1", "t")
 
-        if env_token and token == env_token:
-            logger.info("Authenticated as anonymous user with API_AUTH_TOKEN")
-            return (EnvAuthenticatedUser(), None)  # Allow access
+        # If API authentication is disabled, allow unrestricted access
+        if not enable_auth:
+            logger.info("Authentication is disabled (ENABLE_API_AUTH not set or False). Allowing all users.")
+            return (EnvAuthenticatedUser(), None)
 
+        # If API_AUTH_TOKEN is set, enforce token validation
+        if env_token:
+            if not auth_header.startswith("Bearer "):
+                raise AuthenticationFailed("Invalid token format.")
+
+            token = auth_header.split("Bearer ")[-1].strip()
+
+            if token == env_token:
+                logger.info("Authenticated using API_AUTH_TOKEN.")
+                return (EnvAuthenticatedUser(), None)  # Allow access
+
+        # Fallback to Django's TokenAuthentication
         return super().authenticate(request)

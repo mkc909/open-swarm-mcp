@@ -16,18 +16,13 @@ class EnvOrTokenAuthentication(TokenAuthentication):
     """
     Custom authentication that allows:
     1. If API_AUTH_TOKEN is set, it enforces token authentication.
-    2. If ENABLE_API_AUTH is False/Unset, authentication is bypassed.
+    2. Else if ENABLE_API_AUTH is False/Unset, authentication is bypassed.
     3. Otherwise, falls back to Django's TokenAuthentication.
     """
     def authenticate(self, request):
         auth_header = request.headers.get("Authorization", "")
         env_token = os.getenv("API_AUTH_TOKEN", None)
         enable_auth = os.getenv("ENABLE_API_AUTH", "false").lower() in ("true", "1", "t")
-
-        # If API authentication is disabled, allow unrestricted access
-        if not enable_auth:
-            logger.info("Authentication is disabled (ENABLE_API_AUTH not set or False). Allowing all users.")
-            return (EnvAuthenticatedUser(), None)
 
         # If API_AUTH_TOKEN is set, enforce token validation
         if env_token:
@@ -39,6 +34,13 @@ class EnvOrTokenAuthentication(TokenAuthentication):
             if token == env_token:
                 logger.info("Authenticated using API_AUTH_TOKEN.")
                 return (EnvAuthenticatedUser(), None)  # Allow access
+            else:
+                raise AuthenticationFailed("Invalid token.")
+
+        # If API authentication is disabled, allow unrestricted access
+        if not enable_auth:
+            logger.info("Authentication is disabled (ENABLE_API_AUTH not set or False). Allowing all users.")
+            return (EnvAuthenticatedUser(), None)
 
         # Fallback to Django's TokenAuthentication
         return super().authenticate(request)

@@ -26,5 +26,15 @@ RUN uv venv .venv && uv sync
 # Expose the application port (default 8000, configurable via $PORT)
 EXPOSE 8000
 
+# Enable a 512MB swapfile if LOW_VRAM_MODE is set
+# TODO custom filepath
+RUN if [ "$LOW_VRAM_MODE" = "1" ]; then \
+      mkdir -p /mnt/sqlite_data && \
+      fallocate -l 512M /mnt/sqlite_data/swapfile && \
+      chmod 600 /mnt/sqlite_data/swapfile && \
+      mkswap /mnt/sqlite_data/swapfile && \
+      echo "/mnt/sqlite_data/swapfile none swap sw 0 0" >> /etc/fstab; \
+    fi
+
 # Use shell form to allow environment variable substitution
 CMD uv run manage.py migrate && uv run manage.py runserver 0.0.0.0:$PORT

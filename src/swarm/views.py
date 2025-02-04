@@ -10,11 +10,9 @@ Endpoints:
     - GET /django_chat/: Lists conversations for the logged-in user.
     - POST /django_chat/start/: Starts a new conversation.
 """
-import os
 import json
 import uuid
 import time
-import logging
 from typing import Any, Dict, List
 from pathlib import Path
 from django.shortcuts import redirect, get_object_or_404, render
@@ -28,6 +26,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from swarm.auth import EnvOrTokenAuthentication
 from swarm.models import ChatConversation
 from swarm.extensions.blueprint import discover_blueprints
 from swarm.extensions.config.config_loader import (
@@ -87,13 +86,13 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
         Dict[str, Any]: A structured JSON response that includes the full conversation history,
         tool calls, and additional context.
     """
-    # ✅ Convert to dictionary if response is a Pydantic object
+    # Convert to dictionary if response is a Pydantic object
     if hasattr(response, "dict"):
         response = response.dict()
 
     messages = response.get("messages", [])
 
-    # ✅ Ensure function objects are removed everywhere
+    # Ensure function objects are removed everywhere
     def remove_functions(obj):
         """Recursively remove function objects and other non-serializable types."""
         if isinstance(obj, dict):
@@ -104,20 +103,20 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
             return tuple(remove_functions(item) for item in obj if not callable(item))
         return obj  # Return the object if it's neither a dict nor a list
 
-    # ✅ Strip out any functions from agent details
+    # Strip out any functions from agent details
     if "agent" in response:
         response["agent"] = remove_functions(response["agent"])
 
-    # ✅ Strip out functions from context variables
+    # Strip out functions from context variables
     clean_context_variables = remove_functions(context_variables)
 
-    # ✅ Remove all function references from response
+    # Remove all function references from response
     clean_response = remove_functions(response)
 
     formatted_messages = [
         {
             "index": i,
-            "message": msg,  # ✅ Preserve full raw message, without filtering fields
+            "message": msg,  # Preserve full raw message, without filtering fields
             "finish_reason": "stop"
         }
         for i, msg in enumerate(messages)
@@ -134,18 +133,22 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
             "completion_tokens": sum(len((msg.get("content") or "").split()) for msg in messages if msg.get("role") == "assistant"),
             "total_tokens": len(messages),
         },
-        "context_variables": clean_context_variables,  # ✅ Ensure no functions in context
-        "full_response": clean_response,  # ✅ Fully cleaned response
+        "context_variables": clean_context_variables,  # Ensure no functions in context
+        "full_response": clean_response,  # Fully cleaned response
     }
 
 
-@csrf_exempt
 @api_view(['POST'])
-@authentication_classes([TokenAuthentication])
+@csrf_exempt
+@authentication_classes([EnvOrTokenAuthentication])
 @permission_classes([IsAuthenticated])
 def chat_completions(request):
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed. Use POST."}, status=405)
+
+    # logger.info(f"Received Headers: {request.headers}")
+    logger.info(f"Authenticated User: {request.user}")  # Who is authenticated?
+    logger.info(f"Is Authenticated? {request.user.is_authenticated}")  # Is user authenticated?
 
     try:
         body = json.loads(request.body)

@@ -23,11 +23,8 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Install dependencies using uv and create the environment
 RUN uv venv .venv && uv sync
 
-# Setup Django
-RUN uv run manage.py migrate
-
 # Expose the application port (default 8000, configurable via $PORT)
 EXPOSE 8000
 
 # Use shell form to allow environment variable substitution
-CMD uv run manage.py runserver 0.0.0.0:$PORT
+CMD uv run manage.py migrate && uv run manage.py runserver 0.0.0.0:$PORT

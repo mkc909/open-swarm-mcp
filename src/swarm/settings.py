@@ -92,7 +92,7 @@ ASGI_APPLICATION = 'swarm.asgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',  # Database at project root
+        'NAME': os.getenv("SQLITE_DB_PATH", str(BASE_DIR / "db.sqlite3")), 
     }
 }
 

@@ -29,7 +29,7 @@ LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Add the project root and the app directory to the system path
 sys.path.append(str(BASE_DIR))  # Add the project root
-sys.path.append(str(BASE_DIR / 'src/swarm'))
+sys.path.append(str(BASE_DIR / 'src/swarm/'))
 logger.debug(f"System path updated: {sys.path}")
 
 # SECURITY WARNING: keep the secret key used in production secret!
@@ -89,13 +89,34 @@ ASGI_APPLICATION = 'swarm.asgi.application'
 
 
 # Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.getenv("SQLITE_DB_PATH", str(BASE_DIR / "db.sqlite3")), 
+# Determine database selection from environment variable (default: sqlite)
+DJANGO_DATABASE = os.getenv("DJANGO_DATABASE", "sqlite").lower()
+
+if DJANGO_DATABASE == "postgres":
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv("POSTGRES_DB", "swarm"),
+            'USER': os.getenv("POSTGRES_USER", "postgres"),
+            'PASSWORD': os.getenv("POSTGRES_PASSWORD", ""),
+            'HOST': os.getenv("POSTGRES_HOST", "localhost"),
+            'PORT': os.getenv("POSTGRES_PORT", "5432"),
+        }
     }
-}
+elif DJANGO_DATABASE == "sqlite":
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.getenv("SQLITE_DB_PATH", str(BASE_DIR / "db.sqlite3")),
+        }
+    }
+else:
+    raise ValueError(f"Invalid value for DJANGO_DATABASE: {DJANGO_DATABASE}. Must be 'sqlite' or 'postgres'.")
+
+# Warn if stateful mode is enabled but using SQLite
+if os.getenv("STATEFUL_CHAT_ID_PATH") and DJANGO_DATABASE != "postgres":
+    logger.warning("⚠️  WARNING: Stateful chat is enabled, but DJANGO_DATABASE is set to 'sqlite'. "
+                   "Consider switching to 'postgres' for scalability and persistence.")
 
 @receiver(connection_created)
 def set_sqlite_optimizations(sender, connection, **kwargs):

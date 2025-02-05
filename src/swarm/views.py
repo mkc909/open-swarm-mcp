@@ -14,6 +14,7 @@ import json
 import uuid
 import time
 import os
+import redis
 from typing import Any, Dict, List
 from pathlib import Path
 from django.shortcuts import redirect, get_object_or_404, render
@@ -21,7 +22,7 @@ from django.urls import reverse
 from django.views.generic import TemplateView
 from django.views import View
 from django.http import JsonResponse, HttpResponse
-from rest_framework.response import Response
+from rest_framework.response import Response  # type: ignore
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -41,6 +42,18 @@ from swarm.utils.general_utils import extract_chat_id
 
 # Initialize logger for this module
 logger = setup_logger(__name__)
+# Initialize Redis if available
+REDIS_AVAILABLE = os.getenv("STATEFUL_CHAT_ID_PATH") and settings.DJANGO_DATABASE == "postgres"
+redis_client = None
+
+if REDIS_AVAILABLE:
+    try:
+        redis_client = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, decode_responses=True)
+        redis_client.ping()
+        logger.info("✅ Redis connection successful.")
+    except Exception as e:
+        logger.warning(f"⚠️  Redis unavailable, falling back to PostgreSQL: {e}")
+        REDIS_AVAILABLE = False
 
 # Load configuration
 CONFIG_PATH = Path(settings.BASE_DIR) / "swarm_config.json"

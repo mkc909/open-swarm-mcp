@@ -1,6 +1,6 @@
 import os
 import logging
-import jmespath  # Switched from jsonpath_ng to jmespath
+import jmespath
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def color_text(text: str, color: str = "white") -> str:
 def extract_chat_id(payload: dict) -> str:
     """
     Extracts the most recent tool call ID from an assistant message
-    using JMESPath instead of JSONPath.
+    using JMESPath. 
 
     Args:
         payload (dict): The JSON request payload.

@@ -1,7 +1,6 @@
-# src/swarm/utils/general_utils.py
-
 import os
 import logging
+import jmespath  # Switched from jsonpath_ng to jmespath
 
 logger = logging.getLogger(__name__)
 
@@ -52,3 +51,27 @@ def color_text(text: str, color: str = "white") -> str:
     reset = "\033[0m"
     color_code = colors.get(color.lower(), colors["white"])
     return f"{color_code}{text}{reset}"
+
+
+def extract_chat_id(payload: dict) -> str:
+    """
+    Extracts the most recent tool call ID from an assistant message
+    using JMESPath instead of JSONPath.
+
+    Args:
+        payload (dict): The JSON request payload.
+
+    Returns:
+        str: The extracted chat ID if found; otherwise None.
+    """
+    path_expr = os.environ.get("STATEFUL_CHAT_ID_PATH", "messages[?role=='assistant'][-1].tool_calls[-1].id")
+    
+    try:
+        chat_id = jmespath.search(path_expr, payload)
+        if chat_id:
+            return chat_id  # Ensure we return the extracted conversation ID
+        logger.debug("No conversation ID found in assistant tool calls.")
+        return None
+    except Exception as e:
+        logger.error(f"Error extracting chat ID with JMESPath: {e}", exc_info=True)
+        return None

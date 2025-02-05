@@ -13,6 +13,7 @@ Endpoints:
 import json
 import uuid
 import time
+import os
 from typing import Any, Dict, List
 from pathlib import Path
 from django.shortcuts import redirect, get_object_or_404, render
@@ -20,6 +21,7 @@ from django.urls import reverse
 from django.views.generic import TemplateView
 from django.views import View
 from django.http import JsonResponse, HttpResponse
+from rest_framework.response import Response
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -35,6 +37,7 @@ from swarm.extensions.config.config_loader import (
 )
 from swarm.utils.logger_setup import setup_logger
 from swarm.utils.redact import redact_sensitive_data
+from swarm.utils.general_utils import extract_chat_id
 
 # Initialize logger for this module
 logger = setup_logger(__name__)
@@ -72,7 +75,6 @@ except ValueError as e:
     logger.critical(f"Failed to load LLM configuration: {e}")
     raise e
 
-
 def serialize_swarm_response(response: Any, model_name: str, context_variables: Dict[str, Any]) -> Dict[str, Any]:
     """
     Serializes the Swarm response while removing non-serializable objects like functions.
@@ -87,8 +89,8 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
         tool calls, and additional context.
     """
     # Convert to dictionary if response is a Pydantic object
-    if hasattr(response, "dict"):
-        response = response.dict()
+    if hasattr(response, "model_dump"):
+        response = response.model_dump()
 
     messages = response.get("messages", [])
 
@@ -137,75 +139,99 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
         "full_response": clean_response,  # Fully cleaned response
     }
 
-
 @api_view(['POST'])
 @csrf_exempt
 @authentication_classes([EnvOrTokenAuthentication])
 @permission_classes([IsAuthenticated])
 def chat_completions(request):
     if request.method != "POST":
-        return JsonResponse({"error": "Method not allowed. Use POST."}, status=405)
-
-    # logger.info(f"Received Headers: {request.headers}")
-    logger.info(f"Authenticated User: {request.user}")  # Who is authenticated?
-    logger.info(f"Is Authenticated? {request.user.is_authenticated}")  # Is user authenticated?
-
+        return Response({"error": "Method not allowed. Use POST."}, status=405)
+    
+    logger.info(f"Authenticated User: {request.user}")
+    logger.info(f"Is Authenticated? {request.user.is_authenticated}")
+    
     try:
         body = json.loads(request.body)
         model = body.get("model", "default")
         messages = body.get("messages", [])
-        context_variables = body.get("context_variables", {})  # Pass full context
-
+        if not messages and "message" in body:
+            messages = [body.get("message")]
+        messages = [msg if isinstance(msg, dict) else {"content": msg} for msg in messages]
+        context_variables = body.get("context_variables", {})
+        conversation_id = extract_chat_id(body)
+        messages = [msg if isinstance(msg, dict) else {"content": msg} for msg in messages]
+        for idx, msg in enumerate(messages):
+            if "role" not in msg:
+                messages[idx]["role"] = "user"
+    
         if not messages:
-            return JsonResponse({"error": "Messages are required."}, status=400)
+            return Response({"error": "Messages are required."}, status=400)
     except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
-
-    # Validate and initialize the blueprint
+        return Response({"error": "Invalid JSON payload."}, status=400)
     blueprint_meta = blueprints_metadata.get(model)
     if not blueprint_meta:
-        return JsonResponse({"error": f"Model '{model}' not found."}, status=404)
-
-    blueprint_class = blueprint_meta.get("blueprint_class")
-    if not blueprint_class:
-        return JsonResponse({"error": f"Blueprint class for model '{model}' is not defined."}, status=500)
-
+        if model == "default":
+            from swarm.extensions.blueprint.blueprint_base import BlueprintBase
+            class DummyBlueprint(BlueprintBase):
+                metadata = {"title": "Dummy Blueprint", "env_vars": []}
+                def create_agents(self) -> dict:
+                    DummyAgent = type("DummyAgent", (), {"name": "DummyAgent"})
+                    self.starting_agent = DummyAgent
+                    return {"DummyAgent": DummyAgent}
+            blueprint_instance = DummyBlueprint(config=config)
+        else:
+            return Response({"error": f"Model '{model}' not found."}, status=404)
+    else:
+        blueprint_class = blueprint_meta.get("blueprint_class")
+        if not blueprint_class:
+            return Response({"error": f"Blueprint class for model '{model}' is not defined."}, status=500)
+        try:
+            blueprint_instance = blueprint_class(config=config)
+            active_agent = context_variables.get("active_agent_name", "Assistant")
+            if active_agent not in blueprint_instance.swarm.agents:
+                logger.debug(f"No active agent parsed from context_variables")
+            else:
+                logger.debug(f"Using active agent: {active_agent}")
+                blueprint_instance.set_active_agent(active_agent)
+        except Exception as e:
+            logger.error(f"Error initializing blueprint: {e}", exc_info=True)
+            return Response({"error": f"Error initializing blueprint: {str(e)}"}, status=500)
+    
     try:
-        blueprint_instance = blueprint_class(config=config)
-
-        # 🔥 Ensure we use the active agent from context_variables
-        active_agent = context_variables.get("active_agent_name", "Assistant")
-
-        if active_agent not in blueprint_instance.swarm.agents:
-            logger.warning(f"Invalid active agent '{active_agent}', defaulting to Assistant.")
-            active_agent = "Assistant"
-
-        logger.debug(f"Using active agent: {active_agent}")
-        blueprint_instance.set_active_agent(active_agent)
-
-    except Exception as e:
-        logger.error(f"Error initializing blueprint: {e}", exc_info=True)
-        return JsonResponse({"error": f"Error initializing blueprint: {str(e)}"}, status=500)
-
-    try:
-        # Run the blueprint with the provided messages and context
+        redis_client = None
+        if conversation_id:
+            try:
+                import redis
+                redis_client = redis.Redis()
+                history_raw = redis_client.get(conversation_id)
+                if history_raw and isinstance(history_raw, (str, bytes, bytearray)):
+                    past_messages = json.loads(history_raw)
+                else:
+                    past_messages = []
+            except Exception as e:
+                logger.error(f"Error retrieving conversation history: {e}", exc_info=True)
+                past_messages = []
+            messages = past_messages + messages
+    
         result = blueprint_instance.run_with_context(messages, context_variables)
-        response = result["response"]
+        response_obj = result["response"]
         updated_context = result["context_variables"]
-
-        # 🔥 Ensure response is a dictionary
-        if hasattr(response, "dict"):
-            response = response.dict()
-
-        # Return updated response
-        return JsonResponse(
-            serialize_swarm_response(response, model, updated_context),
-            status=200
-        )
-
+    
+        if hasattr(response_obj, "model_dump"):
+            response_obj = response_obj.model_dump()
+        serialized = serialize_swarm_response(response_obj, model, updated_context)
+        if conversation_id:
+            serialized["conversation_id"] = conversation_id
+            try:
+                full_history = messages + [response_obj]
+                if redis_client:
+                    redis_client.set(conversation_id, json.dumps(full_history))
+            except Exception as e:
+                logger.error(f"Error storing conversation history: {e}", exc_info=True)
+        return Response(serialized, status=200)
     except Exception as e:
         logger.error(f"Error during execution: {e}", exc_info=True)
-        return JsonResponse({"error": f"Error during execution: {str(e)}"}, status=500)
+        return Response({"error": f"Error during execution: {str(e)}"}, status=500)
 
 @csrf_exempt
 def list_models(request):
@@ -231,7 +257,6 @@ def list_models(request):
         return JsonResponse({"error": "Internal Server Error"}, status=500)
 
 
-class IndexView(LoginRequiredMixin, TemplateView):
     template_name = 'index.html'
 
     def get_context_data(self, **kwargs):
@@ -242,13 +267,11 @@ class IndexView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class StartConversationView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         conversation = ChatConversation.objects.create(user=request.user)
         return redirect(reverse('chat_page', args=[conversation.pk]))
 
 
-class ChatView(LoginRequiredMixin, TemplateView):
     template_name = 'chat.html'
 
     def get_context_data(self, **kwargs):
@@ -264,7 +287,6 @@ class ChatView(LoginRequiredMixin, TemplateView):
 
 @csrf_exempt
 def django_chat_webpage(request, blueprint_name):
-    conversation_id = uuid.uuid4().hex
     return render(request, 'django_chat_webpage.html', {'conversation_id': conversation_id, 'blueprint_name': blueprint_name})
 
 
@@ -317,7 +339,6 @@ def chatbot(request):
 
 DEFAULT_CONFIG = {
     "llm": {
-        "default": {
             "provider": "openai",
             "model": "llama3.2:latest",
             "base_url": "http://localhost:11434/v1",
@@ -325,7 +346,6 @@ DEFAULT_CONFIG = {
             "temperature": 0.3
         }
     }
-}
 
 def serve_swarm_config(request):
     config_path = Path(settings.BASE_DIR) / "swarm_config.json"

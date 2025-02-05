@@ -141,7 +141,15 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'  # Define a root directory for collectsta
 STATICFILES_DIRS = [
     BASE_DIR / "src/swarm/static"
 ]
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

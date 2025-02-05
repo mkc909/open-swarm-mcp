@@ -711,11 +711,16 @@ class Swarm:
         for idx, message in enumerate(messages):
             if message["role"] == "assistant" and message.get("tool_calls"):
                 for tool_call in message["tool_calls"]:
-                    tool_call_id = tool_call["id"]
+                    tool_call_id = tool_call.get("id")
+                    if not tool_call_id:
+                        continue
+                    if "function" not in tool_call:
+                        logger.warning(f"Missing 'function' in tool_call with id {tool_call_id}. Skipping this tool call.")
+                        continue
                     tool_call_map[tool_call_id] = {
                         "function": tool_call["function"],
-                        "type": tool_call["type"],
-                        "name": tool_call["function"]["name"],
+                        "type": tool_call.get("type", ""),
+                        "name": tool_call["function"].get("name", ""),
                     }
 
         # Step 2: Iterate and ensure that each assistant message with tool_calls is followed by tool messages

@@ -1,4 +1,5 @@
 import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'swarm.settings')
 import shutil
 from pathlib import Path
 from dotenv import load_dotenv
@@ -6,11 +7,14 @@ from dotenv import load_dotenv
 # Load environment variables immediately upon importing conftest.py
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
-
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'swarm.settings')
+   
 def pytest_configure():
     """
     Pytest configuration hook to set up the testing environment.
     """
+    import django
+    django.setup()
     # Copy swarm_config.json to the temporary testing directory
     config_file = Path(__file__).parent.parent / "swarm_config.json"
     if config_file.exists():

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.http import HttpResponse
 from django.conf import settings
 from django.conf.urls.static import static
@@ -19,8 +19,8 @@ ENABLE_WEBUI = os.getenv("ENABLE_WEBUI", "false").lower() in ("true", "1", "t")
 
 # Always available API endpoints
 urlpatterns = [
-    path('v1/chat/completions', views.chat_completions, name='chat_completions'),
-    path('v1/models/', views.list_models, name='list_models'),
+    re_path(r'^v1/chat/completions/?$', views.chat_completions, name='chat_completions'),
+    re_path(r'^v1/models/?$', views.list_models, name='list_models'),
 ]
 
 # Enable /admin/ if ENABLE_ADMIN is set

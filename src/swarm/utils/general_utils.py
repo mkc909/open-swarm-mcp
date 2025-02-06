@@ -1,8 +1,11 @@
 import os
 import logging
 import jmespath
+from swarm.utils.logger_setup import setup_logger
 
-logger = logging.getLogger(__name__)
+# Initialize logger for this module
+logger = setup_logger(__name__)
+
 
 def find_project_root(current_path: str, marker: str = ".git") -> str:
     """
@@ -55,26 +58,28 @@ def color_text(text: str, color: str = "white") -> str:
 
 def extract_chat_id(payload: dict) -> str:
     """
-    Extracts the most recent tool call ID from an assistant message
-    using JMESPath. 
-
-    Args:
-        payload (dict): The JSON request payload.
-
-    Returns:
-        str: The extracted chat ID if found; otherwise None.
+    Extracts the most recent tool call ID from an assistant message using JMESPath.
+    Falls back to the most recent tool call ID if filtering fails.
     """
-    path_expr = os.environ.get("STATEFUL_CHAT_ID_PATH", "messages[?role=='assistant'][-1].tool_calls[-1].id")
-    
-    try:
-        logger.debug(f"Extracting chat ID with JMESPath: {path_expr}")
-        chat_id = jmespath.search(path_expr, payload)
-        logger.debug(f"Extracted chat ID: {chat_id}")
+    # TODO use envvar
+    primary_path = "messages[?role=='assistant'].tool_calls[*].id | [-1][-1]"  # Preferred
+    alt_path = "reverse(messages)[?role=='assistant'] | [0].tool_calls[-1].id"  # Alternative
+    fallback_path = "messages[*].tool_calls[*].id | [-1][-1]"  # Final fallback
 
-        if chat_id:
-            return chat_id  # Ensure we return the extracted conversation ID
-        logger.debug("No conversation ID found in assistant tool calls.")
-        return None
+    try:
+        logger.debug(f"Extracting chat ID with primary JMESPath: {primary_path}")
+        chat_id = jmespath.search(primary_path, payload)
+
+        if not chat_id:
+            logger.debug(f"Primary failed, trying alternative JMESPath: {alt_path}")
+            chat_id = jmespath.search(alt_path, payload)
+
+        if not chat_id:
+            logger.debug(f"Alternative failed, trying fallback JMESPath: {fallback_path}")
+            chat_id = jmespath.search(fallback_path, payload)
+
+        logger.debug(f"Extracted chat ID: {chat_id}" if chat_id else "No conversation ID found.")
+        return chat_id if chat_id else None
     except Exception as e:
         logger.error(f"Error extracting chat ID with JMESPath: {e}", exc_info=True)
         return None

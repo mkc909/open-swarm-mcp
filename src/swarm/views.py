@@ -164,49 +164,39 @@ def chat_completions(request):
         return Response({"error": "Method not allowed. Use POST."}, status=405)
 
     logger.info(f"Authenticated User: {request.user}")
-    # logger.info(f"Is Authenticated? {request.user.is_authenticated}")
 
-    # 1) Parse incoming request
     parse_result = parse_chat_request(request)
     if isinstance(parse_result, Response):
         return parse_result
 
-    body, model, messages, context_vars, conversation_id = parse_result
+    body, model, messages, context_vars, conversation_id, tool_call_id = parse_result
 
-    # 2) Get or create an appropriate blueprint instance
     blueprint_instance_response = get_blueprint_instance(model, context_vars)
     if isinstance(blueprint_instance_response, Response):
         return blueprint_instance_response
     blueprint_instance = blueprint_instance_response
 
-    # 3) Load conversation history from Redis or DB (using ChatMessage table)
-    messages_extended = load_conversation_history(conversation_id, messages)
+    messages_extended = load_conversation_history(conversation_id, messages, tool_call_id)
 
-    # 4) Run the conversation via the blueprint
     try:
         response_obj, updated_context = run_conversation(blueprint_instance, messages_extended, context_vars)
     except Exception as e:
         logger.error(f"Error during execution: {e}", exc_info=True)
         return Response({"error": f"Error during execution: {str(e)}"}, status=500)
 
-    if hasattr(response_obj, "model_dump"):
-        response_obj = response_obj.model_dump()
-
     serialized = serialize_swarm_response(response_obj, model, updated_context)
 
-    # 6) Store updated conversation history using DB (or Redis if available)
     if conversation_id:
         serialized["conversation_id"] = conversation_id
         store_conversation_history(conversation_id, messages_extended, response_obj)
 
-    # 7) Return final response
     return Response(serialized, status=200)
 
 
 def parse_chat_request(request) -> Any:
     """
     Extract & validate JSON. Return tuple or an error Response.
-    Ensures conversation_id is always present.
+    Ensures conversation_id is always present as a string.
     """
     try:
         body = json.loads(request.body)
@@ -219,12 +209,20 @@ def parse_chat_request(request) -> Any:
         messages = [msg if isinstance(msg, dict) else {"content": msg} for msg in messages]
         context_variables = body.get("context_variables", {})
 
-        from .views import extract_chat_id  # Adjust import as needed
+        # 🔄 Extract `conversation_id` using updated JMESPath logic
         conversation_id = extract_chat_id(body)
 
-        # 🚨 Guard: If no conversation_id, generate a new one
+        # 🔄 Extract `tool_call_id`
+        tool_call_id = None
+        if messages:
+            last_message = messages[-1]
+            tool_calls = last_message.get("tool_calls", [])
+            if tool_calls:
+                tool_call_id = tool_calls[-1].get("id")
+
+        # 🚨 Guard: If no `conversation_id`, generate a new one (as a string)
         if not conversation_id:
-            conversation_id = str(uuid.uuid4())
+            conversation_id = str(uuid.uuid4())  # Always a string
             logger.warning(f"⚠️ No conversation_id detected, generating new ID: {conversation_id}")
 
         for idx, msg in enumerate(messages):
@@ -234,11 +232,10 @@ def parse_chat_request(request) -> Any:
         if not messages:
             return Response({"error": "Messages are required."}, status=400)
 
-        return (body, model, messages, context_variables, conversation_id)
+        return (body, model, messages, context_variables, conversation_id, tool_call_id)
 
     except json.JSONDecodeError:
         return Response({"error": "Invalid JSON payload."}, status=400)
-
 
 def get_blueprint_instance(model: str, context_vars: dict) -> Any:
     """
@@ -279,17 +276,17 @@ def get_blueprint_instance(model: str, context_vars: dict) -> Any:
         return Response({"error": f"Error initializing blueprint: {str(e)}"}, status=500)
 
 
-def load_conversation_history(conversation_id: Optional[str], messages: List[dict]) -> List[dict]:
+def load_conversation_history(conversation_id: Optional[str], messages: List[dict], tool_call_id: Optional[str] = None) -> List[dict]:
     """
     Retrieve conversation history from Redis if available; otherwise, read from the database using the ChatMessage table.
-    Combines the stored history with the new incoming messages.
+    Supports filtering by `tool_call_id` to fetch context-relevant messages.
     """
     if not conversation_id:
         logger.warning("⚠️ No conversation_id provided, returning only new messages.")
         return messages  # No previous conversation
 
     past_messages = []
-    
+
     # Try Redis first if enabled
     if REDIS_AVAILABLE and redis_client:
         try:
@@ -299,35 +296,36 @@ def load_conversation_history(conversation_id: Optional[str], messages: List[dic
                 logger.debug(f"✅ Retrieved {len(past_messages)} messages from Redis for conversation: {conversation_id}")
         except Exception as e:
             logger.error(f"⚠️ Error retrieving conversation history from Redis: {e}", exc_info=True)
-    
+
     # Fallback to database if Redis fails or is unavailable
     if not past_messages:
         try:
             conversation = ChatConversation.objects.get(conversation_id=conversation_id)
+            query = conversation.messages.all()
+
+            # Apply `tool_call_id` filter if provided
+            if tool_call_id:
+                query = query.filter(tool_call_id=tool_call_id)
+
             past_messages = list(
-                conversation.messages.all().order_by("timestamp").values("sender", "content", "timestamp")
+                query.order_by("timestamp").values("sender", "content", "timestamp", "tool_call_id")
             )
-            logger.debug(f"✅ Retrieved {len(past_messages)} messages from DB for conversation: {conversation_id}")
+            logger.debug(f"✅ Retrieved {len(past_messages)} messages from DB for conversation: {conversation_id}, tool_call_id: {tool_call_id}")
         except ChatConversation.DoesNotExist:
             logger.warning(f"⚠️ No existing conversation found in DB for ID: {conversation_id}")
             past_messages = []
 
-    # 🛠 Ensure past messages are correctly structured before appending
     formatted_past_messages = [
         {
             "role": msg["sender"],
             "content": msg["content"],
-            "timestamp": msg["timestamp"]
+            "timestamp": msg["timestamp"],
+            "tool_call_id": msg.get("tool_call_id")  # Include tool_call_id in case of further filtering
         }
         for msg in past_messages
     ]
 
-    # 🚨 Log debug info before returning
-    logger.debug(f"📜 Combined conversation history for {conversation_id}: {formatted_past_messages + messages}")
-
     return formatted_past_messages + messages  # Merge past messages with new ones
-
-
 
 def store_conversation_history(conversation_id, full_history, response_obj=None):
     """
@@ -335,13 +333,12 @@ def store_conversation_history(conversation_id, full_history, response_obj=None)
     
     Args:
         conversation_id (str): Unique identifier for the conversation.
-        full_history (list): List of message dicts with "role" and "content".
+        full_history (list): List of message dicts with "role", "content", and optional "tool_call_id".
     
     Returns:
         bool: True if successfully stored, False otherwise.
     """
     try:
-        # Ensure conversation exists or create a new one
         chat, created = ChatConversation.objects.get_or_create(conversation_id=conversation_id)
 
         if created:
@@ -349,7 +346,6 @@ def store_conversation_history(conversation_id, full_history, response_obj=None)
         else:
             logger.debug(f"🔄 Updating existing ChatConversation: {conversation_id}")
 
-        # Add messages correctly instead of direct assignment
         new_messages = []
         for msg in full_history:
             if not msg.get("content"):
@@ -360,11 +356,11 @@ def store_conversation_history(conversation_id, full_history, response_obj=None)
                 ChatMessage(
                     conversation=chat,
                     sender=msg.get("role", "unknown"),  # Defaults to "unknown" if missing
-                    content=msg["content"]
+                    content=msg["content"],
+                    tool_call_id=msg.get("tool_call_id")  # Store tool_call_id if available
                 )
             )
 
-        # Bulk insert messages for performance
         if new_messages:
             ChatMessage.objects.bulk_create(new_messages)
             logger.debug(f"✅ Stored {len(new_messages)} messages for conversation {conversation_id}")

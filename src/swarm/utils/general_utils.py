@@ -67,7 +67,10 @@ def extract_chat_id(payload: dict) -> str:
     path_expr = os.environ.get("STATEFUL_CHAT_ID_PATH", "messages[?role=='assistant'][-1].tool_calls[-1].id")
     
     try:
+        logger.debug(f"Extracting chat ID with JMESPath: {path_expr}")
         chat_id = jmespath.search(path_expr, payload)
+        logger.debug(f"Extracted chat ID: {chat_id}")
+
         if chat_id:
             return chat_id  # Ensure we return the extracted conversation ID
         logger.debug("No conversation ID found in assistant tool calls.")

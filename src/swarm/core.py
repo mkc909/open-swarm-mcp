@@ -566,25 +566,10 @@ class Swarm:
     ) -> Response:
         """
         Runs the conversation synchronously.
-
-        Args:
-            agent (Agent): The agent to run.
-            messages (List[Dict[str, Any]]): The conversation history.
-            context_variables (dict): Additional context variables.
-            model_override (Optional[str]): Model override if any.
-            stream (bool): Whether to enable streaming responses.
-            debug (bool): Whether to enable debug logging.
-            max_turns (int): Maximum number of turns to run.
-            execute_tools (bool): Whether to execute tools.
-
-        Returns:
-            Response: The response from the agent.
         """
 
-        # Discover and merge tools before starting the conversation
         all_functions = asyncio.run(self.discover_and_merge_agent_tools(agent, debug=debug))
-        agent.functions = all_functions  # Update agent's functions with discovered tools
-
+        agent.functions = all_functions
         if stream:
             return self.run_and_stream(
                 agent=agent,
@@ -595,17 +580,18 @@ class Swarm:
                 max_turns=max_turns,
                 execute_tools=execute_tools,
             )
-
         active_agent = agent
         context_variables = copy.deepcopy(context_variables)
         history = copy.deepcopy(messages)
         init_len = len(messages)
 
-        # Ensure initial active agent name is set
+        # Ensure active agent name is set
         context_variables["active_agent_name"] = active_agent.name
 
-        while len(history) - init_len < max_turns and active_agent:
-            # Get completion with current history and agent
+        turn_count = 0
+        while turn_count < max_turns and active_agent:
+            turn_count += 1
+
             completion = self.get_chat_completion(
                 agent=active_agent,
                 history=history,
@@ -615,41 +601,67 @@ class Swarm:
                 debug=debug,
             )
 
-            # Extract the completion message
+            # 1) Extract the completion message from GPT
             try:
                 message = completion.choices[0].message
             except Exception as e:
                 logger.error(f"Failed to extract message from completion: {e}")
                 break
 
-            logger.debug(f"Received completion: {message}")
             message.sender = active_agent.name
-            history.append(
-                json.loads(message.model_dump_json())
-            )  # Convert to standard dict format for processing
 
-            # If no tool calls or tools aren't being executed, end the loop
-            if not message.tool_calls or not execute_tools:
-                logger.debug("No tool calls or tool execution disabled. Ending turn.")
+            # 2) Check the content & tool calls
+            raw_content = message.content or ""
+            has_tool_calls = bool(message.tool_calls)
+
+            if debug:
+                logger.debug(
+                    f"[DEBUG] Received message from {message.sender}, "
+                    f"raw_content={raw_content!r}, has_tool_calls={has_tool_calls}"
+                )
+
+            # **Always** append the assistant message (preserves conversation flow)
+            # even if content = None, because it might contain relevant tool_calls
+            # or mark an agent switch
+            history.append(json.loads(message.model_dump_json()))
+
+            # 3) If the LLM wants to call a tool/function
+            if has_tool_calls and execute_tools:
+                partial_response = self.handle_tool_calls(
+                    message.tool_calls,
+                    active_agent.functions,
+                    context_variables,
+                    debug,
+                )
+                # Store the tool responses in history
+                history.extend(partial_response.messages)
+                context_variables.update(partial_response.context_variables)
+
+                # Possibly the agent changes
+                if partial_response.agent:
+                    active_agent = partial_response.agent
+                    context_variables["active_agent_name"] = active_agent.name
+                    logger.debug(f"Switched active agent to: {active_agent.name}")
+
+                # After handling tool calls, do NOT break – let the loop continue
+                continue
+
+            # 4) If there's actual user-facing content (non-empty text) from GPT
+            # we can break out or do another turn if needed
+            if raw_content.strip():
+                # This is an actual final assistant response to the user
+                break
+            else:
+                # If there's no text and no tool calls, there is no next step
+                logger.debug("Empty assistant message with no tool calls. Ending.")
                 break
 
-            # Handle tool calls, updating context variables and switching agents if needed
-            partial_response = self.handle_tool_calls(
-                message.tool_calls, active_agent.functions, context_variables, debug
-            )
-            history.extend(partial_response.messages)
-            context_variables.update(partial_response.context_variables)
+        # 5) Optionally filter out internal system messages, or keep them:
+        final_messages = history[init_len:]
 
-            # Update the active agent if a new agent is returned
-            if partial_response.agent:
-                active_agent = partial_response.agent
-                context_variables["active_agent_name"] = active_agent.name
-                logger.debug(f"Active agent switched to: {active_agent.name}")
-
-        # Return the final response
         return Response(
             id=f"response-{uuid.uuid4()}",
-            messages=history[init_len:],
+            messages=final_messages,
             agent=active_agent,
             context_variables=context_variables,
         )
@@ -694,7 +706,7 @@ class Swarm:
 
     def repair_message_payload(self, messages: List[Dict[str, Any]], debug: bool = False) -> List[Dict[str, Any]]:
         """
-        Repairs the message sequence by ensuring that every assistant message with tool_calls
+        Repairs the message sequence by ensuring every assistant message with tool_calls
         is followed by the corresponding tool messages.
 
         Args:
@@ -732,16 +744,16 @@ class Swarm:
             if message["role"] == "assistant" and message.get("tool_calls"):
                 for tool_call in message["tool_calls"]:
                     tool_call_id = tool_call["id"]
-                    # Check if a corresponding tool message exists after the assistant message
+
+                    # Ensure a corresponding tool message exists after the assistant message
                     tool_message_exists = False
                     for j in range(i + 1, len(messages)):
                         next_message = messages[j]
                         if next_message["role"] == "tool" and next_message.get("tool_call_id") == tool_call_id:
                             tool_message_exists = True
                             break
-                        # If another assistant message is found before the tool message, stop searching
                         if next_message["role"] == "assistant":
-                            break
+                            break  # Stop checking if we hit another assistant message
 
                     if not tool_message_exists:
                         logger.warning(f"Missing tool message for tool_call_id: {tool_call_id}. Repairing...")
@@ -755,15 +767,28 @@ class Swarm:
 
             i += 1
 
-        # Step 3: Validate the repaired sequence
+        # Step 3: **Fix orphaned tool messages** that have no corresponding assistant request
+        valid_tool_call_ids = set(tool_call_map.keys())
+        filtered_messages = []
+
+        for msg in repaired_messages:
+            if msg["role"] == "tool":
+                if msg.get("tool_call_id") not in valid_tool_call_ids:
+                    logger.error(
+                        f"[ERROR] Removing orphaned tool message at index {i}: {msg}. No corresponding assistant tool call found."
+                    )
+                    continue  # Remove the invalid tool message
+            filtered_messages.append(msg)
+
+        # Step 4: Validate the repaired sequence
         try:
-            self.validate_message_sequence(repaired_messages)
+            self.validate_message_sequence(filtered_messages)
         except ValueError as e:
-            logger.error(f"Validation failed after repair: {e}")
+            logger.error(f"[ERROR] Validation failed after repair: {e}")
             raise
 
         if debug:
-            logger.debug("Repaired message payload:")
-            logger.debug(json.dumps(repaired_messages, indent=2))
+            logger.debug("[DEBUG] Repaired message payload:")
+            logger.debug(json.dumps(filtered_messages, indent=2))
 
-        return repaired_messages
+        return filtered_messages

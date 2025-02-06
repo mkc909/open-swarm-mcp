@@ -5,12 +5,16 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from openai import AsyncOpenAI
 from django.template.loader import render_to_string
 from channels.db import database_sync_to_async
-from swarm.models import ChatConversation
+from swarm.models import ChatConversation, ChatMessage
+
+# In-memory conversation storage (populated lazily)
+IN_MEMORY_CONVERSATIONS = {}
 
 class DjangoChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope["user"]
         self.conversation_id = self.scope['url_route']['kwargs']['conversation_id']
+
         if self.user.is_authenticated:
             self.messages = await self.fetch_conversation(self.conversation_id)
             await self.accept()
@@ -20,9 +24,14 @@ class DjangoChatConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         if self.user.is_authenticated:
             await self.save_conversation(self.conversation_id, self.messages)
-            # delete conversation if no messages
+
+            # Delete conversation from DB and memory if empty
             if not self.messages:
                 await self.delete_conversation(self.conversation_id)
+
+            # Clean up in-memory cache to avoid leaks
+            if self.conversation_id in IN_MEMORY_CONVERSATIONS:
+                del IN_MEMORY_CONVERSATIONS[self.conversation_id]
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
@@ -73,6 +82,7 @@ class DjangoChatConsumer(AsyncWebsocketConsumer):
                 "content": full_message,
             }
         )
+
         final_message = render_to_string(
             "websocket_partials/final_system_message.html",
             {
@@ -84,21 +94,48 @@ class DjangoChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=final_message)
 
     @database_sync_to_async
-    def fetch_conversation(self, id):
-        chat = ChatConversation.objects.get(id=id, user=self.user)
-        return chat.conversation if chat.conversation else []
+    def fetch_conversation(self, conversation_id):
+        """
+        Fetch conversation messages from memory or DB. If missing from memory, load from DB.
+        """
+        if conversation_id in IN_MEMORY_CONVERSATIONS:
+            return IN_MEMORY_CONVERSATIONS[conversation_id]
 
-    @database_sync_to_async
-    def save_conversation(self, id, new_messages):
-        chat = ChatConversation.objects.get(id=id, user=self.user)
-        chat.conversation = new_messages
-        chat.save()
-
-    @database_sync_to_async
-    def delete_conversation(self, id):
         try:
-            chat = ChatConversation.objects.get(id=id, user=self.user)
-            if not chat.conversation:  # Double-checking in case messages were added
+            chat = ChatConversation.objects.get(conversation_id=conversation_id, user=self.user)
+            messages = list(chat.messages.values("sender", "content", "timestamp"))
+            IN_MEMORY_CONVERSATIONS[conversation_id] = messages  # Cache it
+            return messages
+        except ChatConversation.DoesNotExist:
+            return []
+
+    @database_sync_to_async
+    def save_conversation(self, conversation_id, new_messages):
+        """
+        Save messages to the DB and update in-memory cache.
+        """
+        chat, _ = ChatConversation.objects.get_or_create(conversation_id=conversation_id, user=self.user)
+
+        for message in new_messages:
+            ChatMessage.objects.create(
+                conversation=chat,
+                sender=message["role"],
+                content=message["content"]
+            )
+
+        # Sync in-memory store
+        IN_MEMORY_CONVERSATIONS[conversation_id] = new_messages
+
+    @database_sync_to_async
+    def delete_conversation(self, conversation_id):
+        """
+        Delete the conversation from DB if empty.
+        """
+        try:
+            chat = ChatConversation.objects.get(conversation_id=conversation_id, user=self.user)
+            if not chat.messages.exists():  # Check if there are any messages before deleting
                 chat.delete()
+                if conversation_id in IN_MEMORY_CONVERSATIONS:
+                    del IN_MEMORY_CONVERSATIONS[conversation_id]  # Cleanup memory cache
         except ChatConversation.DoesNotExist:
             pass

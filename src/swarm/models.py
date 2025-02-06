@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
+
 class ChatConversation(models.Model):
     """Represents a single chat session."""
     conversation_id = models.CharField(max_length=255, unique=True)
@@ -22,8 +23,3 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f"ChatMessage({self.sender}: {self.content[:30]})"
-
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from django.db.models.manager import RelatedManager
-    ChatConversation.__annotations__['messages'] = "RelatedManager[ChatMessage]"  # type: ignore

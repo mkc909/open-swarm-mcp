@@ -31,7 +31,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from swarm.auth import EnvOrTokenAuthentication
-from swarm.models import ChatConversation
+from swarm.models import ChatConversation, ChatMessage
 from swarm.extensions.blueprint import discover_blueprints
 from swarm.extensions.config.config_loader import (
     load_server_config,
@@ -177,7 +177,7 @@ def chat_completions(request):
         return blueprint_instance_response
     blueprint_instance = blueprint_instance_response
 
-    # 3) Load conversation history from Redis or DB
+    # 3) Load conversation history from Redis or DB (using ChatMessage table)
     messages_extended = load_conversation_history(conversation_id, messages)
 
     # 4) Run the conversation via the blueprint
@@ -274,7 +274,7 @@ def get_blueprint_instance(model: str, context_vars: dict) -> Any:
 
 def load_conversation_history(conversation_id: Optional[str], messages: List[dict]) -> List[dict]:
     """
-    Retrieve conversation history from Redis if available; otherwise, read from the database.
+    Retrieve conversation history from Redis if available; otherwise, read from the database using the ChatMessage table.
     Combines the stored history with the new incoming messages.
     """
     if not conversation_id:
@@ -290,8 +290,10 @@ def load_conversation_history(conversation_id: Optional[str], messages: List[dic
             logger.error(f"Error retrieving conversation history from Redis: {e}", exc_info=True)
     else:
         try:
-            chat = ChatConversation.objects.get(id=conversation_id)
-            past_messages = chat.conversation if chat.conversation else []
+            # Look up the ChatConversation using the conversation_id field
+            conversation = ChatConversation.objects.get(conversation_id=conversation_id)
+            # Get all related ChatMessage objects (ordered by timestamp)
+            past_messages = list(conversation.messages.all().order_by("timestamp").values("sender", "content", "timestamp"))
         except ChatConversation.DoesNotExist:
             past_messages = []
 
@@ -300,23 +302,44 @@ def load_conversation_history(conversation_id: Optional[str], messages: List[dic
 
 def store_conversation_history(conversation_id: str, messages: List[dict], response_obj: dict) -> None:
     """
-    Combine messages and the new response and store them in Redis if available;
-    otherwise, store the conversation history in the database.
+    Store conversation history using the ChatMessage table.
     """
     full_history = messages + [response_obj]
+
+    logger.debug(f"Storing conversation history for conversation_id={conversation_id}")
+
     if REDIS_AVAILABLE and redis_client:
         try:
             redis_client.set(conversation_id, json.dumps(full_history))
+            logger.debug(f"✅ Successfully stored conversation history in Redis for conversation_id={conversation_id}")
             return
         except Exception as e:
-            logger.error(f"Error storing conversation history in Redis: {e}", exc_info=True)
+            logger.error(f"⚠️ Error storing conversation history in Redis: {e}", exc_info=True)
+
     try:
-        chat, created = ChatConversation.objects.get_or_create(id=conversation_id, defaults={'conversation': full_history})
-        if not created:
-            chat.conversation = full_history
-            chat.save()
+        # Get or create the ChatConversation using the conversation_id field
+        conversation, created = ChatConversation.objects.get_or_create(conversation_id=conversation_id)
+        if created:
+            logger.debug(f"🆕 Created new ChatConversation with id={conversation_id}")
+        else:
+            logger.debug(f"🔄 Retrieved existing ChatConversation with id={conversation_id}")
+
+        # Determine how many messages are already stored
+        existing_count = conversation.messages.count()
+        new_messages = full_history[existing_count:]
+
+        logger.debug(f"Found {existing_count} existing messages, adding {len(new_messages)} new messages.")
+
+        for msg in new_messages:
+            chat_message = ChatMessage.objects.create(
+                conversation=conversation,
+                sender=msg["role"],
+                content=msg["content"]
+            )
+            logger.debug(f"📩 Stored ChatMessage (id={chat_message.id}) from {msg['role']}: {msg['content'][:50]}")
+
     except Exception as e:
-        logger.error(f"Error storing conversation history in database: {e}", exc_info=True)
+        logger.error(f"⚠️ Error storing conversation history in database: {e}", exc_info=True)
 
 
 def run_conversation(blueprint_instance: Any,

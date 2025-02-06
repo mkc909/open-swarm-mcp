@@ -329,7 +329,7 @@ def load_conversation_history(conversation_id: Optional[str], messages: List[dic
 
 def store_conversation_history(conversation_id, full_history, response_obj=None):
     """
-    Stores a conversation and its messages in the database.
+    Stores only new messages in the database to prevent duplication.
     
     Args:
         conversation_id (str): Unique identifier for the conversation.
@@ -346,26 +346,34 @@ def store_conversation_history(conversation_id, full_history, response_obj=None)
         else:
             logger.debug(f"🔄 Updating existing ChatConversation: {conversation_id}")
 
+        # 🔍 Get already stored messages to prevent duplication
+        stored_messages = set(
+            chat.messages.values_list("content", flat=True)
+        )
+
         new_messages = []
         for msg in full_history:
             if not msg.get("content"):
                 logger.warning(f"⚠️ Skipping empty message in conversation {conversation_id}")
                 continue  # Skip empty messages
 
-            new_messages.append(
-                ChatMessage(
-                    conversation=chat,
-                    sender=msg.get("role", "unknown"),  # Defaults to "unknown" if missing
-                    content=msg["content"],
-                    tool_call_id=msg.get("tool_call_id")  # Store tool_call_id if available
+            # 🔍 Only store messages that are NOT already in the database
+            if msg["content"] not in stored_messages:
+                new_messages.append(
+                    ChatMessage(
+                        conversation=chat,
+                        sender=msg.get("role", "unknown"),
+                        content=msg["content"],
+                        tool_call_id=msg.get("tool_call_id")
+                    )
                 )
-            )
+                stored_messages.add(msg["content"])  # Ensure we don’t add duplicates in this session
 
         if new_messages:
             ChatMessage.objects.bulk_create(new_messages)
-            logger.debug(f"✅ Stored {len(new_messages)} messages for conversation {conversation_id}")
+            logger.debug(f"✅ Stored {len(new_messages)} new messages for conversation {conversation_id}")
         else:
-            logger.warning(f"⚠️ No valid messages to store for conversation {conversation_id}")
+            logger.warning(f"⚠️ No new messages to store for conversation {conversation_id}")
 
         return True
 

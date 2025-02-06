@@ -179,7 +179,6 @@ class Swarm:
         
         return all_functions
 
-
     def get_chat_completion(
         self,
         agent: Agent,
@@ -220,19 +219,28 @@ class Swarm:
         context_variables = defaultdict(str, context_variables)
 
         instructions = (agent.instructions(context_variables) if callable(agent.instructions) else agent.instructions)
-        messages = [{"role": "system", "content": instructions}] + history
 
-        # Validate and clean up messages to avoid API errors
+        # ✅ **Track message IDs to prevent re-adding**
+        seen_message_ids = set()  
+        messages = [{"role": "system", "content": instructions}]
+
+        for msg in history:
+            msg_id = msg.get("id", hash(json.dumps(msg, sort_keys=True, default=serialize_datetime)))
+            if msg_id in seen_message_ids:
+                continue  # Skip already seen messages
+            seen_message_ids.add(msg_id)
+            messages.append(msg)
+
+        # ✅ **Fixes invalid 'tool' role messages**
         valid_messages = []
         saw_tool_calls = False
 
         for msg in messages:
             if msg.get("role") == "tool" and not saw_tool_calls:
-                logger.warning(f"⚠️ Removing invalid 'tool' message due to missing 'tool_calls': {msg}")
-                continue  # Skip invalid message
+                logger.warning(f"⚠️ Removing invalid 'tool' message: {msg}")
+                continue
             if msg.get("role") == "assistant" and "tool_calls" in msg:
-                saw_tool_calls = True  # Track valid tool call
-
+                saw_tool_calls = True
             valid_messages.append(msg)
 
         messages = self.repair_message_payload(valid_messages)
@@ -240,16 +248,7 @@ class Swarm:
         serialized_functions = [function_to_json(f) for f in agent.functions]
         tools = [func_dict for func_dict in serialized_functions]
 
-        for tool in tools:
-            params = tool.get("parameters", {})
-            properties = params.get("properties", {})
-            if __CTX_VARS_NAME__ in properties:
-                properties.pop(__CTX_VARS_NAME__)
-            required = params.get("required", [])
-            if __CTX_VARS_NAME__ in required:
-                required.remove(__CTX_VARS_NAME__)
-
-        # Ensure only one system message exists
+        # ✅ **Ensure only one system message**
         messages = filter_duplicate_system_messages(messages)
 
         create_params = {

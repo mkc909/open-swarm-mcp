@@ -178,3 +178,6 @@ uvx
 *.log
 .env.*
 staticfiles/*
+
+swarm-django.db
+swarm-django.db-*

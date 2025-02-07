@@ -60,6 +60,39 @@
 
     "mcpServers": {
 
+        "Home Assistant": {
+            "command": "mcp-proxy",
+            "env": {
+                "SSE_URL": "${HASS_URL}",
+                "API_ACCESS_TOKEN": "${HASS_API_KEY}"
+            }
+        },
+
+        "memory": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-memory"
+            ]
+        },
+
+        "claudeus-wp-mcp": {
+            "command": "npx",
+            "args": ["-y", "claudeus-wp-mcp"],
+            "env": {
+				"WP_SITES_PATH": "./wp-sites.json"
+			}
+        },
+
+        "mcp-server-reddit": {
+            "command": "uvx",
+            "args": [
+                "--from", 
+                "git+https://github.com/Hawstein/mcp-server-reddit mcp",
+                "mcp-server-reddit"
+            ]
+        },
+
         "mcp-shell": {
             "command": "npx",
             "args": ["-y", "github:hdresearch/mcp-shell"]
@@ -98,7 +131,6 @@
         "mcp-flowise": {
             "command": "uvx",
             "args": [
-                "--refresh", 
                 "--from", 
                 "git+https://github.com/matthewhand/mcp-flowise",
                 "mcp-flowise"
@@ -132,14 +164,6 @@
             "args": ["-y", "@anaisbetts/mcp-installer"]
         },
 
-        "memory": {
-            "command": "npx",
-            "args": [
-              "-y",
-              "@modelcontextprotocol/server-memory"
-            ]
-        },
-
         "sequential-thinking": {
             "command": "npx",
             "args": [
@@ -163,7 +187,7 @@
             ],
             "env": {
                 "ALLOWED_PATH": "${ALLOWED_PATH}"
-	    } 
+            } 
         }
 
     }

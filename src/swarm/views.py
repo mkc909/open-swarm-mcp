@@ -329,7 +329,7 @@ def load_conversation_history(conversation_id: Optional[str], messages: List[dic
 
 def store_conversation_history(conversation_id, full_history, response_obj=None):
     """
-    Stores only new messages in the database to prevent duplication.
+    Stores only new user and assistant messages in the database to prevent duplication.
     
     Args:
         conversation_id (str): Unique identifier for the conversation.
@@ -346,28 +346,34 @@ def store_conversation_history(conversation_id, full_history, response_obj=None)
         else:
             logger.debug(f"🔄 Updating existing ChatConversation: {conversation_id}")
 
-        # 🔍 Get already stored messages to prevent duplication
+        # 🔍 Get stored messages to prevent duplication
         stored_messages = set(
             chat.messages.values_list("content", flat=True)
         )
 
         new_messages = []
         for msg in full_history:
-            if not msg.get("content"):
+            if not msg.get("content") and not msg.get("tool_calls"):
                 logger.warning(f"⚠️ Skipping empty message in conversation {conversation_id}")
                 continue  # Skip empty messages
+            
+            role = msg.get("role", "unknown")
+            content = msg.get("content", "")
 
-            # 🔍 Only store messages that are NOT already in the database
-            if msg["content"] not in stored_messages:
-                new_messages.append(
-                    ChatMessage(
-                        conversation=chat,
-                        sender=msg.get("role", "unknown"),
-                        content=msg["content"],
-                        tool_call_id=msg.get("tool_call_id")
+            # ✅ Ensure assistant messages are stored even if they contain tool calls
+            if content.strip() or msg.get("tool_calls"):
+                serialized_content = content if content.strip() else json.dumps(msg.get("tool_calls", {}))
+                
+                if serialized_content not in stored_messages:
+                    new_messages.append(
+                        ChatMessage(
+                            conversation=chat,
+                            sender=role,  # Stores both user & assistant messages
+                            content=serialized_content,
+                            tool_call_id=msg.get("tool_call_id")
+                        )
                     )
-                )
-                stored_messages.add(msg["content"])  # Ensure we don’t add duplicates in this session
+                    stored_messages.add(serialized_content)  # Ensure we don’t add duplicates in this session
 
         if new_messages:
             ChatMessage.objects.bulk_create(new_messages)
@@ -380,6 +386,7 @@ def store_conversation_history(conversation_id, full_history, response_obj=None)
     except Exception as e:
         logger.error(f"⚠️ Error storing conversation history: {e}", exc_info=True)
         return False
+
 
 def run_conversation(blueprint_instance: Any,
                      messages_extended: List[dict],

@@ -56,6 +56,7 @@ def color_text(text: str, color: str = "white") -> str:
     return f"{color_code}{text}{reset}"
 
 
+
 def extract_chat_id(payload: dict) -> str:
     """
     Extracts `conversation_id` from the last assistant's tool call.
@@ -65,6 +66,7 @@ def extract_chat_id(payload: dict) -> str:
     Returns only `conversation_id`
     """
     try:
+        STATEFUL_CHAT_ID_PATH = os.getenv("STATEFUL_CHAT_ID_PATH", "").strip()
         logger.debug(f"Extracting chat ID using JMESPath: {STATEFUL_CHAT_ID_PATH.strip()}")
         
         # Extract JSON string from tool call

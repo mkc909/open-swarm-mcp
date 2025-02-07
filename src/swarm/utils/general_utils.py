@@ -58,28 +58,33 @@ def color_text(text: str, color: str = "white") -> str:
 
 def extract_chat_id(payload: dict) -> str:
     """
-    Extracts the most recent tool call ID from an assistant message using JMESPath.
-    Falls back to the most recent tool call ID if filtering fails.
+    Extracts `conversation_id` from the last assistant's tool call.
+    
+    Extracts the **JSON string** from `function.arguments`
+    **Parses JSON inline** instead of double querying
+    Returns only `conversation_id`
     """
-    # TODO use envvar
-    primary_path = "messages[?role=='assistant'].tool_calls[*].id | [-1][-1]"  # Preferred
-    alt_path = "reverse(messages)[?role=='assistant'] | [0].tool_calls[-1].id"  # Alternative
-    fallback_path = "messages[*].tool_calls[*].id | [-1][-1]"  # Final fallback
-
     try:
-        logger.debug(f"Extracting chat ID with primary JMESPath: {primary_path}")
-        chat_id = jmespath.search(primary_path, payload)
+        logger.debug(f"Extracting chat ID using JMESPath: {STATEFUL_CHAT_ID_PATH.strip()}")
+        
+        # Extract JSON string from tool call
+        arguments_json = jmespath.search(STATEFUL_CHAT_ID_PATH, payload)
+        
+        if arguments_json:
+            try:
+                # Parse the stringified JSON
+                parsed_args = json.loads(arguments_json)
+                chat_id = parsed_args.get("conversation_id")
+                
+                if chat_id:
+                    logger.debug(f"Extracted conversation ID: {chat_id}")
+                    return chat_id
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse tool function arguments JSON: {e}", exc_info=True)
 
-        if not chat_id:
-            logger.debug(f"Primary failed, trying alternative JMESPath: {alt_path}")
-            chat_id = jmespath.search(alt_path, payload)
+        logger.warning("No conversation ID found in tool function arguments.")
+        return None
 
-        if not chat_id:
-            logger.debug(f"Alternative failed, trying fallback JMESPath: {fallback_path}")
-            chat_id = jmespath.search(fallback_path, payload)
-
-        logger.debug(f"Extracted chat ID: {chat_id}" if chat_id else "No conversation ID found.")
-        return chat_id if chat_id else None
     except Exception as e:
         logger.error(f"Error extracting chat ID with JMESPath: {e}", exc_info=True)
         return None

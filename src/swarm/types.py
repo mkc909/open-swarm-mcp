@@ -21,6 +21,7 @@ class Agent(BaseModel):
     parallel_tool_calls: bool = False
     mcp_servers: Optional[List[str]] = None  # List of MCP server names
     env_vars: Optional[Dict[str, str]] = None  # Environment variables required
+    response_format: Optional[Dict[str, Any]] = None # Structured Output
 
 class Response(BaseModel):
     id: Optional[str] = None  # id needed for REST

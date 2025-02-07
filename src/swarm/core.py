@@ -201,67 +201,48 @@ class Swarm:
             else:
                 logger.debug("SUPPRESS_DUMMY_KEY is set; leaving API key empty.")
 
-        if new_llm_config.get("base_url") != self.current_llm_config.get("base_url"):
-            logger.info(f"Detected base_url change. Re-initializing client for agent '{agent.name}' model '{self.model}'.")
-            client_kwargs = {}
-            if "api_key" in new_llm_config:
-                client_kwargs["api_key"] = new_llm_config["api_key"]
-            if "base_url" in new_llm_config:
-                client_kwargs["base_url"] = new_llm_config["base_url"]
-
-            redacted_kwargs = redact_sensitive_data(client_kwargs, sensitive_keys=["api_key"])
-            logger.debug(f"Re-initializing OpenAI client with new kwargs: {redacted_kwargs}")
-            self.client = OpenAI(**client_kwargs)
-
         self.current_llm_config = new_llm_config
 
-        # Ensure context variables default to strings
         context_variables = defaultdict(str, context_variables)
 
         instructions = (agent.instructions(context_variables) if callable(agent.instructions) else agent.instructions)
 
-        # ✅ **Track message IDs to prevent re-adding**
-        seen_message_ids = set()  
         messages = [{"role": "system", "content": instructions}]
-
+        
+        seen_message_ids = set()
         for msg in history:
             msg_id = msg.get("id", hash(json.dumps(msg, sort_keys=True, default=serialize_datetime)))
             if msg_id in seen_message_ids:
-                continue  # Skip already seen messages
+                continue
             seen_message_ids.add(msg_id)
             messages.append(msg)
 
-        # ✅ **Fixes invalid 'tool' role messages**
-        valid_messages = []
-        saw_tool_calls = False
-
-        for msg in messages:
-            if msg.get("role") == "tool" and not saw_tool_calls:
-                logger.warning(f"⚠️ Removing invalid 'tool' message: {msg}")
-                continue
-            if msg.get("role") == "assistant" and "tool_calls" in msg:
-                saw_tool_calls = True
-            valid_messages.append(msg)
-
-        messages = self.repair_message_payload(valid_messages)
+        messages = filter_duplicate_system_messages(messages)
 
         serialized_functions = [function_to_json(f) for f in agent.functions]
         tools = [func_dict for func_dict in serialized_functions]
 
-        # ✅ **Ensure only one system message**
-        messages = filter_duplicate_system_messages(messages)
-
         create_params = {
             "model": model_override or new_llm_config.get("model"),
             "messages": messages,
-            "tools": tools or None,
-            "tool_choice": agent.tool_choice or "auto",
             "stream": stream,
         }
+
+        # Only add tools if they exist
+        if tools:
+            create_params["tools"] = tools
+            create_params["tool_choice"] = agent.tool_choice or "auto"  # Only included when tools exist
+
+        # Ensure response_format is passed when specified
+        if hasattr(agent, "response_format") and agent.response_format:
+            create_params["response_format"] = agent.response_format
+
         if "temperature" in new_llm_config:
             create_params["temperature"] = new_llm_config["temperature"]
-        if "reasoning_effort" in new_llm_config:
-            create_params["reasoning_effort"] = new_llm_config["reasoning_effort"]
+
+        # ✅ Ensure `response_format` is passed if agent specifies it
+        if agent.response_format:
+            create_params["response_format"] = agent.response_format
 
         try:
             logger.debug(f"[DEBUG] Chat completion payload: {json.dumps(create_params, indent=2, default=serialize_datetime)}")

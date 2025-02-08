@@ -24,7 +24,6 @@ class ViewsTest(TestCase):
         self.assertIn("data", response_data, "Response missing 'data' field.")
         self.assertIsInstance(response_data["data"], list, "Response 'data' field is not a list.")
 
-    @pytest.mark.skip(reason="Skipping auth tests for now")
     def test_chat_completions_view_authorized(self):
         url = reverse('chat_completions')
         payload = {
@@ -35,12 +34,11 @@ class ViewsTest(TestCase):
             url,
             data=json.dumps(payload),
             content_type="application/json",
-            HTTP_AUTHORIZATION=f'Token {os.environ["API_AUTH_TOKEN"]}'
+            HTTP_AUTHORIZATION=f'Bearer {os.environ["API_AUTH_TOKEN"]}'
         )
         self.assertEqual(response.status_code, 200)
         self.assertIn("choices", response.json())
 
-    @pytest.mark.skip(reason="Skipping auth tests for now")
     def test_chat_completions_view_unauthorized(self):
         url = reverse('chat_completions')
         payload = {

@@ -43,6 +43,7 @@ def test_blueprint_base_initialization():
         assert blueprint.metadata["name"] == "mock_blueprint", "Metadata should match subclass definition."
         assert isinstance(blueprint.create_agents(), dict), "Agents should be returned as a dictionary."
 
+
 def test_metadata_enforcement():
     """
     Test that a BlueprintBase subclass must define metadata.
@@ -95,3 +96,101 @@ def test_create_agents(mock_swarm_class):
     agents = blueprint.create_agents()
     assert isinstance(agents, dict), "Agents should be returned as a dictionary."
     assert "agent1" in agents and "agent2" in agents, "Expected agents are missing."
+
+
+def test_new_feature_configuration():
+    """
+    Test that new feature configuration parameters are set correctly during initialization.
+    """
+    mock_swarm = MagicMock()
+    with patch("swarm.core.Swarm", return_value=mock_swarm):
+        mock_config = {
+            "llm": {
+                "default": {
+                    "model": "gpt-4o",
+                    "api_key": "sk-mock-api-key-1234567890abcdef"
+                }
+            }
+        }
+        blueprint = MockBlueprint(
+            config=mock_config,
+            auto_complete_task=True,
+            update_user_goal=True,
+            update_user_goal_frequency=3
+        )
+        assert blueprint.auto_complete_task is True
+        assert blueprint.update_user_goal is True
+        assert blueprint.update_user_goal_frequency == 3
+
+
+def test_is_task_done_yes():
+    """
+    Test that _is_task_done returns True when the LLM response starts with 'YES'.
+    """
+    mock_swarm = MagicMock()
+    with patch("swarm.core.Swarm", return_value=mock_swarm):
+        mock_config = {
+            "llm": {
+                "default": {
+                    "model": "gpt-4o",
+                    "api_key": "key"
+                }
+            }
+        }
+        blueprint = MockBlueprint(config=mock_config)
+        # Patch the run_llm method to return a mock response with YES
+        yes_response = MagicMock()
+        yes_response.choices = [MagicMock(message={"content": "YES"})]
+        blueprint.swarm.run_llm = MagicMock(return_value=yes_response)
+        result = blueprint._is_task_done("goal", "summary", "last message")
+        assert result is True
+
+
+def test_is_task_done_no():
+    """
+    Test that _is_task_done returns False when the LLM response does not start with 'YES'.
+    """
+    mock_swarm = MagicMock()
+    with patch("swarm.core.Swarm", return_value=mock_swarm):
+        mock_config = {
+            "llm": {
+                "default": {
+                    "model": "gpt-4o",
+                    "api_key": "key"
+                }
+            }
+        }
+        blueprint = MockBlueprint(config=mock_config)
+        no_response = MagicMock()
+        no_response.choices = [MagicMock(message={"content": "NO"})]
+        blueprint.swarm.run_llm = MagicMock(return_value=no_response)
+        result = blueprint._is_task_done("goal", "summary", "last message")
+        assert result is False
+
+
+def test_update_user_goal():
+    """
+    Test that _update_user_goal updates the context variable 'user_goal' based on LLM response.
+    """
+    mock_swarm = MagicMock()
+    with patch("swarm.core.Swarm", return_value=mock_swarm):
+        mock_config = {
+            "llm": {
+                "default": {
+                    "model": "gpt-4o",
+                    "api_key": "key"
+                }
+            }
+        }
+        blueprint = MockBlueprint(config=mock_config)
+        # Setup conversation messages list
+        messages = [
+            {"role": "user", "content": "I need help with testing."},
+            {"role": "assistant", "content": "Sure, what do you need?"}
+        ]
+        # Patch run_llm to return a summary "new goal"
+        summary_response = MagicMock()
+        summary_response.choices = [MagicMock(message={"content": "new goal"})]
+        blueprint.swarm.run_llm = MagicMock(return_value=summary_response)
+        blueprint._update_user_goal(messages)
+        assert blueprint.context_variables.get("user_goal") == "new goal"

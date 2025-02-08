@@ -73,7 +73,13 @@ except Exception as e:
 # Discover blueprints
 BLUEPRINTS_DIR = (Path(settings.BASE_DIR) / "blueprints").resolve()
 try:
-    blueprints_metadata = discover_blueprints([str(BLUEPRINTS_DIR)])
+    all_blueprints = discover_blueprints([str(BLUEPRINTS_DIR)])
+    if allowed_blueprints := os.getenv("SWARM_BLUEPRINTS"):
+        allowed_list = [bp.strip() for bp in allowed_blueprints.split(",")]
+        blueprints_metadata = {k: v for k, v in all_blueprints.items() if k in allowed_list}
+        logger.info(f"Filtered blueprints using SWARM_BLUEPRINTS: {allowed_list}")
+    else:
+        blueprints_metadata = all_blueprints
     redacted_blueprints_metadata = redact_sensitive_data(blueprints_metadata)
     logger.debug(f"Discovered blueprints meta {redacted_blueprints_metadata}")
 except Exception as e:

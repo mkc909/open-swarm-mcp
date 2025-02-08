@@ -1,6 +1,8 @@
 import os
 import logging
 import jmespath
+import json
+from typing import Optional
 from swarm.utils.logger_setup import setup_logger
 
 # Initialize logger for this module
@@ -66,27 +68,41 @@ def extract_chat_id(payload: dict) -> str:
     Returns only `conversation_id`
     """
     try:
-        STATEFUL_CHAT_ID_PATH = os.getenv("STATEFUL_CHAT_ID_PATH", "").strip()
-        logger.debug(f"Extracting chat ID using JMESPath: {STATEFUL_CHAT_ID_PATH.strip()}")
-        
-        # Extract JSON string from tool call
-        arguments_json = jmespath.search(STATEFUL_CHAT_ID_PATH, payload)
-        
-        if arguments_json:
-            try:
-                # Parse the stringified JSON
-                parsed_args = json.loads(arguments_json)
-                chat_id = parsed_args.get("conversation_id")
-                
+        path_expr = os.getenv("STATEFUL_CHAT_ID_PATH", "").strip()
+        logger.debug(f"Extracting chat ID using JMESPath: {path_expr}")
+        if not path_expr:
+            logger.warning("STATEFUL_CHAT_ID_PATH is empty.")
+            return ""
+        extracted = jmespath.search(path_expr, payload)
+        if extracted:
+            if isinstance(extracted, str):
+                stripped = extracted.strip()
+                if stripped.startswith('{') or stripped.startswith('['):
+                    try:
+                        parsed = json.loads(stripped)
+                        if isinstance(parsed, dict):
+                            chat_id = parsed.get("conversation_id", "").strip()
+                            if chat_id:
+                                logger.debug(f"Extracted conversation ID from JSON: {chat_id}")
+                                return chat_id
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Failed to parse JSON from extracted value: {e}", exc_info=True)
+                logger.debug(f"Extracted conversation ID as plain string: {stripped}")
+                return stripped
+            elif isinstance(extracted, dict):
+                chat_id = extracted.get("conversation_id", "").strip()
                 if chat_id:
-                    logger.debug(f"Extracted conversation ID: {chat_id}")
+                    logger.debug(f"Extracted conversation ID from dict: {chat_id}")
                     return chat_id
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse tool function arguments JSON: {e}", exc_info=True)
-
-        logger.warning("No conversation ID found in tool function arguments.")
-        return None
-
+                else:
+                    logger.debug("Extracted dict did not contain conversation_id.")
+                    return ""
+            else:
+                logger.debug("Extracted value is neither str nor dict.")
+                return ""
+        else:
+            logger.warning("No conversation ID found in tool function arguments.")
+            return ""
     except Exception as e:
         logger.error(f"Error extracting chat ID with JMESPath: {e}", exc_info=True)
-        return None
+        return ""

@@ -29,12 +29,13 @@ from rest_framework.response import Response  # type: ignore
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.authentication import TokenAuthentication  # type: ignore
+from rest_framework.permissions import IsAuthenticated  # type: ignore
+from rest_framework.decorators import api_view, authentication_classes, permission_classes  # type: ignore
 from swarm.auth import EnvOrTokenAuthentication
 from swarm.models import ChatConversation, ChatMessage
 from swarm.extensions.blueprint import discover_blueprints
+from swarm.extensions.blueprint.blueprint_base import BlueprintBase
 from swarm.extensions.config.config_loader import (
     load_server_config,
     load_llm_config,
@@ -46,9 +47,9 @@ from .settings import DJANGO_DATABASE
 
 # Initialize logger for this module
 logger = setup_logger(__name__)
-
-# Initialize Redis if available
-REDIS_AVAILABLE = os.getenv("STATEFUL_CHAT_ID_PATH") and settings.DJANGO_DATABASE == "postgres"
+# Initialize Redis if available (modified for testing stateful mode)
+REDIS_AVAILABLE = bool(os.getenv("STATEFUL_CHAT_ID_PATH"))
+# REDIS_AVAILABLE = os.getenv("STATEFUL_CHAT_ID_PATH") and settings.DJANGO_DATABASE == "postgres"
 redis_client = None
 if REDIS_AVAILABLE:
     try:
@@ -220,8 +221,8 @@ def parse_chat_request(request) -> Any:
             if tool_calls:
                 tool_call_id = tool_calls[-1].get("id")
 
-        # 🚨 Guard: If no `conversation_id`, generate a new one (as a string)
-        if not conversation_id:
+        # 🚨 Guard: If in stateful mode and no `conversation_id`, generate a new one (as a string)
+        if not conversation_id and 'STATEFUL_CHAT_ID_PATH' in os.environ:
             conversation_id = str(uuid.uuid4())  # Always a string
             logger.warning(f"⚠️ No conversation_id detected, generating new ID: {conversation_id}")
 
@@ -248,11 +249,16 @@ def get_blueprint_instance(model: str, context_vars: dict) -> Any:
     if not blueprint_meta:
         if model == "default":
             class DummyBlueprint(BlueprintBase):
-                metadata = {"title": "Dummy Blueprint", "env_vars": []}
+                metadata = {"title": "Dummy Blueprint", "env_vars": []}  # type: ignore
                 def create_agents(self) -> dict:
-                    DummyAgent = type("DummyAgent", (), {"name": "DummyAgent"})
+                    DummyAgent = type("DummyAgent", (), {"name": "DummyAgent", "mcp_servers": {}, "functions": []})
                     self.starting_agent = DummyAgent
                     return {"DummyAgent": DummyAgent}
+                def run_with_context(self, messages, context_variables) -> dict:
+                    return {
+                        "response": {"message": "Dummy response"},
+                        "context_variables": context_vars
+                    }
 
             return DummyBlueprint(config=config)
         else:
@@ -292,7 +298,8 @@ def load_conversation_history(conversation_id: Optional[str], messages: List[dic
         try:
             history_raw = redis_client.get(conversation_id)
             if history_raw:
-                past_messages = json.loads(history_raw)
+                data_str = history_raw.decode("utf-8") if isinstance(history_raw, bytes) else history_raw
+                past_messages = json.loads(data_str)  # type: ignore
                 logger.debug(f"✅ Retrieved {len(past_messages)} messages from Redis for conversation: {conversation_id}")
         except Exception as e:
             logger.error(f"⚠️ Error retrieving conversation history from Redis: {e}", exc_info=True)
@@ -380,6 +387,12 @@ def store_conversation_history(conversation_id, full_history, response_obj=None)
             logger.debug(f"✅ Stored {len(new_messages)} new messages for conversation {conversation_id}")
         else:
             logger.warning(f"⚠️ No new messages to store for conversation {conversation_id}")
+
+        if REDIS_AVAILABLE and redis_client:
+            try:
+                redis_client.set(conversation_id, json.dumps(full_history))
+            except Exception as e:
+                logger.error(f"Error updating Redis: {e}", exc_info=True)
 
         return True
 

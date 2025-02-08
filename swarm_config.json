@@ -37,8 +37,8 @@
         },
         "litellm": {
             "provider": "openai",
-            "model": "free",
-            "base_url": "http://localhost:4003/v1"
+            "model": "${LITELLM_MODEL}",
+            "base_url": "${LITELLM_URL}"
         },
         "deepseek-r1-distill-llama-70b": {
             "provider": "openai",

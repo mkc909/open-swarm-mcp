@@ -26,6 +26,8 @@ class EnvOrTokenAuthentication(TokenAuthentication):
 
         # If API_AUTH_TOKEN is set, enforce token validation
         if env_token:
+            if not auth_header:
+                raise AuthenticationFailed("Authentication credentials were not provided.")
             if not auth_header.startswith("Bearer "):
                 raise AuthenticationFailed("Invalid token format.")
 

@@ -102,12 +102,18 @@ This blueprint highlights **seamless multi-agent coordination** and the **flexib
 
 Open Swarm includes a growing library of **Blueprint** examples:
 
-| Blueprint Name               | Description                                                                 |
-|------------------------------|-----------------------------------------------------------------------------|
-| **Echo Blueprint**           | A straightforward agent that simply echoes user inputs—ideal for testing or as a starter template. |
-| **Personal Assistant Blueprint** | Combines real-time weather updates (Python function) with documentation search (`rag-docs`, MCP). Demonstrates mixed tooling. |
-| **Database and Web Blueprint** | Demonstrates MCP-based integration with an SQLite database and Brave Search, illustrating how to combine data retrieval with real-time web queries. |
-| **Sysadmin Blueprint**        | Multi-agent system for handling system administration tasks using MCP tools (filesystem, SQLite, search, etc.). |
+| Blueprint Name               | Description                                                                 | Status                                  |
+|------------------------------|-----------------------------------------------------------------------------|-----------------------------------------|
+| **Echo Blueprint**           | A straightforward agent that simply echoes user inputs—ideal for testing or as a starter template. | Stable                                  |
+| **Personal Assistant Blueprint** | Combines real-time weather updates (Python function) with documentation search (`rag-docs`, MCP). Demonstrates mixed tooling. | Broken (uvx-based)                      |
+| **Database and Web Blueprint** | Demonstrates MCP-based integration with an SQLite database and Brave Search, illustrating how to combine data retrieval with real-time web queries. | Stable                                  |
+| **Divine Ops Blueprint**       | Multi-agent system for handling system administration tasks using MCP tools (filesystem, SQLite, search, etc.). | Stable                                  |
+| **Nebucha Shellzzar Blueprint**| Example blueprint showcasing Nebucha Shellzzar agent.                       | Stable                                  |
+| **Open-WebAI Blueprint**       | Blueprints demonstrating various integrations with Open-WebAI and Autogen Studio. | Stable                                  |
+| **Path-E-Tech Blueprint**      | Example blueprint for path-e-tech use-cases.                                | Stable                                  |
+| **Suggestion Blueprint**     | Blueprint providing suggestions and recommendations.                        | Stable                                  |
+| **University Blueprint**       | Multi-agent system for university-related tasks.                            | Stable                                  |
+| **Flowise Blueprint**          | Integrates with Flowise for visual flow orchestration.                      | Broken (uvx-based, requires Flowise setup)|
 
 ---
 
@@ -239,6 +245,15 @@ https://github.com/user-attachments/assets/a4688100-5737-479f-91e5-974db98296d7
 
 ### Running with the CLI
 
+#### CLI Arguments for Blueprint Interactive Mode
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--config` | Path to configuration file | `./swarm_config.json` |
+| `--auto-complete-task` | Enable multi-step auto-completion until task is marked complete | `False` |
+| `--update-user-goal` | Enable dynamic goal updates based on conversation history | `False` |
+| `--update-user-goal-frequency` | Number of messages between goal updates | `5` |
+
 1.  **Execute a Specific Blueprint:**
     ```bash
     uv run blueprints/university/blueprint_university.py
@@ -350,12 +365,27 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
 - **Multiple LLM Providers**  
   - [ ] Assign different models per agent in one blueprint  
 
-- **Tooling Integration Frameworks**  
-  - [x] MCP Servers
-  - [x] Use official mcp python sdk 
-  - [ ] GPT Actions
-  - [ ] Load claude desktop mcp server config
-  - [ ] Load roo-code mcp server config
+- **Tooling Integration Frameworks**
+  - [x] MCP Servers implementation
+    - [x] npx-based server integration
+    - [ ] uvx server reliability improvements (fix frozen processes)
+  - [x] Official MCP Python SDK integration
+  - [x] Brave Search API integration
+  - [x] SQLite database integration
+  - [x] Filesystem access integration
+  - [ ] GPT Actions framework
+  - [ ] MCP Settings Integration
+    - [ ] Load Claude Desktop MCP settings
+    - [ ] Load Roo-CLI MCP settings
+  - [ ] Flowise server integration
+
+- **Core Framework Improvements**
+  - [x] Dynamic environment variable documentation
+    - [x] .env.example template
+    - [x] README.md configuration section
+  - [x] Autocompletion with dynamic goal tracking
+  - [x] Nested progress tracking implementation
+  - [x] Interactive task resumption handling
 
 - **Deployment**  
   - [x] Dockerfile and docker-compose.yaml  
@@ -370,8 +400,13 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
   - [x] `database_and_web` (SQLite & Brave Search)  
   - [ ] `flowise` (Requires Flowise server or cloud account)
 
-- **Security**  
-  - [ ] Securing REST completions endpoint with API_KEY
+- **Security**
+  - [x] REST endpoint authentication
+    - [x] API key protection (ENABLE_API_AUTH)
+    - [x] Per-user token system
+  - [x] Operational mode controls
+    - [x] Disable admin interface (ENABLE_ADMIN)
+    - [x] Disable web UI (ENABLE_WEBUI)
   - [ ] CORS access control
 
 ---

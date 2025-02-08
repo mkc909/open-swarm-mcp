@@ -83,7 +83,7 @@ class Swarm:
             config (Optional[dict]): Preloaded configuration dictionary.
         """
         # Fetch the selected LLM from the environment variable 'LLM', defaulting to 'default'
-        self.model = os.getenv("LLM", "default")
+        self.model = os.getenv("DEFAULT_LLM", "default")
         logger.debug(f"Initialized Swarm with model: {self.model}")
 
         self.temperature = 0.7

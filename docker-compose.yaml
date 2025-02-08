@@ -13,8 +13,9 @@ services:
     env_file:
       - .env
     volumes:
+      - ./sql-data/:/mnt/sqlite_data/
       - ./blueprints:/app/blueprints
-      - ./src/swarm/swarm_config.json:/app/src/swarm/swarm_config.json
+      - ./swarm_config.json:/app/swarm_config.json
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped

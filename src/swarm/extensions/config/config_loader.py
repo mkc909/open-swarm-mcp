@@ -146,7 +146,7 @@ def get_default_llm_config(config: Dict[str, Any]) -> Dict[str, Any]:
     Raises:
         ValueError: If the `LLM` environment variable is not set or the selected LLM profile is not found.
     """
-    selected_llm = os.getenv("LLM", "default")
+    selected_llm = os.getenv("DEFAULT_LLM", "default")
     logger.debug(f"Selected LLM profile from environment variable: '{selected_llm}'")
 
     llm_config = config.get("llm", {}).get(selected_llm)

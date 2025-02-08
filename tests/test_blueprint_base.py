@@ -194,3 +194,62 @@ def test_update_user_goal():
         blueprint.swarm.run_llm = MagicMock(return_value=summary_response)
         blueprint._update_user_goal(messages)
         assert blueprint.context_variables.get("user_goal") == "new goal"
+
+
+def test_autocompletion():
+    """
+    Test that autocompletion feature continues executing steps until task is complete.
+    """
+    mock_swarm = MagicMock()
+    with patch("swarm.core.Swarm", return_value=mock_swarm):
+        mock_config = {
+            "llm": {
+                "default": {
+                    "model": "gpt-4o",
+                    "api_key": "sk-mock-api-key-1234567890abcdef"
+                }
+            }
+        }
+        blueprint = MockBlueprint(
+            config=mock_config,
+            auto_complete_task=True,
+            update_user_goal=True,
+            update_user_goal_frequency=3
+        )
+        # Set a starting agent
+        blueprint.set_starting_agent(blueprint.create_agents()["agent1"])
+        # Mock the run_llm method to return a mock response with YES
+        yes_response = MagicMock()
+        yes_response.choices = [MagicMock(message={"content": "YES"})]
+        blueprint.swarm.run_llm = MagicMock(return_value=yes_response)
+        blueprint.interactive_mode(stream=False)
+
+
+def test_dynamic_user_goal_updates():
+    """
+    Test that dynamic user goal updates feature updates the user's goal based on LLM analysis.
+    """
+    mock_swarm = MagicMock()
+    with patch("swarm.core.Swarm", return_value=mock_swarm):
+        mock_config = {
+            "llm": {
+                "default": {
+                    "model": "gpt-4o",
+                    "api_key": "sk-mock-api-key-1234567890abcdef"
+                }
+            }
+        }
+        blueprint = MockBlueprint(
+            config=mock_config,
+            auto_complete_task=True,
+            update_user_goal=True,
+            update_user_goal_frequency=3
+        )
+        # Set a starting agent
+        blueprint.set_starting_agent(blueprint.create_agents()["agent1"])
+        # Mock the run_llm method to return a mock response with a new goal
+        new_goal_response = MagicMock()
+        new_goal_response.choices = [MagicMock(message={"content": "new goal"})]
+        blueprint.swarm.run_llm = MagicMock(return_value=new_goal_response)
+        blueprint._update_user_goal([{"role": "user", "content": "I need help with testing."}])
+        assert blueprint.context_variables.get("user_goal") == "new goal"

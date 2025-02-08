@@ -11,9 +11,15 @@ class MockBlueprint(BlueprintBase):
     }
 
     def create_agents(self):
+        agent1 = MagicMock(name="Agent1")
+        agent1.instructions.return_value = "Agent 1 instructions"
+        agent1.response_format = "text"
+        agent2 = MagicMock(name="Agent2")
+        agent2.instructions.return_value = "Agent 2 instructions"
+        agent2.response_format = "text"
         return {
-            "agent1": MagicMock(name="Agent1"),
-            "agent2": MagicMock(name="Agent2"),
+            "agent1": agent1,
+            "agent2": agent2,
         }
 
 
@@ -196,12 +202,13 @@ def test_update_user_goal():
         assert blueprint.context_variables.get("user_goal") == "new goal"
 
 
+@pytest.mark.timeout(1)
 def test_autocompletion():
     """
     Test that autocompletion feature continues executing steps until task is complete.
     """
     mock_swarm = MagicMock()
-    with patch("swarm.core.Swarm", return_value=mock_swarm):
+    with patch("swarm.core.Swarm", return_value=mock_swarm), patch("builtins.input", return_value="exit"):
         mock_config = {
             "llm": {
                 "default": {
@@ -218,11 +225,13 @@ def test_autocompletion():
         )
         # Set a starting agent
         blueprint.set_starting_agent(blueprint.create_agents()["agent1"])
-        # Mock the run_llm method to return a mock response with YES
+        # Mock the run_llm and run methods to return a mock response with YES
         yes_response = MagicMock()
         yes_response.choices = [MagicMock(message={"content": "YES"})]
         blueprint.swarm.run_llm = MagicMock(return_value=yes_response)
-        blueprint.interactive_mode(stream=False)
+        blueprint.swarm.run = MagicMock(return_value=yes_response)
+        with patch.object(blueprint, "_is_task_done", return_value=True):
+            blueprint.interactive_mode(stream=False)
 
 
 def test_dynamic_user_goal_updates():

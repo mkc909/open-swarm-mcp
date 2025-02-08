@@ -60,7 +60,19 @@
 
     "mcpServers": {
 
-        "Home Assistant": {
+        "mcp-wolfram-alpha": {
+            "command": "uvx",
+            "args": [
+                "--from",
+                "git+https://github.com/SecretiveShell/MCP-wolfram-alpha",
+                "mcp-wolfram-alpha"
+            ],
+            "env": {
+                "WOLFRAM_API_KEY": "${WOLFRAM_API_KEY}"
+            }
+        },
+
+        "home-assistant": {
             "command": "mcp-proxy",
             "env": {
                 "SSE_URL": "${HASS_URL}",

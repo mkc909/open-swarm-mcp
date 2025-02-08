@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from swarm.core import Swarm
 from swarm.extensions.config.config_loader import load_server_config
@@ -20,16 +20,25 @@ class BlueprintBase(ABC):
     """
     Abstract base class for Swarm blueprints.
     Manages agents, tools, and active context for executing tasks.
+
+    NEW FEATURE: Auto-completion of tasks.
+    If auto_complete_task is enabled, after each assistant response the blueprint
+    will query an LLM (using a single-token prompt) to check if the overall task is complete.
+    It uses the user's original request and a brief conversation summary for context.
     """
 
-    def __init__(self, config: dict, **kwargs):
+    def __init__(self, config: dict, auto_complete_task: bool = False, **kwargs):
         """
         Initialize the blueprint and register agents.
 
         Args:
             config (dict): Configuration dictionary.
-            **kwargs: Additional parameters for customization (e.g., existing swarm_instance).
+            auto_complete_task (bool): If True, the system will continue running steps
+                until a done-check indicates the task is complete.
+            **kwargs: Additional parameters (e.g., shared swarm_instance).
         """
+        self.auto_complete_task = auto_complete_task
+
         logger.debug(f"Initializing BlueprintBase with config: {redact_sensitive_data(config)}")
 
         if not hasattr(self, 'metadata') or not isinstance(self.metadata, dict):
@@ -39,10 +48,8 @@ class BlueprintBase(ABC):
         load_dotenv()
         logger.debug("Environment variables loaded from .env.")
 
-        # Store configuration
         self.config = config
 
-        # Check if a shared Swarm instance was passed in; otherwise create new
         self.swarm = kwargs.get('swarm_instance')
         if self.swarm is not None:
             logger.debug("Using shared swarm instance from kwargs.")
@@ -52,22 +59,22 @@ class BlueprintBase(ABC):
 
         logger.debug("Swarm instance created.")
 
-        # Initialize context variables for active agent tracking
+        # Initialize context variables for tracking active agent and conversation
         self.context_variables: Dict[str, Any] = {}
+        # Save the original user goal once, for completion-check context
+        self.context_variables["user_goal"] = ""
 
-        # Register agents and set starting agent
         self.starting_agent = None
         agents = self.create_agents()
         self.swarm.agents.update(agents)
         logger.debug(f"Agents registered: {list(agents.keys())}")
-        # Validate required environment variables based on blueprint metadata
+
         required_env_vars = set(self.metadata.get('env_vars', []))
         missing_vars = [var for var in required_env_vars if not os.getenv(var)]
         if missing_vars:
             raise EnvironmentError(f"Missing required environment variables: {', '.join(missing_vars)}")
         logger.debug("Required environment variables validation successful.")
 
-        # Discover tools asynchronously for agents
         asyncio.run(self.async_discover_agent_tools())
         logger.debug("Tool discovery completed.")
 
@@ -75,8 +82,8 @@ class BlueprintBase(ABC):
     @abstractmethod
     def metadata(self) -> Dict[str, Any]:
         """
-        Metadata for the blueprint, including title, description, and dependencies.
-        Subclasses must implement this.
+        Blueprint metadata including title, description, dependencies, and required env_vars.
+        Must be implemented by subclasses.
         """
         raise NotImplementedError
 
@@ -84,7 +91,7 @@ class BlueprintBase(ABC):
     def create_agents(self) -> Dict[str, Any]:
         """
         Create and return the agents for this blueprint.
-        Subclasses must implement this.
+        Must be implemented by subclasses.
         """
         raise NotImplementedError
 
@@ -106,7 +113,7 @@ class BlueprintBase(ABC):
         Set the starting agent for the blueprint.
 
         Args:
-            agent (Any): The agent to set as the starting agent.
+            agent (Any): The agent to set as starting agent.
         """
         logger.debug(f"Setting starting agent to: {agent.name}")
         self.starting_agent = agent
@@ -114,20 +121,16 @@ class BlueprintBase(ABC):
 
     def determine_active_agent(self) -> Any:
         """
-        Determine the active agent based on `context_variables`.
-
-        Returns:
-            Any: The active agent instance.
+        Determine and return the active agent based on context_variables.
         """
         active_agent_name = self.context_variables.get("active_agent_name")
         if active_agent_name and active_agent_name in self.swarm.agents:
             logger.debug(f"Active agent determined: {active_agent_name}")
             return self.swarm.agents[active_agent_name]
-
-        logger.debug("Falling back to the starting agent as the active agent.")
+        logger.debug("Falling back to the starting agent as active agent.")
         return self.starting_agent
 
-    def run_with_context(self, messages: list, context_variables: dict) -> dict:
+    def run_with_context(self, messages: List[Dict[str, str]], context_variables: dict) -> dict:
         """
         Execute a task with the given messages and context variables.
 
@@ -136,13 +139,11 @@ class BlueprintBase(ABC):
             context_variables (dict): Variables to maintain conversation context.
 
         Returns:
-            dict: Response and updated context variables.
+            dict: The response from Swarm and updated context variables.
         """
-        # Update internal context variables
         self.context_variables.update(context_variables)
         logger.debug(f"Context variables before execution: {self.context_variables}")
 
-        # Ensure active_agent_name is set
         if "active_agent_name" not in self.context_variables:
             if self.starting_agent:
                 self.context_variables["active_agent_name"] = self.starting_agent.name
@@ -151,11 +152,9 @@ class BlueprintBase(ABC):
                 logger.error("No starting agent set and active_agent_name is missing.")
                 raise ValueError("No active agent or starting agent available.")
 
-        # Determine the active agent
         active_agent = self.determine_active_agent()
         logger.debug(f"Running with active agent: {active_agent.name}")
 
-        # Execute the Swarm task
         response = self.swarm.run(
             agent=active_agent,
             messages=messages,
@@ -164,16 +163,12 @@ class BlueprintBase(ABC):
             debug=True,
         )
 
-        # Log the response and update context variables
         logger.debug(f"Swarm response: {response}")
         if response.agent:
             self.context_variables["active_agent_name"] = response.agent.name
             logger.debug(f"Active agent updated to: {response.agent.name}")
 
-        return {
-            "response": response,
-            "context_variables": self.context_variables,
-        }
+        return {"response": response, "context_variables": self.context_variables}
 
     def set_active_agent(self, agent_name: str) -> None:
         """
@@ -188,61 +183,131 @@ class BlueprintBase(ABC):
         else:
             logger.error(f"Agent '{agent_name}' not found. Cannot set as active agent.")
 
+    def _is_task_done(self, user_goal: str, conversation_summary: str, last_assistant_message: str) -> bool:
+        """
+        Check if the task is complete by making a minimal LLM call.
+        The LLM is prompted with the user goal, a summary of the conversation, and the last assistant message,
+        and must respond with a single token: YES or NO.
+
+        Args:
+            user_goal (str): The user's original request.
+            conversation_summary (str): A brief summary of the conversation progress.
+            last_assistant_message (str): The most recent assistant response.
+
+        Returns:
+            bool: True if the task is complete, False otherwise.
+        """
+        check_prompt = [
+            {
+                "role": "system",
+                "content": "You are a completion checker. Respond with ONLY 'YES' or 'NO' (no extra words)."
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"User's goal: {user_goal}\n"
+                    f"Conversation summary: {conversation_summary}\n"
+                    f"Last assistant message: {last_assistant_message}\n"
+                    "Is the task fully complete? Answer only YES or NO."
+                )
+            }
+        ]
+        done_check = self.swarm.run_llm(
+            messages=check_prompt,
+            max_tokens=1,
+            temperature=0
+        )
+        raw_content = done_check.choices[0].message["content"].strip().upper()
+        logger.debug(f"Done check response: {raw_content}")
+        return raw_content.startswith("YES")
+
     def interactive_mode(self, stream: bool = False) -> None:
         """
-        Start the interactive REPL loop directly using the blueprint's Swarm instance.
+        Start the interactive REPL loop using the blueprint's Swarm instance.
+        If auto_complete_task is enabled, repeatedly calls run_with_context() until
+        a completion check indicates the task is done.
 
         Args:
             stream (bool): Enable streaming mode.
         """
         logger.debug("Starting interactive mode.")
-        
         if not self.starting_agent:
-            logger.error("Starting agent is not set. Ensure `set_starting_agent` is called.")
+            logger.error("Starting agent is not set. Ensure set_starting_agent is called.")
             raise ValueError("Starting agent is not set.")
-
         if not self.swarm:
             logger.error("Swarm instance is not initialized.")
             raise ValueError("Swarm instance is not initialized.")
 
-        try:
-            print("Blueprint Interactive Mode 🐝")
-            messages = []
-            agent = self.starting_agent
+        print("Blueprint Interactive Mode 🐝")
+        messages: List[Dict[str, str]] = []
+        agent = self.starting_agent
 
-            while True:
-                # Get user input
-                print("\033[90mUser\033[0m: ", end="")
+        # Save the first user input as the user goal if not already set.
+        first_user_input = True
 
-                user_input = input()
-                if user_input.lower() in {"exit", "quit"}:
-                    print("Exiting interactive mode.")
-                    break
-                
-                # Append user input to messages
-                messages.append({"role": "user", "content": user_input})
+        while True:
+            print("\033[90mUser\033[0m: ", end="")
+            user_input = input().strip()
+            if user_input.lower() in {"exit", "quit"}:
+                print("Exiting interactive mode.")
+                break
 
-                # Run Swarm instance with the current agent and messages
-                response = self.swarm.run(
-                    agent=agent,
-                    messages=messages,
-                    context_variables=self.context_variables or {},
-                    stream=stream,
-                    debug=False,
+            # On the first iteration, set the user goal.
+            if first_user_input:
+                self.context_variables["user_goal"] = user_input
+                first_user_input = False
+
+            messages.append({"role": "user", "content": user_input})
+            result = self.run_with_context(messages, self.context_variables or {})
+            swarm_response = result["response"]
+
+            if stream:
+                self._process_and_print_streaming_response(swarm_response)
+            else:
+                self._pretty_print_response(swarm_response.messages)
+
+            messages.extend(swarm_response.messages)
+            agent = swarm_response.agent
+
+            # If auto-complete is enabled, keep calling until the task is complete.
+            if self.auto_complete_task:
+                # Build a simple conversation summary: join the last few messages.
+                conversation_summary = " ".join(
+                    [msg["content"] for msg in messages[-4:] if msg.get("content")]
                 )
+                # Get the last assistant message.
+                last_assistant = ""
+                for msg in reversed(swarm_response.messages):
+                    if msg["role"] == "assistant" and msg.get("content"):
+                        last_assistant = msg["content"]
+                        break
 
-                # Process and display the response
-                if stream:
-                    self._process_and_print_streaming_response(response)
-                else:
-                    self._pretty_print_response(response.messages)
+                # Check if the task is complete.
+                while not self._is_task_done(
+                    self.context_variables.get("user_goal", ""),
+                    conversation_summary,
+                    last_assistant
+                ):
+                    # If not complete, continue running with the same context.
+                    result2 = self.run_with_context(messages, self.context_variables or {})
+                    swarm_response = result2["response"]
+                    if stream:
+                        self._process_and_print_streaming_response(swarm_response)
+                    else:
+                        self._pretty_print_response(swarm_response.messages)
+                    messages.extend(swarm_response.messages)
+                    agent = swarm_response.agent
 
-                # Update messages and agent for the next iteration
-                messages.extend(response.messages)
-                agent = response.agent
+                    # Update conversation summary and last assistant message.
+                    conversation_summary = " ".join(
+                        [msg["content"] for msg in messages[-4:] if msg.get("content")]
+                    )
+                    for msg in reversed(swarm_response.messages):
+                        if msg["role"] == "assistant" and msg.get("content"):
+                            last_assistant = msg["content"]
+                            break
 
-        except Exception as e:
-            logger.error(f"Interactive mode failed: {e}")
+                print("\033[93m[System]\033[0m: Task is complete.")
 
     def _process_and_print_streaming_response(self, response):
         """
@@ -250,18 +315,15 @@ class BlueprintBase(ABC):
         """
         content = ""
         last_sender = ""
-
         for chunk in response:
             if "sender" in chunk:
                 last_sender = chunk["sender"]
-
             if "content" in chunk and chunk["content"] is not None:
                 if not content and last_sender:
                     print(f"\033[94m{last_sender}:\033[0m", end=" ", flush=True)
                     last_sender = ""
                 print(chunk["content"], end="", flush=True)
                 content += chunk["content"]
-
             if "tool_calls" in chunk and chunk["tool_calls"] is not None:
                 for tool_call in chunk["tool_calls"]:
                     tool_function = tool_call["function"]
@@ -269,11 +331,9 @@ class BlueprintBase(ABC):
                     if not name:
                         name = tool_function.get("__name__", "Unnamed Tool")
                     print(f"\033[94m{last_sender}: \033[95m{name}\033[0m()")
-
             if "delim" in chunk and chunk["delim"] == "end" and content:
-                print()  # End of response message
+                print()
                 content = ""
-
             if "response" in chunk:
                 return chunk["response"]
 
@@ -284,15 +344,9 @@ class BlueprintBase(ABC):
         for message in messages:
             if message["role"] != "assistant":
                 continue
-
-            # Print agent name in blue
             print(f"\033[94m{message['sender']}\033[0m:", end=" ")
-
-            # Print response, if any
             if message["content"]:
                 print(message["content"])
-
-            # Print tool calls in purple, if any
             tool_calls = message.get("tool_calls") or []
             if len(tool_calls) > 1:
                 print()
@@ -301,7 +355,6 @@ class BlueprintBase(ABC):
                 name, args = f["name"], f["arguments"]
                 arg_str = json.dumps(json.loads(args)).replace(":", "=")
                 print(f"\033[95m{name}\033[0m({arg_str[1:-1]})")
-
 
     @classmethod
     def main(cls):
@@ -315,13 +368,19 @@ class BlueprintBase(ABC):
             default="./swarm_config.json",
             help="Path to the configuration file (default: ./swarm_config.json)"
         )
+        parser.add_argument(
+            "--auto-complete-task",
+            action="store_true",
+            help="Enable multi-step auto-completion until the task is marked complete."
+        )
         args = parser.parse_args()
 
-        # Log CLI arguments
-        logger.debug(f"Launching blueprint with configuration file: {args.config}")
+        logger.debug(f"Launching blueprint with config: {args.config}, auto_complete_task={args.auto_complete_task}")
 
-        # Load configuration and initialize the blueprint
         config = load_server_config(args.config)
-        blueprint = cls(config=config)
+        blueprint = cls(config=config, auto_complete_task=args.auto_complete_task)
 
         blueprint.interactive_mode()
+
+if __name__ == "__main__":
+    PrivateDigitalAssistantsBlueprint.main()

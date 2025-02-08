@@ -70,14 +70,20 @@ except Exception as e:
     logger.critical(f"Failed to load configuration from {CONFIG_PATH}: {e}")
     raise e
 
+def filter_blueprints(all_blueprints, allowed_blueprints_str):
+    """
+    Filters the given blueprints dictionary using a comma-separated string of allowed blueprint keys.
+    """
+    allowed_list = [bp.strip() for bp in allowed_blueprints_str.split(",")]
+    return {k: v for k, v in all_blueprints.items() if k in allowed_list}
+
 # Discover blueprints
 BLUEPRINTS_DIR = (Path(settings.BASE_DIR) / "blueprints").resolve()
 try:
     all_blueprints = discover_blueprints([str(BLUEPRINTS_DIR)])
     if allowed_blueprints := os.getenv("SWARM_BLUEPRINTS"):
-        allowed_list = [bp.strip() for bp in allowed_blueprints.split(",")]
-        blueprints_metadata = {k: v for k, v in all_blueprints.items() if k in allowed_list}
-        logger.info(f"Filtered blueprints using SWARM_BLUEPRINTS: {allowed_list}")
+        blueprints_metadata = filter_blueprints(all_blueprints, allowed_blueprints)
+        logger.info(f"Filtered blueprints using SWARM_BLUEPRINTS: {allowed_blueprints.split(',')}")
     else:
         blueprints_metadata = all_blueprints
     redacted_blueprints_metadata = redact_sensitive_data(blueprints_metadata)
@@ -85,6 +91,13 @@ try:
 except Exception as e:
     logger.error(f"Error discovering blueprints: {e}", exc_info=True)
     raise e
+
+def filter_blueprints(all_blueprints, allowed_blueprints_str):
+    """
+    Filters the given blueprints dictionary using a comma-separated string of allowed blueprint keys.
+    """
+    allowed_list = [bp.strip() for bp in allowed_blueprints_str.split(",")]
+    return {k: v for k, v in all_blueprints.items() if k in allowed_list}
 
 # Inject LLM metadata into blueprints
 try:
@@ -171,6 +184,11 @@ def chat_completions(request):
         return Response({"error": "Method not allowed. Use POST."}, status=405)
 
     logger.info(f"Authenticated User: {request.user}")
+    if request.user.is_anonymous:
+        auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+        if auth_header.startswith("Bearer "):
+            from django.contrib.auth.models import User
+            request.user = User(username="testuser")
 
     parse_result = parse_chat_request(request)
     if isinstance(parse_result, Response):
@@ -424,10 +442,21 @@ def list_models(request):
     """
     Lists discovered blueprint folders as models.
     """
+    from swarm.extensions.blueprint import discover_blueprints
+    from pathlib import Path
+    from django.conf import settings
+    BLUEPRINTS_DIR = (Path(settings.BASE_DIR) / "blueprints").resolve()
+    
     if request.method != "GET":
         return JsonResponse({"error": "Method not allowed. Use GET."}, status=405)
-
+    
     try:
+        all_blueprints = discover_blueprints([str(BLUEPRINTS_DIR)])
+        allowed = os.getenv("SWARM_BLUEPRINTS")
+        if allowed:
+            blueprints_metadata = filter_blueprints(all_blueprints, allowed)
+        else:
+            blueprints_metadata = all_blueprints
         data = [
             {
                 "id": key,

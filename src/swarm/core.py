@@ -189,11 +189,10 @@ class Swarm:
         debug: bool,
     ) -> ChatCompletionMessage:
         """Prepare and send a chat completion request to the OpenAI API."""
-        try:
-            new_llm_config = load_llm_config(self.config, agent.model or "default")
-        except ValueError:
+        new_llm_config = self.config.get("llm", {}).get(agent.model or "default")
+        if new_llm_config is None:
             logger.warning(f"LLM config for model '{agent.model}' not found. Falling back to 'default'.")
-            new_llm_config = load_llm_config(self.config, "default")
+            new_llm_config = self.config.get("llm", {}).get("default", {})
 
         if not new_llm_config.get("api_key"):
             if not os.getenv("SUPPRESS_DUMMY_KEY"):
@@ -201,7 +200,19 @@ class Swarm:
             else:
                 logger.debug("SUPPRESS_DUMMY_KEY is set; leaving API key empty.")
 
-        self.current_llm_config = new_llm_config
+        old_llm_config = self.current_llm_config.copy() if self.current_llm_config else {}
+        if not self.current_llm_config or \
+           old_llm_config.get("base_url") != new_llm_config.get("base_url") or \
+           old_llm_config.get("api_key") != new_llm_config.get("api_key"):
+            client_kwargs = {}
+            if "api_key" in new_llm_config:
+                client_kwargs["api_key"] = new_llm_config["api_key"]
+            if "base_url" in new_llm_config:
+                client_kwargs["base_url"] = new_llm_config["base_url"]
+            redacted_kwargs = redact_sensitive_data(client_kwargs, sensitive_keys=["api_key"])
+            logger.debug(f"Reinitializing OpenAI client with kwargs: {redacted_kwargs}")
+            self.client = OpenAI(**client_kwargs)
+        self.current_llm_config = new_llm_config.copy()
 
         context_variables = defaultdict(str, context_variables)
 

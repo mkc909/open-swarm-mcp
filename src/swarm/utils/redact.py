@@ -34,19 +34,29 @@ def redact_sensitive_data(data: Any, sensitive_keys: List[str] = None, mask: str
         """Helper function to check if a key is sensitive (case-insensitive)."""
         return any(sensitive_key.lower() == key.lower() for sensitive_key in sensitive_keys)
 
-    def is_sensitive_value(value: str) -> bool:
-        """Helper function to check if a value matches any environment variable exactly."""
-        return value in os.environ.values()
+    def is_sensitive_value(value: str, key: str) -> bool:
+        """Helper function to check if a value matches the environment variable corresponding to the key."""
+        env_var_name = key.upper().replace('_', '')
+        return value == os.getenv(env_var_name)
 
     if isinstance(data, dict):
-        return {
-            key: (partially_redact(value) if is_sensitive_key(key) and isinstance(value, str) and is_sensitive_value(value)
-                  else redact_sensitive_data(value, sensitive_keys, mask, reveal_chars))
-            for key, value in data.items()
-        }
+        new_dict = {}
+        for key, value in data.items():
+            if isinstance(value, dict) or isinstance(value, list):
+                new_dict[key] = redact_sensitive_data(value, sensitive_keys, mask, reveal_chars)
+            elif isinstance(value, str):
+                if is_sensitive_key(key):
+                    new_dict[key] = partially_redact(value)
+                else:
+                    new_dict[key] = value
+            else:
+                new_dict[key] = value
+        return new_dict
     elif isinstance(data, list):
         return [redact_sensitive_data(item, sensitive_keys, mask, reveal_chars) for item in data]
     elif isinstance(data, str):
-        # Always redact strings if they are sensitive (e.g., API keys)
-        return partially_redact(data) if is_sensitive_value(data) else data
+        for env_var_name, env_var_value in os.environ.items():
+            if data == env_var_value:
+                return partially_redact(data)
+        return data
     return data

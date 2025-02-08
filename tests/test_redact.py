@@ -1,6 +1,6 @@
 import os
 import pytest
-from src/swarm/utils/redact import redact_sensitive_data
+from src.swarm.utils.redact import redact_sensitive_data
 
 @pytest.fixture(autouse=True)
 def setup_env(monkeypatch):

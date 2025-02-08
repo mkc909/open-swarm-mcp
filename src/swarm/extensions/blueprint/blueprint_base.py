@@ -21,47 +21,58 @@ class BlueprintBase(ABC):
     Abstract base class for Swarm blueprints.
     Manages agents, tools, and active context for executing tasks.
 
-    NEW FEATURE: Auto-completion of tasks.
-    If auto_complete_task is enabled, after each assistant response the blueprint
-    will query an LLM (using a single-token prompt) to check if the overall task is complete.
-    It uses the user's original request and a brief conversation summary for context.
+    NEW FEATURES:
+      1. Auto-completion of tasks until completion (via single-token LLM check).
+      2. Dynamic updating of the user's goal based on LLM analysis of the conversation history.
+      3. Configurable update frequency for the user goal, to optimize inference costs.
     """
 
-    def __init__(self, config: dict, auto_complete_task: bool = False, **kwargs):
+    def __init__(
+        self,
+        config: dict,
+        auto_complete_task: bool = False,
+        update_user_goal: bool = False,
+        update_user_goal_frequency: int = 5,
+        **kwargs
+    ):
         """
         Initialize the blueprint and register agents.
 
         Args:
             config (dict): Configuration dictionary.
-            auto_complete_task (bool): If True, the system will continue running steps
-                until a done-check indicates the task is complete.
+            auto_complete_task (bool): If True, the system will keep executing steps until
+                the task is marked complete by the LLM.
+            update_user_goal (bool): If True, the system will dynamically update the user's goal
+                based on an LLM analysis of the conversation history.
+            update_user_goal_frequency (int): Specifies how many messages (or iterations)
+                should occur between user goal updates.
             **kwargs: Additional parameters (e.g., shared swarm_instance).
         """
         self.auto_complete_task = auto_complete_task
+        self.update_user_goal = update_user_goal
+        self.update_user_goal_frequency = update_user_goal_frequency
+        # Initialize a counter to track how many messages have been processed since the last goal update.
+        self.last_goal_update_count = 0
 
         logger.debug(f"Initializing BlueprintBase with config: {redact_sensitive_data(config)}")
-
         if not hasattr(self, 'metadata') or not isinstance(self.metadata, dict):
             raise AssertionError("Blueprint metadata must be defined and must be a dictionary.")
 
-        # Load environment variables
         load_dotenv()
         logger.debug("Environment variables loaded from .env.")
 
         self.config = config
-
         self.swarm = kwargs.get('swarm_instance')
         if self.swarm is not None:
             logger.debug("Using shared swarm instance from kwargs.")
         else:
             logger.debug("No shared swarm instance provided; creating a new one.")
             self.swarm = Swarm(config=self.config)
-
         logger.debug("Swarm instance created.")
 
         # Initialize context variables for tracking active agent and conversation
         self.context_variables: Dict[str, Any] = {}
-        # Save the original user goal once, for completion-check context
+        # Store the original user goal
         self.context_variables["user_goal"] = ""
 
         self.starting_agent = None
@@ -82,8 +93,8 @@ class BlueprintBase(ABC):
     @abstractmethod
     def metadata(self) -> Dict[str, Any]:
         """
-        Blueprint metadata including title, description, dependencies, and required env_vars.
-        Must be implemented by subclasses.
+        Metadata for the blueprint including title, description, and dependencies.
+        Subclasses must implement this.
         """
         raise NotImplementedError
 
@@ -91,7 +102,7 @@ class BlueprintBase(ABC):
     def create_agents(self) -> Dict[str, Any]:
         """
         Create and return the agents for this blueprint.
-        Must be implemented by subclasses.
+        Subclasses must implement this.
         """
         raise NotImplementedError
 
@@ -139,7 +150,7 @@ class BlueprintBase(ABC):
             context_variables (dict): Variables to maintain conversation context.
 
         Returns:
-            dict: The response from Swarm and updated context variables.
+            dict: Response from Swarm and updated context variables.
         """
         self.context_variables.update(context_variables)
         logger.debug(f"Context variables before execution: {self.context_variables}")
@@ -186,16 +197,16 @@ class BlueprintBase(ABC):
     def _is_task_done(self, user_goal: str, conversation_summary: str, last_assistant_message: str) -> bool:
         """
         Check if the task is complete by making a minimal LLM call.
-        The LLM is prompted with the user goal, a summary of the conversation, and the last assistant message,
-        and must respond with a single token: YES or NO.
+        The LLM is provided with the user's goal, a brief conversation summary,
+        and the last assistant message. It must respond with a single token: YES or NO.
 
         Args:
-            user_goal (str): The user's original request.
-            conversation_summary (str): A brief summary of the conversation progress.
+            user_goal (str): The user's original (or updated) goal.
+            conversation_summary (str): A short summary of recent conversation.
             last_assistant_message (str): The most recent assistant response.
 
         Returns:
-            bool: True if the task is complete, False otherwise.
+            bool: True if the LLM returns a response starting with 'YES', False otherwise.
         """
         check_prompt = [
             {
@@ -221,11 +232,47 @@ class BlueprintBase(ABC):
         logger.debug(f"Done check response: {raw_content}")
         return raw_content.startswith("YES")
 
+    def _update_user_goal(self, messages: List[Dict[str, str]]) -> None:
+        """
+        Update the user's goal based on an LLM analysis of the conversation history.
+        This method generates a concise summary of the user's objective from the dialogue.
+
+        Args:
+            messages (list): The full conversation history.
+        
+        Updates:
+            self.context_variables["user_goal"] with the new goal.
+        """
+        prompt = [
+            {
+                "role": "system",
+                "content": (
+                    "You are an assistant that summarizes the user's primary objective based on the conversation so far. "
+                    "Provide a concise, one-sentence summary capturing the user's goal."
+                )
+            },
+            {
+                "role": "user",
+                "content": "Summarize the user's goal based on this conversation:\n" +
+                           "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
+            }
+        ]
+        summary_response = self.swarm.run_llm(
+            messages=prompt,
+            max_tokens=30,
+            temperature=0.3
+        )
+        new_goal = summary_response.choices[0].message["content"].strip()
+        logger.debug(f"Updated user goal from LLM: {new_goal}")
+        self.context_variables["user_goal"] = new_goal
+
     def interactive_mode(self, stream: bool = False) -> None:
         """
         Start the interactive REPL loop using the blueprint's Swarm instance.
-        If auto_complete_task is enabled, repeatedly calls run_with_context() until
-        a completion check indicates the task is done.
+        If auto_complete_task is enabled, the system will continue executing steps until
+        a completion check indicates the task is complete.
+        If update_user_goal is enabled, the user's goal is updated dynamically every N messages,
+        as defined by update_user_goal_frequency.
 
         Args:
             stream (bool): Enable streaming mode.
@@ -241,9 +288,10 @@ class BlueprintBase(ABC):
         print("Blueprint Interactive Mode 🐝")
         messages: List[Dict[str, str]] = []
         agent = self.starting_agent
-
-        # Save the first user input as the user goal if not already set.
         first_user_input = True
+
+        # Counter for updating the user goal
+        message_count = 0
 
         while True:
             print("\033[90mUser\033[0m: ", end="")
@@ -252,12 +300,13 @@ class BlueprintBase(ABC):
                 print("Exiting interactive mode.")
                 break
 
-            # On the first iteration, set the user goal.
             if first_user_input:
                 self.context_variables["user_goal"] = user_input
                 first_user_input = False
 
             messages.append({"role": "user", "content": user_input})
+            message_count += 1
+
             result = self.run_with_context(messages, self.context_variables or {})
             swarm_response = result["response"]
 
@@ -269,26 +318,27 @@ class BlueprintBase(ABC):
             messages.extend(swarm_response.messages)
             agent = swarm_response.agent
 
-            # If auto-complete is enabled, keep calling until the task is complete.
+            # Update user goal only if update_user_goal is enabled and the message count exceeds frequency
+            if self.update_user_goal and (message_count - self.last_goal_update_count) >= self.update_user_goal_frequency:
+                self._update_user_goal(messages)
+                self.last_goal_update_count = message_count
+
+            # If auto-complete is enabled, continue until the task is complete.
             if self.auto_complete_task:
-                # Build a simple conversation summary: join the last few messages.
                 conversation_summary = " ".join(
                     [msg["content"] for msg in messages[-4:] if msg.get("content")]
                 )
-                # Get the last assistant message.
                 last_assistant = ""
                 for msg in reversed(swarm_response.messages):
                     if msg["role"] == "assistant" and msg.get("content"):
                         last_assistant = msg["content"]
                         break
 
-                # Check if the task is complete.
                 while not self._is_task_done(
                     self.context_variables.get("user_goal", ""),
                     conversation_summary,
                     last_assistant
                 ):
-                    # If not complete, continue running with the same context.
                     result2 = self.run_with_context(messages, self.context_variables or {})
                     swarm_response = result2["response"]
                     if stream:
@@ -298,7 +348,6 @@ class BlueprintBase(ABC):
                     messages.extend(swarm_response.messages)
                     agent = swarm_response.agent
 
-                    # Update conversation summary and last assistant message.
                     conversation_summary = " ".join(
                         [msg["content"] for msg in messages[-4:] if msg.get("content")]
                     )
@@ -373,12 +422,28 @@ class BlueprintBase(ABC):
             action="store_true",
             help="Enable multi-step auto-completion until the task is marked complete."
         )
+        parser.add_argument(
+            "--update-user-goal",
+            action="store_true",
+            help="Enable dynamic updating of the user goal based on chat history."
+        )
+        parser.add_argument(
+            "--update-user-goal-frequency",
+            type=int,
+            default=5,
+            help="Number of messages between each dynamic user goal update (default: 5)."
+        )
         args = parser.parse_args()
 
-        logger.debug(f"Launching blueprint with config: {args.config}, auto_complete_task={args.auto_complete_task}")
+        logger.debug(f"Launching blueprint with config: {args.config}, auto_complete_task={args.auto_complete_task}, update_user_goal={args.update_user_goal}, update_user_goal_frequency={args.update_user_goal_frequency}")
 
         config = load_server_config(args.config)
-        blueprint = cls(config=config, auto_complete_task=args.auto_complete_task)
+        blueprint = cls(
+            config=config,
+            auto_complete_task=args.auto_complete_task,
+            update_user_goal=args.update_user_goal,
+            update_user_goal_frequency=args.update_user_goal_frequency
+        )
 
         blueprint.interactive_mode()
 

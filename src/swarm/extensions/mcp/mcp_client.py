@@ -73,7 +73,7 @@ class MCPClient:
             async with ClientSession(read, write) as session:
                 try:
                     logger.info("Requesting tool list from MCP server...")
-                    tools_response = await session.list_tools()
+                    tools_response = await asyncio.wait_for(session.list_tools(), timeout=self.timeout)
 
                     # Serialize tools for caching
                     serialized_tools = [
@@ -143,7 +143,7 @@ class MCPClient:
                             self._validate_input_schema(tool.input_schema, kwargs)
 
                         logger.info(f"Calling tool '{tool_name}' with arguments: {kwargs}")
-                        result = await session.call_tool(tool_name, kwargs)
+                        result = await asyncio.wait_for(session.call_tool(tool_name, kwargs), timeout=self.timeout)
                         logger.info(f"Tool '{tool_name}' executed successfully: {result}")
                         return result
 

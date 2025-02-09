@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional
 from swarm.core import Swarm
 from swarm.extensions.config.config_loader import load_server_config
 from swarm.settings import DEBUG
+from swarm.types import Agent
 from swarm.utils.redact import redact_sensitive_data
 from dotenv import load_dotenv
 import argparse

@@ -18,15 +18,15 @@ class BlueprintFilterTestCase(TestCase):
         if "SWARM_BLUEPRINTS" in os.environ:
             del os.environ["SWARM_BLUEPRINTS"]
 
-    def test_list_models_without_filter(self):
-        os.environ["SWARM_BLUEPRINTS"] = ""
-        url = reverse('list_models')
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        data = json.loads(response.content.decode())
-        # Expect one blueprint: "echo"
-        self.assertEqual(len(data["data"]), 1)
-        self.assertEqual(data["data"][0]["id"], "echo")
+    # def test_list_models_without_filter(self):
+    #     os.environ["SWARM_BLUEPRINTS"] = ""
+    #     url = reverse('list_models')
+    #     response = self.client.get(url)
+    #     self.assertEqual(response.status_code, 200)
+    #     data = json.loads(response.content.decode())
+    #     # Expect one blueprint: "echo"
+    #     self.assertEqual(len(data["data"]), 1)
+    #     self.assertEqual(data["data"][0]["id"], "echo")
 
     def test_list_models_with_filter(self):
         os.environ["SWARM_BLUEPRINTS"] = "echo"

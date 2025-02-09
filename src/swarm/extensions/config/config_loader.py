@@ -28,10 +28,56 @@ stream_handler = logging.StreamHandler()
 formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(name)s - %(message)s")
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
+config = {}
 
 # Load environment variables from .env
 load_dotenv()
 logger.debug("Environment variables loaded from .env file.")
+
+def process_config(config: dict) -> dict:
+    """
+    Processes the configuration dictionary by resolving placeholders and merging external MCP settings.
+    This function does not perform any file I/O and is ideal for unit testing.
+    """
+    try:
+        resolved_config = resolve_placeholders(config)
+        import json
+        logger.debug("Configuration after resolving placeholders: " + json.dumps(redact_sensitive_data(resolved_config)))
+        disable_merge = os.getenv("DISABLE_MCP_MERGE", "false").lower() in ("true", "1", "yes")
+        if not disable_merge:
+            if os.name == "nt":
+                external_mcp_path = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "Claude", "claude_desktop_config.json")
+            else:
+                external_mcp_path = os.path.join(os.path.expanduser("~"), ".vscode-server", "data", "User", "globalStorage", "rooveterinaryinc.roo-cline", "settings", "cline_mcp_settings.json")
+            if os.path.exists(external_mcp_path):
+                try:
+                    with open(external_mcp_path, "r") as mcp_file:
+                        mcp_config = json.load(mcp_file)
+                    logger.debug("Loaded external MCP settings: " + json.dumps(redact_sensitive_data(mcp_config)))
+                    main_mcp = resolved_config.get("mcpServers", {})
+                    external_mcp = mcp_config.get("mcpServers", {})
+                    # Main config takes precedence over external MCP settings.
+                    merged_mcp = main_mcp.copy()
+                    for server, server_config in external_mcp.items():
+                        if server in main_mcp:
+                            merged_mcp[server] = main_mcp[server]
+                            continue
+                        if server_config.get("disabled", False):
+                            continue
+                        merged_mcp[server] = server_config
+                    resolved_config["mcpServers"] = merged_mcp
+                    logger.debug("Merged MCP servers configuration: " + json.dumps(merged_mcp))
+                except Exception as e:
+                    logger.error(f"Failed to load or merge MCP settings from '{external_mcp_path}': {e}")
+            else:
+                logger.debug(f"External MCP settings file not found at {external_mcp_path}. Skipping merge.")
+        else:
+            logger.debug("MCP settings merge is disabled due to DISABLE_MCP_MERGE environment variable.")
+    except Exception as e:
+        logger.error(f"Failed to process configuration: {e}")
+        raise
+    globals()["config"] = resolved_config
+    return resolved_config
 
 def resolve_placeholders(obj: Any) -> Any:
     """
@@ -101,10 +147,43 @@ def load_server_config(file_path: str = None) -> dict:
     try:
         resolved_config = resolve_placeholders(config)
         logger.debug(f"Configuration after resolving placeholders: {redact_sensitive_data(resolved_config)}")
+
+        # Merge external MCP settings if merge is not disabled by env var
+        disable_merge = os.getenv("DISABLE_MCP_MERGE", "false").lower() in ("true", "1", "yes")
+        if not disable_merge:
+            # Check if the external MCP settings file exists
+            if os.name == "nt":
+                external_mcp_path = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "Claude", "claude_desktop_config.json")
+            else:
+                external_mcp_path = os.path.join(os.path.expanduser("~"), ".vscode-server", "data", "User", "globalStorage", "rooveterinaryinc.roo-cline", "settings", "cline_mcp_settings.json")
+            if os.path.exists(external_mcp_path):
+                try:
+                    with open(external_mcp_path, "r") as mcp_file:
+                        mcp_config = json.load(mcp_file)
+                    logger.debug("Loaded external MCP settings: " + json.dumps(redact_sensitive_data(mcp_config)))
+                    main_mcp = resolved_config.get("mcpServers", {})
+                    external_mcp = mcp_config.get("mcpServers", {})
+                    merged_mcp = main_mcp.copy()
+                    for server, server_config in external_mcp.items():
+                        if server in main_mcp:
+                            continue
+                        if server_config.get("disabled", False):
+                            continue
+                        merged_mcp[server] = server_config
+                    resolved_config["mcpServers"] = merged_mcp
+                    logger.debug("Merged MCP servers configuration: " + json.dumps(merged_mcp))
+                except Exception as e:
+                    logger.error(f"Failed to load or merge MCP settings from '{external_mcp_path}': {e}")
+            else:
+                logger.debug(f"External MCP settings file not found at {external_mcp_path}. Skipping merge.")
+        else:
+            logger.debug("MCP settings merge is disabled due to DISABLE_MCP_MERGE environment variable.")
     except Exception as e:
         logger.error(f"Failed to resolve placeholders in configuration: {e}")
         raise
 
+    globals()["config"] = resolved_config
+    globals()["config"] = resolved_config
     return resolved_config
 
 def validate_mcp_server_env(mcp_servers: Dict[str, Any]) -> None:
@@ -199,7 +278,7 @@ def are_required_mcp_servers_configured(required_servers: List[str], config: dic
 
     Returns:
         Tuple[bool, List[str]]: A tuple where the first element is True if all servers are configured,
-                                 and the second element is a list of missing servers.
+                                and the second element is a list of missing servers.
     """
     configured_servers = config.get("mcpServers", {}).keys()
     missing_servers = [server for server in required_servers if server not in configured_servers]
@@ -246,7 +325,7 @@ def inject_env_vars(config: Dict[str, Any]) -> Dict[str, Any]:
     # For now, we'll assume placeholders are resolved during load.
     return config
 
-def load_llm_config(config: Dict[str, Any], llm_name: Optional[str] = None) -> Dict[str, Any]:
+def load_llm_config(config: Optional[Dict[str, Any]] = None, llm_name: Optional[str] = None) -> Dict[str, Any]:
     """
     Load the configuration for a specific LLM.
 
@@ -260,20 +339,23 @@ def load_llm_config(config: Dict[str, Any], llm_name: Optional[str] = None) -> D
     Raises:
         ValueError: If the LLM configuration cannot be found or is invalid.
     """
+    if config is None:
+        config = globals().get("config")
+    if config is None:
+        raise ValueError("Global configuration not defined and no config provided.")
+    
     logger.debug(f"Attempting to load LLM configuration for: {llm_name or 'unspecified'}")
-
-    # Determine LLM name
+    
     if not llm_name:
         llm_name = os.getenv("DEFAULT_LLM", "default")
         logger.debug(f"No LLM name provided, using DEFAULT_LLM env variable or fallback to 'default': {llm_name}")
-
-    # Load the specific LLM configuration
+    
     llm_config = config.get("llm", {}).get(llm_name)
     if not llm_config:
         error_message = f"LLM configuration for '{llm_name}' not found in the config."
         logger.error(error_message)
         raise ValueError(error_message)
-
+    
     logger.debug(f"Loaded LLM configuration for '{llm_name}': {redact_sensitive_data(llm_config)}")
     return llm_config
 

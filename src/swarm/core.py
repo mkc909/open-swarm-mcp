@@ -17,6 +17,7 @@ import logging
 import uuid
 from collections import defaultdict
 from typing import List, Optional, Dict, Any
+from types import SimpleNamespace
 
 # Package/library imports
 import asyncio
@@ -72,6 +73,101 @@ def filter_duplicate_system_messages(messages):
         filtered_messages.append(message)
 
     return filtered_messages
+
+# Define a custom message class that provides default values and a dump method.
+class ChatMessage(SimpleNamespace):
+    def __init__(self, **kwargs):
+        defaults = {
+            "role": "assistant",
+            "content": "",
+            "sender": "assistant",
+            # Only set defaults if they are missing; if the model returns a value, keep it.
+            "function_call": kwargs.get("function_call", None),
+            "tool_calls": kwargs.get("tool_calls", [])
+        }
+        for key, default in defaults.items():
+            if key not in kwargs or kwargs[key] is None:
+                kwargs[key] = default
+        super().__init__(**kwargs)
+    
+    def model_dump_json(self):
+        d = self.__dict__.copy()
+        # Remove empty tool_calls to avoid API validation errors.
+        if "tool_calls" in d and not d["tool_calls"]:
+            del d["tool_calls"]
+        return json.dumps(d)
+
+def parse_llm_response(completion) -> list:
+    messages = []
+    
+    if isinstance(completion, dict):
+        # Handle OpenAI API format
+        if "choices" in completion:
+            for choice in completion["choices"]:
+                if "message" in choice:
+                    msg = choice["message"]
+                    if isinstance(msg, dict):
+                        # Replace None with empty string for content
+                        if msg.get("content") is None:
+                            msg["content"] = ""
+                        msg.setdefault("sender", "assistant")
+                    else:
+                        msg = {
+                            "role": getattr(msg, "role", "assistant"),
+                            "content": getattr(msg, "content", "") or "",
+                            "sender": "assistant"
+                        }
+                    messages.append(msg)
+        # Handle NeMo Guardrails format with messages list
+        elif "model" in completion and "messages" in completion:
+            for msg in completion["messages"]:
+                if isinstance(msg, dict):
+                    if msg.get("content") is None:
+                        msg["content"] = ""
+                    msg.setdefault("sender", "assistant")
+                    messages.append(msg)
+                else:
+                    messages.append({
+                        "role": getattr(msg, "role", "assistant"),
+                        "content": getattr(msg, "content", "") or "",
+                        "sender": "assistant"
+                    })
+        # Handle case where response is a single message dict
+        elif "role" in completion and "content" in completion:
+            msg = completion.copy()
+            if msg.get("content") is None:
+                msg["content"] = ""
+            msg.setdefault("sender", "assistant")
+            messages.append(msg)
+        else:
+            logging.warning("⚠️ Unrecognized response format in dict. Returning empty list.")
+    elif hasattr(completion, "choices"):
+        for choice in completion.choices:
+            if hasattr(choice, "message"):
+                msg = choice.message
+                if isinstance(msg, dict):
+                    if msg.get("content") is None:
+                        msg["content"] = ""
+                    msg.setdefault("sender", "assistant")
+                else:
+                    msg = {
+                        "role": getattr(msg, "role", "assistant"),
+                        "content": getattr(msg, "content", "") or "",
+                        "sender": "assistant"
+                    }
+                messages.append(msg)
+    else:
+        logging.warning("⚠️ Unrecognized completion format. Returning empty list.")
+    
+    if not messages:
+        messages = [{
+            "role": "assistant",
+            "content": "⚠️ No valid response received from model.",
+            "sender": "assistant"
+        }]
+    
+    # Wrap each message dict in a ChatMessage to enforce defaults and proper serialization.
+    return [ChatMessage(**msg) for msg in messages]
 
 class Swarm:
     def __init__(self, client=None, config: Optional[dict] = None):
@@ -261,7 +357,11 @@ class Swarm:
             logger.error(f"⚠️ Failed to serialize chat completion payload: {e}")
 
         try:
-            return self.client.chat.completions.create(**json.loads(json.dumps(create_params, default=serialize_datetime)))
+            if agent.nemo_guardrails_instance:
+                logger.debug(f"🔹 Using NeMo Guardrails for agent: {agent.name}")
+                return agent.nemo_guardrails_instance.generate(messages=messages)
+            else:
+                return self.client.chat.completions.create(**json.loads(json.dumps(create_params, default=serialize_datetime)))
         except Exception as e:
             logger.debug(f"Error in chat completion request: {e}")
             raise
@@ -548,6 +648,7 @@ class Swarm:
             )
 
             try:
+                # message = parse_llm_response(completion)[0]
                 message = completion.choices[0].message
             except Exception as e:
                 logger.error(f"Failed to extract message from completion: {e}")
@@ -556,7 +657,7 @@ class Swarm:
             message.sender = active_agent.name
 
             raw_content = message.content or ""
-            has_tool_calls = bool(message.tool_calls)
+            has_tool_calls = bool(message.tool_calls) or (message.function_call is not None)
 
             if debug:
                 logger.debug(

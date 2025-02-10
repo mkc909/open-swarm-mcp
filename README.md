@@ -108,9 +108,7 @@ Open Swarm includes a growing library of **Blueprint** examples:
 | **Personal Assistant Blueprint** | Combines real-time weather updates (Python function) with documentation search (`rag-docs`, MCP). Demonstrates mixed tooling. | Broken (uvx-based)                      |
 | **Database and Web Blueprint** | Demonstrates MCP-based integration with an SQLite database and Brave Search, illustrating how to combine data retrieval with real-time web queries. | Stable                                  |
 | **Divine Ops Blueprint**       | Multi-agent system for handling system administration tasks using MCP tools (filesystem, SQLite, search, etc.). | Stable                                  |
-| **Nebucha Shellzzar Blueprint**| Example blueprint showcasing Nebucha Shellzzar agent.                       | Stable                                  |
-| **Open-WebAI Blueprint**       | Blueprints demonstrating various integrations with Open-WebAI and Autogen Studio. | Stable                                  |
-| **Path-E-Tech Blueprint**      | Example blueprint for path-e-tech use-cases.                                | Stable                                  |
+| **Nebucha Shellzzar Blueprint**| Example system administration blueprint.                                  | Stable                                  |
 | **Suggestion Blueprint**     | Blueprint providing suggestions and recommendations.                        | Stable                                  |
 | **University Blueprint**       | Multi-agent system for university-related tasks.                            | Stable                                  |
 | **Flowise Blueprint**          | Integrates with Flowise for visual flow orchestration.                      | Broken (uvx-based, requires Flowise setup)|
@@ -429,5 +427,5 @@ We also wish to credit [django_chatbot](https://github.com/MattiPaivike/django_c
 ### Third-Party Libraries
 - **[Marked.js](https://github.com/markedjs/marked)** (MIT License)  
   A fast, lightweight library for parsing Markdown into HTML.
-- **[Font Awesome](https://github.com/FortAwesome/Font-Awesome)** (CC BY 4.0 License)  
-  A popular icon library for web projects. Included for styling buttons and enhancing the user interface.
+- **[Tabler Icons](https://tablericons.com)** (MIT License)  
+  A set of free, high-quality SVG icons for web projects, designed by Paweł Kuna.

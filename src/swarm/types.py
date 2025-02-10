@@ -6,12 +6,15 @@ from openai.types.chat.chat_completion_message_tool_call import (
 from typing import List, Callable, Union, Optional, Dict, Any
 
 # Third-party imports
-from pydantic import BaseModel
+from nemoguardrails import LLMRails
+from pydantic import BaseModel, ConfigDict
 
 # AgentFunction = Callable[[], Union[str, "Agent", dict]]
 AgentFunction = Callable[..., Union[str, "Agent", dict]]
 
 class Agent(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)  # Allow non-Pydantic types (for nemo guardrails instance)
+
     name: str = "Agent"
     model: str = "default"
     instructions: Union[str, Callable[[], str]] = "You are a helpful agent."
@@ -22,6 +25,8 @@ class Agent(BaseModel):
     mcp_servers: Optional[List[str]] = None  # List of MCP server names
     env_vars: Optional[Dict[str, str]] = None  # Environment variables required
     response_format: Optional[Dict[str, Any]] = None # Structured Output
+    nemo_guardrails_config: Optional[str] = None  # Config directory name (string)
+    nemo_guardrails_instance: Optional[LLMRails] = None  # The actual LLMRails instance (object)
 
 class Response(BaseModel):
     id: Optional[str] = None  # id needed for REST

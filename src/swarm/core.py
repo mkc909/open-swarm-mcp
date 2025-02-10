@@ -92,6 +92,7 @@ def update_null_content(messages):
     for message in messages:
         if message.get('content') is None:
             message['content'] = ""
+    return messages
 
 # Define a custom message class that provides default values and a dump method.
 class ChatMessage(SimpleNamespace):

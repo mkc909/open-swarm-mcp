@@ -18,6 +18,7 @@ import uuid
 from collections import defaultdict
 from typing import List, Optional, Dict, Any
 from types import SimpleNamespace
+from nemoguardrails.rails.llm.options import GenerationOptions
 
 # Package/library imports
 import asyncio
@@ -358,9 +359,24 @@ class Swarm:
 
         try:
             if agent.nemo_guardrails_instance:
+
+                options = GenerationOptions(
+                    llm_params={
+                        "temperature": 0.5,
+                        # "model_name": "gpt-4o",  
+                        # "base_url": "https://api.openai.com/v1",
+                    },
+                    llm_output=True,
+                    output_vars=True,
+                    return_context=True  
+                )
+
                 logger.debug(f"🔹 Using NeMo Guardrails for agent: {agent.name}")
-                return agent.nemo_guardrails_instance.generate(messages=messages)
+                response = agent.nemo_guardrails_instance.generate(messages=messages, options=options)
+                logger.debug(f"[DEBUG] Chat completion reesponse: {response}")
+                return response
             else:
+                logger.debug(f"🔹 Using OpenAI Completion for agent: {agent.name}")
                 return self.client.chat.completions.create(**json.loads(json.dumps(create_params, default=serialize_datetime)))
         except Exception as e:
             logger.debug(f"Error in chat completion request: {e}")
@@ -652,6 +668,9 @@ class Swarm:
                 message = completion.choices[0].message
             except Exception as e:
                 logger.error(f"Failed to extract message from completion: {e}")
+                logger.error(f"Raw completion: {completion}")
+                logger.error(f"Raw history: {history}")
+                logger.error(f"Raw messages: {messages}")
                 break
 
             message.sender = active_agent.name

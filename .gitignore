@@ -183,3 +183,5 @@ swarm-django.db
 swarm-django.db-*
 
 wp-sites.json
+
+traces.*

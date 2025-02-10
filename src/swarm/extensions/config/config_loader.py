@@ -186,18 +186,23 @@ def load_server_config(file_path: str = None) -> dict:
     globals()["config"] = resolved_config
     return resolved_config
 
-def validate_mcp_server_env(mcp_servers: Dict[str, Any]) -> None:
+def validate_mcp_server_env(mcp_servers: Dict[str, Any], required_servers: Optional[List[str]] = None) -> None:
     """
     Validates that mandatory environment variables in MCP server configurations are set.
-
+    
     Args:
         mcp_servers (Dict[str, Any]): MCP server configurations.
-
+        required_servers (Optional[List[str]]): List of MCP servers to validate; if None, validates all.
+    
     Raises:
         ValueError: If any mandatory environment variable in an `env` section is not set.
     """
-    logger.debug(f"Validating environment variables for MCP servers: {list(mcp_servers.keys())}")
-    for server_name, server_config in mcp_servers.items():
+    if required_servers is not None:
+        servers_to_validate = {server: config for server, config in mcp_servers.items() if server in required_servers}
+    else:
+        servers_to_validate = mcp_servers
+    logger.debug(f"Validating environment variables for MCP servers: {list(servers_to_validate.keys())}")
+    for server_name, server_config in servers_to_validate.items():
         logger.debug(f"Validating environment variables for MCP server '{server_name}'.")
         env_vars = server_config.get("env", {})
         for env_key, env_value in env_vars.items():

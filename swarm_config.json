@@ -55,10 +55,29 @@
             "speed": 0.5,
             "intelligence": 0.5,
             "temperature": 0.1
+        },
+        "gpt-3.5-turbo-instruct": {
+            "provider": "openai",
+            "model": "gpt-3.5-turbo-instruct",
+            "base_url": "https://api.openai.com/v1",
+            "api_key": "${OPENAI_API_KEY}",
+            "cost": 0.1,
+            "speed": 0.8,
+            "intelligence": 0.2,
+            "temperature": 0.1
         }
     },
 
     "mcpServers": {
+
+        "youtube-transcript": {
+            "command": "uvx",
+            "args": [
+                "--from",
+                "git+https://github.com/jkawamoto/mcp-youtube-transcript", 
+                "mcp-youtube-transcript"
+            ]
+        },
 
         "mcp-wolfram-alpha": {
             "command": "uvx",
@@ -88,11 +107,11 @@
             ]
         },
 
-        "claudeus-wp-mcp": {
+        "server-wp-mcp": {
             "command": "npx",
-            "args": ["-y", "claudeus-wp-mcp"],
+            "args": ["-y", "github:matthewhand/server-wp-mcp"],
             "env": {
-				"WP_SITES_PATH": "./wp-sites.json"
+				"WP_SITES_PATH": "${WP_SITES_PATH}"
 			}
         },
 

@@ -58,7 +58,7 @@ class PrivateDigitalAssistantsBlueprint(BlueprintBase):
 
       4) Gutenberg (WordPress Content Management)
          - Manages all aspects of WordPress sites including content creation, editing, scheduling,
-           SEO management, and general site maintenance via 'claudeus-wp-mcp'.
+           SEO management, and general site maintenance via 'server-wp-mcp'.
          - Follows strict guidelines for formatting, quality control, and publication workflows.
          - After completing tasks, it confirms that updates have been made and then returns control
            to Jeeves.
@@ -77,7 +77,7 @@ class PrivateDigitalAssistantsBlueprint(BlueprintBase):
     Security & Environment:
       - Requires several environment variables for API keys and file paths.
       - If any variable is missing, an error is raised.
-      - Weather data comes from OpenWeatherMap; WordPress tasks from 'claudeus-wp-mcp'.
+      - Weather data comes from OpenWeatherMap; WordPress tasks from 'server-wp-mcp'.
       - Computational queries are processed via Wolfram Alpha (using 'mcp-wolfram-alpha').
     ------------------------------------------------------------------------------
     """
@@ -102,7 +102,7 @@ class PrivateDigitalAssistantsBlueprint(BlueprintBase):
                 "duckduckgo-search",  # Mycroft uses this for general web searches.
                 "mcp-server-reddit",  # Mycroft uses this for retrieving Reddit discussions.
                 "rag-docs",           # Cortana uses this for document analysis and summarization.
-                "claudeus-wp-mcp",    # Gutenberg uses this for managing WordPress content.
+                "server-wp-mcp",    # Gutenberg uses this for managing WordPress content.
                 "mcp-wolfram-alpha",  # Mycroft uses this for computational queries.
             ],
             "env_vars": [
@@ -258,7 +258,7 @@ class PrivateDigitalAssistantsBlueprint(BlueprintBase):
                 "   - Verify that all content meets quality standards before publication.\n\n"
                 "After completing your tasks, return control to Jeeves."
             ),
-            mcp_servers=["claudeus-wp-mcp"],
+            mcp_servers=["server-wp-mcp"],
             env_vars={
                 "WP_SITES_PATH": wp_sites_path
             },

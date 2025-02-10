@@ -66,7 +66,7 @@ class EchoBlueprint(BlueprintBase):
             logger.info(f"Echoing content: {content}")
             return content
 
-        # Create Echo Agent
+        # Create Echo Agent with NeMo Guardrails tracing enabled
         echo_agent = Agent(
             name="EchoAgent",
             instructions=(
@@ -75,12 +75,13 @@ class EchoBlueprint(BlueprintBase):
             mcp_servers=[],  # No MCP servers required
             env_vars={},     # No environment variables required
             functions=[echo_function],
-            parallel_tool_calls=False  # Set based on your framework's requirements
+            parallel_tool_calls=False,  # Set based on your framework's requirements
+            nemo_guardrails_config="tracing",  # Enables NeMo Guardrails tracing
         )
 
         self.set_starting_agent(echo_agent)  # Set EchoAgent as the starting agent
 
-        logger.info("EchoAgent has been created.")
+        logger.info("EchoAgent has been created with NeMo Guardrails tracing.")
         return {"EchoAgent": echo_agent}
 
 

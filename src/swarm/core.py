@@ -98,78 +98,6 @@ class ChatMessage(SimpleNamespace):
             del d["tool_calls"]
         return json.dumps(d)
 
-def parse_llm_response(completion) -> list:
-    messages = []
-    
-    if isinstance(completion, dict):
-        # Handle OpenAI API format
-        if "choices" in completion:
-            for choice in completion["choices"]:
-                if "message" in choice:
-                    msg = choice["message"]
-                    if isinstance(msg, dict):
-                        # Replace None with empty string for content
-                        if msg.get("content") is None:
-                            msg["content"] = ""
-                        msg.setdefault("sender", "assistant")
-                    else:
-                        msg = {
-                            "role": getattr(msg, "role", "assistant"),
-                            "content": getattr(msg, "content", "") or "",
-                            "sender": "assistant"
-                        }
-                    messages.append(msg)
-        # Handle NeMo Guardrails format with messages list
-        elif "model" in completion and "messages" in completion:
-            for msg in completion["messages"]:
-                if isinstance(msg, dict):
-                    if msg.get("content") is None:
-                        msg["content"] = ""
-                    msg.setdefault("sender", "assistant")
-                    messages.append(msg)
-                else:
-                    messages.append({
-                        "role": getattr(msg, "role", "assistant"),
-                        "content": getattr(msg, "content", "") or "",
-                        "sender": "assistant"
-                    })
-        # Handle case where response is a single message dict
-        elif "role" in completion and "content" in completion:
-            msg = completion.copy()
-            if msg.get("content") is None:
-                msg["content"] = ""
-            msg.setdefault("sender", "assistant")
-            messages.append(msg)
-        else:
-            logging.warning("⚠️ Unrecognized response format in dict. Returning empty list.")
-    elif hasattr(completion, "choices"):
-        for choice in completion.choices:
-            if hasattr(choice, "message"):
-                msg = choice.message
-                if isinstance(msg, dict):
-                    if msg.get("content") is None:
-                        msg["content"] = ""
-                    msg.setdefault("sender", "assistant")
-                else:
-                    msg = {
-                        "role": getattr(msg, "role", "assistant"),
-                        "content": getattr(msg, "content", "") or "",
-                        "sender": "assistant"
-                    }
-                messages.append(msg)
-    else:
-        logging.warning("⚠️ Unrecognized completion format. Returning empty list.")
-    
-    if not messages:
-        messages = [{
-            "role": "assistant",
-            "content": "⚠️ No valid response received from model.",
-            "sender": "assistant"
-        }]
-    
-    # Wrap each message dict in a ChatMessage to enforce defaults and proper serialization.
-    return [ChatMessage(**msg) for msg in messages]
-
 class Swarm:
     def __init__(self, client=None, config: Optional[dict] = None):
         """
@@ -381,6 +309,23 @@ class Swarm:
         except Exception as e:
             logger.debug(f"Error in chat completion request: {e}")
             raise
+
+    def get_chat_completion_message(self, **kwargs):
+        # Call the get_chat_completion method with kwargs
+        completion = self.get_chat_completion(**kwargs)
+
+        # Log the completion object for debugging
+        logger.debug(f"Completion object: {completion}")
+
+        # Check if choices exists and has at least one element
+        if hasattr(completion, 'choices') and len(completion.choices) > 0:
+            # Check if the first choice has a message attribute
+            if hasattr(completion.choices[0], 'message'):
+                return completion.choices[0].message
+
+        # If any of the checks fail, treat the entire completion object as the message
+        logger.debug(f"Treating entire completion object as message: {completion}")
+        return ChatMessage(content=json.dumps(completion))
 
     def handle_function_result(self, result, debug) -> Result:
         """
@@ -654,23 +599,18 @@ class Swarm:
         while turn_count < max_turns and active_agent:
             turn_count += 1
 
-            completion = self.get_chat_completion(
-                agent=active_agent,
-                history=history,
-                context_variables=context_variables,
-                model_override=model_override,
-                stream=stream,
-                debug=debug,
-            )
-
             try:
-                # message = parse_llm_response(completion)[0]
-                message = completion.choices[0].message
+
+                message = self.get_chat_completion_message(
+                    agent=active_agent,
+                    history=history,
+                    context_variables=context_variables,
+                    model_override=model_override,
+                    stream=stream,
+                    debug=debug,
+                )
             except Exception as e:
                 logger.error(f"Failed to extract message from completion: {e}")
-                logger.error(f"Raw completion: {completion}")
-                logger.error(f"Raw history: {history}")
-                logger.error(f"Raw messages: {messages}")
                 break
 
             message.sender = active_agent.name

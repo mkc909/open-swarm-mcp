@@ -196,6 +196,12 @@ class BlueprintBase(ABC):
         )
 
         logger.debug(f"Swarm response: {response}")
+
+        # Ensure the response has the expected structure
+        if not hasattr(response, 'messages'):
+            logger.error("Response does not have 'messages' attribute.")
+            response.messages = []
+
         if response.agent:
             self.context_variables["active_agent_name"] = response.agent.name
             logger.debug(f"Active agent updated to: {response.agent.name}")
@@ -414,15 +420,22 @@ class BlueprintBase(ABC):
         for message in messages:
             if message["role"] != "assistant":
                 continue
-            print(f"\033[94m{message['sender']}\033[0m:", end=" ")
-            if message["content"]:
-                print(message["content"])
-            tool_calls = message.get("tool_calls") or []
+
+            sender = message.get("sender", "Unknown")
+            content = message.get("content", "")
+            tool_calls = message.get("tool_calls", [])
+
+            print(f"\033[94m{sender}\033[0m:", end=" ")
+            if content:
+                print(content)
+
             if len(tool_calls) > 1:
                 print()
+
             for tool_call in tool_calls:
                 f = tool_call["function"]
-                name, args = f["name"], f["arguments"]
+                name = f.get("name", "Unnamed Tool")
+                args = f.get("arguments", "{}")
                 arg_str = json.dumps(json.loads(args)).replace(":", "=")
                 print(f"\033[95m{name}\033[0m({arg_str[1:-1]})")
 

@@ -4,6 +4,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any, List
+from nemoguardrails import LLMRails, RailsConfig
 
 from swarm.core import Swarm
 from swarm.extensions.config.config_loader import load_server_config
@@ -76,15 +77,35 @@ class BlueprintBase(ABC):
         self.context_variables["user_goal"] = ""
 
         self.starting_agent = None
-        agents = self.create_agents()
-        self.swarm.agents.update(agents)
-        logger.debug(f"Agents registered: {list(agents.keys())}")
 
+        # Validate Environment Variables First
         required_env_vars = set(self.metadata.get('env_vars', []))
         missing_vars = [var for var in required_env_vars if not os.getenv(var)]
         if missing_vars:
             raise EnvironmentError(f"Missing required environment variables: {', '.join(missing_vars)}")
         logger.debug("Required environment variables validation successful.")
+
+        # Validate MCP Servers Before Creating Agents
+        self.required_mcp_servers = self.metadata.get('required_mcp_servers', [])
+        logger.debug(f"Required MCP servers: {self.required_mcp_servers}")
+
+        # Create Agents Only After Validation Passes
+        agents = self.create_agents()
+
+        # Initialize NeMo Guardrails Before Registering Agents
+        for agent_name, agent in agents.items():
+            if agent.nemo_guardrails_config:
+                guardrails_path = os.path.join("nemo_guardrails", agent.nemo_guardrails_config)
+                
+                # Load NeMo Guardrails configuration
+                rails_config = RailsConfig.from_path(guardrails_path)  
+                agent.nemo_guardrails_instance = LLMRails(rails_config)
+
+                logger.debug(f"✅ Loaded NeMo Guardrails for agent: {agent.name} ({agent.nemo_guardrails_config})")
+
+        # Finally Register Agents After Everything is Validated
+        self.swarm.agents.update(agents)
+        logger.debug(f"Agents registered: {list(agents.keys())}")
 
         asyncio.run(self.async_discover_agent_tools())
         logger.debug("Tool discovery completed.")
@@ -446,6 +467,3 @@ class BlueprintBase(ABC):
         )
 
         blueprint.interactive_mode()
-
-if __name__ == "__main__":
-    PrivateDigitalAssistantsBlueprint.main()

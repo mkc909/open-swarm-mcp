@@ -75,6 +75,24 @@ def filter_duplicate_system_messages(messages):
 
     return filtered_messages
 
+def filter_messages(messages):
+    """
+    Filter messages to exclude those with null content 
+    """
+    filtered_messages = []
+    for message in messages:
+        if message.get('content') is not None:
+            filtered_messages.append(message)
+    return filtered_messages
+
+def update_null_content(messages):
+    """
+    Update messages with null content to an empty string.
+    """
+    for message in messages:
+        if message.get('content') is None:
+            message['content'] = ""
+
 # Define a custom message class that provides default values and a dump method.
 class ChatMessage(SimpleNamespace):
     def __init__(self, **kwargs):
@@ -286,7 +304,7 @@ class Swarm:
             logger.error(f"⚠️ Failed to serialize chat completion payload: {e}")
 
         try:
-            if agent.nemo_guardrails_instance:
+            if agent.nemo_guardrails_instance and messages[-1].get('content'):
 
                 options = GenerationOptions(
                     llm_params={
@@ -300,7 +318,7 @@ class Swarm:
                 )
 
                 logger.debug(f"🔹 Using NeMo Guardrails for agent: {agent.name}")
-                response = agent.nemo_guardrails_instance.generate(messages=messages, options=options)
+                response = agent.nemo_guardrails_instance.generate(messages=update_null_content(messages), options=options)
                 logger.debug(f"[DEBUG] Chat completion reesponse: {response}")
                 return response
             else:
@@ -325,7 +343,7 @@ class Swarm:
 
         # If any of the checks fail, treat the entire completion object as the message
         logger.debug(f"Treating entire completion object as message: {completion}")
-        return ChatMessage(content=json.dumps(completion))
+        return ChatMessage(content=json.dumps(completion.get("content")))
 
     def handle_function_result(self, result, debug) -> Result:
         """

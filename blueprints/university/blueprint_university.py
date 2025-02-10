@@ -194,16 +194,19 @@ class UniversitySupportBlueprint(BlueprintBase):
             name="CourseAdvisor",
             instructions="You are the Course Advisor. Provide course recommendations based on user interests.",
             functions=[course_advisor_search, triage_to_university_poet, triage_to_scheduling_assistant],
+            nemo_guardrails_config="tracing",
         )
         university_poet = Agent(
             name="UniversityPoet",
             instructions="You are the University Poet. Respond creatively to user queries with haikus or poetic advice.",
             functions=[triage_to_course_advisor, triage_to_scheduling_assistant],
+            nemo_guardrails_config="tracing",
         )
         scheduling_assistant = Agent(
             name="SchedulingAssistant",
             instructions="You are the Scheduling Assistant. Manage and provide information about schedules and exams.",
             functions=[scheduling_assistant_search, triage_to_course_advisor, triage_to_university_poet],
+            nemo_guardrails_config="tracing",
         )
 
         # Register agents

@@ -22,7 +22,7 @@ ENABLE_WEBUI = os.getenv("ENABLE_WEBUI", "false").lower() in ("true", "1", "t")
 urlpatterns = [
     re_path(r'^v1/chat/completions/?$', views.chat_completions, name='chat_completions'),
     re_path(r'^v1/models/?$', views.list_models, name='list_models'),
-    path('schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('schema/', SpectacularAPIView.as_view(exclude_from_schema=True), name='schema'),
     path('swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 ]
 

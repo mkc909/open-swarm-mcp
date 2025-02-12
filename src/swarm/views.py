@@ -32,7 +32,7 @@ class HiddenSpectacularAPIView(BaseSpectacularAPIView):
     exclude_from_schema = True
 
 SpectacularAPIView = HiddenSpectacularAPIView
-from rest_framework.permissions import IsAuthenticated  # type: ignore
+from rest_framework.permissions import IsAuthenticated, AllowAny  # type: ignore
 from rest_framework.authentication import TokenAuthentication  # type: ignore
 from rest_framework.permissions import IsAuthenticated, AllowAny  # type: ignore
 from rest_framework.viewsets import ModelViewSet  # type: ignore
@@ -240,7 +240,7 @@ def get_blueprint_instance(model: str, context_vars: dict) -> Any:
                 metadata = {"title": "Dummy Blueprint", "env_vars": []}  # type: ignore
 
                 def create_agents(self) -> dict:
-                    DummyAgent = type("DummyAgent", (), {"name": "DummyAgent", "mcp_servers": {}, "functions": []})
+                    DummyAgent = type("DummyAgent", (), {"name": "DummyAgent", "mcp_servers": {}, "functions": [], "nemo_guardrails_config": ""})
                     self.starting_agent = DummyAgent
                     return {"DummyAgent": DummyAgent}
 
@@ -405,8 +405,8 @@ def run_conversation(blueprint_instance: Any,
 
 @api_view(['POST'])
 @csrf_exempt
-@authentication_classes([])  # Disable authentication for testing
-@permission_classes([])       # Allow all users for testing purposes
+@authentication_classes([EnvOrTokenAuthentication])
+@permission_classes([IsAuthenticated])
 def chat_completions(request):
     """
     Main entry point for chat completion requests.
@@ -424,12 +424,9 @@ def chat_completions(request):
         return Response({"error": "Method not allowed. Use POST."}, status=405)
 
     logger.info(f"Authenticated User: {request.user}")
-    if request.user.is_anonymous:
-        auth_header = request.META.get("HTTP_AUTHORIZATION", "")
-        if auth_header.startswith("Bearer ") or auth_header.startswith("Token "):
-            from django.contrib.auth.models import User
-            request.user = User(username="testuser")
-
+    # if request.user.is_anonymous:
+    #     return Response({"detail": "Authentication credentials were not provided."}, status=401)
+    
     parse_result = parse_chat_request(request)
     if isinstance(parse_result, Response):
         return parse_result
@@ -478,8 +475,11 @@ def chat_completions(request):
     },
     summary="Lists discovered blueprint folders as models."
 )
-@api_view(["GET"])
+
 @csrf_exempt
+@api_view(["GET"])
+@permission_classes([AllowAny])
+@authentication_classes([])
 def list_models(request):
     """
     Lists discovered blueprint folders as models.
@@ -583,16 +583,34 @@ def serve_swarm_config(request):
         logger.error(f"Error decoding JSON from {config_path}: {e}")
         return JsonResponse({"error": "Invalid JSON format in configuration file."}, status=500)
 
-@extend_schema(
-    list=extend_schema(summary="List all chat messages"),
-    retrieve=extend_schema(summary="Retrieve a chat message by its unique id"),
-    create=extend_schema(summary="Create a new chat message"),
-    update=extend_schema(summary="Update an existing chat message"),
-    partial_update=extend_schema(summary="Partially update a chat message"),
-    destroy=extend_schema(summary="Delete a chat message by its unique id"),
-)
 class ChatMessageViewSet(ModelViewSet):
+    authentication_classes = []
+    permission_classes = [AllowAny]
     queryset = ChatMessage.objects.all()
     serializer_class = ChatMessageSerializer
+
+    @extend_schema(summary="List all chat messages")
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(summary="Retrieve a chat message by its unique id")
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @extend_schema(summary="Create a new chat message")
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(summary="Update an existing chat message")
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @extend_schema(summary="Partially update a chat message")
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+    @extend_schema(summary="Delete a chat message by its unique id")
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
 
 __all__ = ["chat_completions", "list_models", "serve_swarm_config", "ChatMessage"]

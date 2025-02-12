@@ -4,7 +4,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any, List
-from nemoguardrails import LLMRails, RailsConfig
+from nemoguardrails import LLMRails, RailsConfig  # type: ignore
 
 from swarm.core import Swarm
 from swarm.extensions.config.config_loader import load_server_config
@@ -94,7 +94,7 @@ class BlueprintBase(ABC):
 
         # Initialize NeMo Guardrails Before Registering Agents
         for agent_name, agent in agents.items():
-            if agent.nemo_guardrails_config:
+            if getattr(agent, "nemo_guardrails_config", None):
                 guardrails_path = os.path.join("nemo_guardrails", agent.nemo_guardrails_config)
                 
                 try:
@@ -189,7 +189,7 @@ class BlueprintBase(ABC):
         active_agent = self.determine_active_agent()
         logger.debug(f"Running with active agent: {active_agent.name}")
 
-        response = self.swarm.run(
+        response = self.swarm.run(            
             agent=active_agent,
             messages=messages,
             context_variables=self.context_variables,

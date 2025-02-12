@@ -1,15 +1,15 @@
 import os
 import logging
 from django.contrib.auth.models import AnonymousUser
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.authentication import TokenAuthentication  # type: ignore
+from rest_framework.exceptions import AuthenticationFailed  # type: ignore
 
 logger = logging.getLogger(__name__)
 
 class EnvAuthenticatedUser(AnonymousUser):
     """ Custom user class that is always authenticated. """
     @property
-    def is_authenticated(self):
+    def is_authenticated(self) -> bool:  # type: ignore[override]
         return True  # Ensure Django recognizes this user as authenticated
 
 class EnvOrTokenAuthentication(TokenAuthentication):
@@ -23,6 +23,11 @@ class EnvOrTokenAuthentication(TokenAuthentication):
         auth_header = request.headers.get("Authorization", "")
         env_token = os.getenv("API_AUTH_TOKEN", None)
         enable_auth = os.getenv("ENABLE_API_AUTH", "false").lower() in ("true", "1", "t")
+
+        # If API authentication is disabled, allow unrestricted access
+        if not enable_auth:
+            logger.info("Authentication is disabled (ENABLE_API_AUTH not set or False). Allowing all users.")
+            return (EnvAuthenticatedUser(), None)
 
         # If API_AUTH_TOKEN is set, enforce token validation
         if env_token:

@@ -424,8 +424,6 @@ def chat_completions(request):
         return Response({"error": "Method not allowed. Use POST."}, status=405)
 
     logger.info(f"Authenticated User: {request.user}")
-    # if request.user.is_anonymous:
-    #     return Response({"detail": "Authentication credentials were not provided."}, status=401)
     
     parse_result = parse_chat_request(request)
     if isinstance(parse_result, Response):

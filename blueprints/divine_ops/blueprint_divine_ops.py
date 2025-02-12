@@ -112,6 +112,8 @@ class MassiveSoftwareDevSysadminBlueprint(BlueprintBase):
         # --- Retrieve environment variables (optional if needed) ---
         allowed_paths = os.getenv("ALLOWED_PATH", "/default/path")
         brave_api_key = os.getenv("BRAVE_API_KEY", "default-brave-key")
+        fly_url = os.getenv("FLY_API_KEY", "")
+        openapi_spec_url = os.getenv("OPENAPI_SPEC_URL", "")
         sqlite_db_path = os.getenv("SQLITE_DB_PATH", "/tmp/sqlite.db")
         weather_api_key = os.getenv("WEATHER_API_KEY", "")
         openai_api_key = os.getenv("OPENAI_API_KEY", "")
@@ -138,9 +140,16 @@ class MassiveSoftwareDevSysadminBlueprint(BlueprintBase):
             "4. Break down complex requests into manageable specifications.\n"
             "5. Coordinate with the dev team to ensure accurate implementation.\n"
             "6. Monitor progress and align with client expectations.\n\n"
-            "Plus, as the 'TriageAgent' from Sysadmin:\n"
-            " - Oversee and delegate tasks to the pantheon of agents.\n"
-            " - Do not execute tasks directly; manage order and memory.\n"
+            " - Oversee and delegate tasks to the pantheon of agents:\n"
+            "Key Roles: "
+            "Zeus (Product Owner) - Central triage, manages entire process & memory.\n"
+            "Odin (Software Architect) - Designs architecture using 'rag-docs' and advanced references.\n"
+            "Hermes (Tech Lead) - Breaks project into tasks, delegates, uses shell as needed.\n"
+            "Hephaestus (Full Stack Implementer) - Writes clean code, uses filesystem & installer tools.\n"
+            "Hecate (Code Monkey) - Another full stack implementer, helps with coding tasks.\n"
+            "Thoth (Code Updater) - Maintains code updates and DB ops with SQLite.\n"
+            "Mnemosyne (DevOps) - Infrastructure, pipelines, memory management, installations, etc.\n"
+            "Chronos (Technical Writer) - Documents everything, organizes knowledge, sequential planning.\n"
         )
 
         agents["Zeus"] = Agent(
@@ -301,8 +310,11 @@ class MassiveSoftwareDevSysadminBlueprint(BlueprintBase):
         agents["Mnemosyne"] = Agent(
             name="Mnemosyne",
             instructions=dev_ops_instructions,
-            mcp_servers=["memory", "mcp-installer"],  # handles memory & installing infra
-            env_vars={},
+            mcp_servers=["memory", "mcp-installer", "fly"],
+            env_vars={
+                "OPENAPI_SPEC_URL": openapi_spec_url,
+                "API_AUTH_TOKEN": fly_url 
+            },
         )
 
         # ─────────────────────────────────────────────────────────────────────────

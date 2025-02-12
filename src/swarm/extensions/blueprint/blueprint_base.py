@@ -97,11 +97,13 @@ class BlueprintBase(ABC):
             if agent.nemo_guardrails_config:
                 guardrails_path = os.path.join("nemo_guardrails", agent.nemo_guardrails_config)
                 
-                # Load NeMo Guardrails configuration
-                rails_config = RailsConfig.from_path(guardrails_path)  
-                agent.nemo_guardrails_instance = LLMRails(rails_config)
-
-                logger.debug(f"✅ Loaded NeMo Guardrails for agent: {agent.name} ({agent.nemo_guardrails_config})")
+                try:
+                    # Load NeMo Guardrails configuration
+                    rails_config = RailsConfig.from_path(guardrails_path)
+                    agent.nemo_guardrails_instance = LLMRails(rails_config)
+                    logger.debug(f"✅ Loaded NeMo Guardrails for agent: {agent.name} ({agent.nemo_guardrails_config})")
+                except Exception as e:
+                    logger.warning(f"Could not load NeMo Guardrails for agent {agent.name}: {e}")
 
         # Finally Register Agents After Everything is Validated
         self.swarm.agents.update(agents)

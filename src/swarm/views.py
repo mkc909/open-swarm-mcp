@@ -1,4 +1,4 @@
-"""
+""" 
 REST Mode Views for Open Swarm MCP.
 
 This module defines asynchronous views to handle chat completions and model listings,
@@ -10,7 +10,6 @@ Endpoints:
     - GET /django_chat/: Lists conversations for the logged-in user.
     - POST /django_chat/start/: Starts a new conversation.
 """
-
 import json
 import uuid
 import time
@@ -27,6 +26,15 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.response import Response  # type: ignore
 from rest_framework.decorators import api_view, authentication_classes, permission_classes  # type: ignore
 from drf_spectacular.utils import extend_schema  # type: ignore
+from drf_spectacular.views import SpectacularAPIView as BaseSpectacularAPIView  # type: ignore
+
+class HiddenSpectacularAPIView(BaseSpectacularAPIView):
+    exclude_from_schema = True
+
+SpectacularAPIView = HiddenSpectacularAPIView
+from drf_spectacular.views import SpectacularAPIView as BaseSpectacularAPIView  # type: ignore
+class HiddenSpectacularAPIView(BaseSpectacularAPIView):
+    exclude_from_schema = True
 from rest_framework.permissions import IsAuthenticated  # type: ignore
 from rest_framework.authentication import TokenAuthentication  # type: ignore
 
@@ -572,3 +580,25 @@ def serve_swarm_config(request):
     except json.JSONDecodeError as e:
         logger.error(f"Error decoding JSON from {config_path}: {e}")
         return JsonResponse({"error": "Invalid JSON format in configuration file."}, status=500)
+
+
+from rest_framework.generics import RetrieveDestroyAPIView
+from .models import ChatMessage
+from .serializers import ChatMessageSerializer
+from drf_spectacular.utils import extend_schema  # type: ignore
+
+from rest_framework.viewsets import ModelViewSet  # type: ignore
+from drf_spectacular.utils import extend_schema_view
+@extend_schema_view(
+    list=extend_schema(summary="List all chat messages"),
+    retrieve=extend_schema(summary="Retrieve a chat message by its unique id"),
+    create=extend_schema(summary="Create a new chat message"),
+    update=extend_schema(summary="Update an existing chat message"),
+    partial_update=extend_schema(summary="Partially update a chat message"),
+    destroy=extend_schema(summary="Delete a chat message by its unique id"),
+)
+class ChatMessageViewSet(ModelViewSet):
+    queryset = ChatMessage.objects.all()
+    serializer_class = ChatMessageSerializer
+
+__all__ = ["chat_completions", "list_models", "serve_swarm_config", "ChatMessageDetail"]

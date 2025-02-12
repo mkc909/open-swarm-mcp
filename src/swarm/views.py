@@ -26,6 +26,7 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.response import Response  # type: ignore
 from rest_framework.decorators import api_view, authentication_classes, permission_classes  # type: ignore
+from drf_spectacular.utils import extend_schema  # type: ignore
 from rest_framework.permissions import IsAuthenticated  # type: ignore
 from rest_framework.authentication import TokenAuthentication  # type: ignore
 
@@ -284,7 +285,7 @@ def load_conversation_history(conversation_id: Optional[str], messages: List[dic
         try:
             history_raw = redis_client.get(conversation_id)
             if history_raw:
-                data_str = history_raw.decode("utf-8") if isinstance(history_raw, bytes) else history_raw
+                data_str = history_raw.decode("utf-8") if isinstance(history_raw, bytes) else str(history_raw)
                 past_messages = json.loads(data_str)
                 logger.debug(f"✅ Retrieved {len(past_messages)} messages from Redis for conversation: {conversation_id}")
         except Exception as e:
@@ -444,6 +445,30 @@ def chat_completions(request):
 
     return Response(serialized, status=200)
 
+@extend_schema(
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "object": {"type": "string"},
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "string"},
+                            "object": {"type": "string"},
+                            "title": {"type": "string"},
+                            "description": {"type": "string"}
+                        }
+                    }
+                }
+            }
+        }
+    },
+    summary="Lists discovered blueprint folders as models."
+)
+@api_view(["GET"])
 @csrf_exempt
 def list_models(request):
     """

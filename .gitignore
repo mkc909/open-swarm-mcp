@@ -185,3 +185,5 @@ swarm-django.db-*
 wp-sites.json
 
 traces.*
+
+openapi.yaml

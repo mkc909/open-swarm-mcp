@@ -34,6 +34,7 @@ class HiddenSpectacularAPIView(BaseSpectacularAPIView):
 SpectacularAPIView = HiddenSpectacularAPIView
 from rest_framework.permissions import IsAuthenticated  # type: ignore
 from rest_framework.authentication import TokenAuthentication  # type: ignore
+from rest_framework.permissions import IsAuthenticated, AllowAny  # type: ignore
 from rest_framework.viewsets import ModelViewSet  # type: ignore
 
 # Project-specific imports

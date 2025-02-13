@@ -231,7 +231,6 @@ def get_blueprint_instance(model: str, context_vars: dict) -> Any:
     Returns:
         The blueprint instance or a DRF Response with an error.
     """
-    from .views import blueprints_metadata, config  # Adjust import as needed
 
     blueprint_meta = blueprints_metadata.get(model)
     if not blueprint_meta:
@@ -646,6 +645,17 @@ class StudentViewSet(ModelViewSet):
     permission_classes = [AllowAny]
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
+
+    def get_queryset(self):
+        from .models import filter_students
+        name = self.request.query_params.get("name")
+        status = self.request.query_params.get("status")
+        unit_codes = self.request.query_params.get("unit_codes")
+        if unit_codes:
+            unit_codes = unit_codes.split(',')
+        if name or status or unit_codes:
+            return filter_students(name=name, status=status, unit_codes=unit_codes)
+        return super().get_queryset()
 
 class EnrollmentViewSet(ModelViewSet):
     authentication_classes = []

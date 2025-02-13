@@ -187,10 +187,10 @@
             "env": {
                 "DEBUG": "true",
                 "OPENAPI_LOGFILE_PATH": "/tmp/debug-mcp-openapi-proxy.log",
-                "OPENAPI_SPEC_URL": "https://raw.githubusercontent.com/abhiaagarwal/peristera/refs/heads/main/fly-machines-gen/fixed_spec.json",
+                "OPENAPI_SPEC_URL": "https://machines-api-spec.fly.dev/swagger/doc.json",
                 "SERVER_URL_OVERRIDE": "https://api.machines.dev",
                 "TOOL_WHITELIST": "/machines/list,/machines/start,/machines/status",
-                "API_AUTH_BEARER": "${FLY_API_TOKEN}"
+                "API_AUTH_BEARER": "${FLY_API_KEY}"
             }
         },
 

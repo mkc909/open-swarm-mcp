@@ -1,4 +1,5 @@
 import unittest
+from swarm.models import TeachingUnit
 from swarm.views import filter_blueprints
 
 class BlueprintFilterTestCase(unittest.TestCase):

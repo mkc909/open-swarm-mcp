@@ -27,6 +27,9 @@ class SubtopicSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class CourseSerializer(serializers.ModelSerializer):
+    enrolled_students = serializers.IntegerField(read_only=True)
+    average_gpa = serializers.FloatField(read_only=True)
+    
     class Meta:
         model = Course
         fields = '__all__'
@@ -42,6 +45,9 @@ class EnrollmentSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class AssessmentItemSerializer(serializers.ModelSerializer):
+    formatted_weight = serializers.CharField(read_only=True)
+    is_late_submission = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = AssessmentItem
         fields = '__all__'

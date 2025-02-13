@@ -1,4 +1,5 @@
 import unittest
+from swarm.models import TeachingUnit
 
 import os
 import json

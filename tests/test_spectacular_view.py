@@ -1,6 +1,7 @@
 import json
 from django.test import TestCase
 from rest_framework.test import APIRequestFactory  # type: ignore
+from swarm.models import TeachingUnit
 from swarm.views import SpectacularAPIView
 
 

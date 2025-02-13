@@ -6,7 +6,7 @@ from django.conf.urls.static import static
 import os
 
 from swarm import views
-from swarm.views import HiddenSpectacularAPIView, ChatMessageViewSet
+from swarm.views import HiddenSpectacularAPIView, ChatMessageViewSet, TeachingUnitViewSet, TopicViewSet, LearningObjectiveViewSet, SubtopicViewSet, CourseViewSet, StudentViewSet, EnrollmentViewSet, AssessmentItemViewSet, ChatConversationViewSet
 from drf_spectacular.views import SpectacularSwaggerView  # type: ignore
 from rest_framework.routers import DefaultRouter  # type: ignore
 

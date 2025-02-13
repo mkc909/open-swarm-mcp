@@ -1,6 +1,4 @@
 import unittest
-from swarm.models import TeachingUnit
-
 import os
 import json
 from django.test import TestCase, Client
@@ -12,9 +10,8 @@ class ViewsTest(TestCase):
         os.environ["ENABLE_API_AUTH"] = "True"
         os.environ["API_AUTH_TOKEN"] = "dummy-token"
         self.client = Client()
-        from swarm import views
+        # Backup original authentication class
         self.original_auth = views.EnvOrTokenAuthentication
-        # Define a dummy authenticate function on the real EnvOrTokenAuthentication
         from swarm.auth import EnvOrTokenAuthentication
         def dummy_authenticate(self, request):
             auth_header = request.META.get("HTTP_AUTHORIZATION")
@@ -32,7 +29,7 @@ class ViewsTest(TestCase):
                 return (DummyUser(), None)
             return None
         EnvOrTokenAuthentication.authenticate = dummy_authenticate
-        # Override the authentication and permission classes for the chat_completions view.
+        # Override authentication and permission classes for chat_completions view.
         views.chat_completions.authentication_classes = [EnvOrTokenAuthentication]
         views.chat_completions.permission_classes = []
         # Patch get_blueprint_instance to return a dummy blueprint for model "echo"
@@ -49,9 +46,17 @@ class ViewsTest(TestCase):
                 return DummyBlueprint(config={'llm': {'default': {'provider': 'openai', 'model': 'default'}}})
             return self.original_get_blueprint_instance(model, context_vars)
         views.get_blueprint_instance = dummy_get_blueprint_instance
-        
+
     def tearDown(self):
+        # Restore original EnvOrTokenAuthentication
         views.EnvOrTokenAuthentication = self.original_auth
+        # Clean up any test user that may have been created.
+        from django.contrib.auth.models import User
+        try:
+            user = User.objects.get(username='testuser')
+            user.delete()
+        except User.DoesNotExist:
+            pass
 
     def test_chat_completions_view_authorized(self):
         url = reverse('chat_completions')
@@ -66,13 +71,14 @@ class ViewsTest(TestCase):
             HTTP_AUTHORIZATION='Bearer dummy-token'
         )
         self.assertEqual(response.status_code, 200)
+
     def test_chat_completions_view_unauthorized(self):
         url = reverse('chat_completions')
         payload = {
             "model": "echo",
             "messages": [{"role": "user", "content": "hello", "sender": "User"}]
         }
-        # Temporarily remove authentication-related environment variables to simulate an unauthorized request.
+        # Simulate unauthorized request by removing auth environment variables.
         old_enable = os.environ.pop("ENABLE_API_AUTH", None)
         old_token = os.environ.pop("API_AUTH_TOKEN", None)
         response = self.client.post(
@@ -80,7 +86,7 @@ class ViewsTest(TestCase):
             data=json.dumps(payload),
             content_type="application/json"
         )
-        # Restore the environment variables after the request.
+        # Restore environment variables.
         if old_enable is not None:
             os.environ["ENABLE_API_AUTH"] = old_enable
         if old_token is not None:
@@ -97,13 +103,5 @@ class ViewsTest(TestCase):
         self.assertIsInstance(response_data, dict)
         self.assertIn("llm", response_data)
 
-    def tearDown(self):
-        from django.contrib.auth.models import User
-        try:
-            user = User.objects.get(username='testuser')
-            user.delete()
-        except User.DoesNotExist:
-            pass
 if __name__ == "__main__":
-    import unittest
     unittest.main()

@@ -177,6 +177,23 @@
             }
         },
 
+        "fly": {
+            "command": "uvx",
+            "args": [
+                "--from", 
+                "git+https://github.com/matthewhand/mcp-openapi-proxy",
+                "mcp-flowise"
+            ],
+            "env": {
+                "DEBUG": "true",
+                "OPENAPI_LOGFILE_PATH": "/tmp/debug-mcp-openapi-proxy.log",
+                "OPENAPI_SPEC_URL": "https://machines-api-spec.fly.dev/swagger/doc.json",
+                "SERVER_URL_OVERRIDE": "https://api.machines.dev",
+                "TOOL_WHITELIST": "/machines/list,/machines/start,/machines/status",
+                "API_AUTH_BEARER": "${FLY_API_KEY}"
+            }
+        },
+
         "rag-docs": {
             "command": "npx",
             "args": [

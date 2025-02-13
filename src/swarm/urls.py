@@ -6,7 +6,7 @@ from django.conf.urls.static import static
 import os
 
 from swarm import views
-from swarm.views import HiddenSpectacularAPIView, ChatMessageViewSet, TeachingUnitViewSet, TopicViewSet, LearningObjectiveViewSet, SubtopicViewSet, CourseViewSet, StudentViewSet, EnrollmentViewSet, AssessmentItemViewSet, ChatConversationViewSet
+from swarm.views import HiddenSpectacularAPIView, ChatMessageViewSet
 from drf_spectacular.views import SpectacularSwaggerView  # type: ignore
 from rest_framework.routers import DefaultRouter  # type: ignore
 
@@ -21,15 +21,6 @@ ENABLE_WEBUI = os.getenv("ENABLE_WEBUI", "false").lower() in ("true", "1", "t")
 
 router = DefaultRouter()
 router.register(r'v1/chat/messages', ChatMessageViewSet, basename='chatmessage')
-router.register(r'v1/teaching_units', TeachingUnitViewSet, basename='teachingunit')
-router.register(r'v1/topics', TopicViewSet, basename='topic')
-router.register(r'v1/learning_objectives', LearningObjectiveViewSet, basename='learningobjective')
-router.register(r'v1/subtopics', SubtopicViewSet, basename='subtopic')
-router.register(r'v1/courses', CourseViewSet, basename='course')
-router.register(r'v1/students', StudentViewSet, basename='student')
-router.register(r'v1/enrollments', EnrollmentViewSet, basename='enrollment')
-router.register(r'v1/assessment_items', AssessmentItemViewSet, basename='assessmentitem')
-router.register(r'v1/chat/conversations', ChatConversationViewSet, basename='chatconversation')
 
 urlpatterns = [
     re_path(r'^v1/chat/completions/?$', views.chat_completions, name='chat_completions'),

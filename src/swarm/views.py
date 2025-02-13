@@ -39,7 +39,7 @@ from rest_framework.viewsets import ModelViewSet  # type: ignore
 
 # Project-specific imports
 from swarm.auth import EnvOrTokenAuthentication
-from swarm.models import ChatConversation, ChatMessage, TeachingUnit, Topic, LearningObjective, Subtopic, Course, Student, Enrollment, AssessmentItem
+from swarm.models import ChatConversation, ChatMessage
 from swarm.extensions.blueprint import discover_blueprints
 from swarm.extensions.blueprint.blueprint_base import BlueprintBase
 from swarm.extensions.config.config_loader import load_server_config, load_llm_config
@@ -50,7 +50,7 @@ from swarm.extensions.blueprint.blueprint_utils import filter_blueprints  # Impo
 
 from .settings import DJANGO_DATABASE
 from .models import ChatMessage
-from .serializers import ChatMessageSerializer, TeachingUnitSerializer, TopicSerializer, LearningObjectiveSerializer, SubtopicSerializer, CourseSerializer, StudentSerializer, EnrollmentSerializer, AssessmentItemSerializer, ChatConversationSerializer
+from .serializers import ChatMessageSerializer
 
 # -----------------------------------------------------------------------------
 # Initialization
@@ -610,69 +610,4 @@ class ChatMessageViewSet(ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
 
-class TeachingUnitViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
-    queryset = TeachingUnit.objects.all()
-    serializer_class = TeachingUnitSerializer
-
-class TopicViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
-    queryset = Topic.objects.all()
-    serializer_class = TopicSerializer
-
-class LearningObjectiveViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
-    queryset = LearningObjective.objects.all()
-    serializer_class = LearningObjectiveSerializer
-
-class SubtopicViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
-    queryset = Subtopic.objects.all()
-    serializer_class = SubtopicSerializer
-
-class CourseViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
-    queryset = Course.objects.all()
-    serializer_class = CourseSerializer
-
-class StudentViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
-    queryset = Student.objects.all()
-    serializer_class = StudentSerializer
-
-    def get_queryset(self):
-        from .models import filter_students
-        name = self.request.query_params.get("name")
-        status = self.request.query_params.get("status")
-        unit_codes = self.request.query_params.get("unit_codes")
-        if unit_codes:
-            unit_codes = unit_codes.split(',')
-        if name or status or unit_codes:
-            return filter_students(name=name, status=status, unit_codes=unit_codes)
-        return super().get_queryset()
-
-class EnrollmentViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
-    queryset = Enrollment.objects.all()
-    serializer_class = EnrollmentSerializer
-
-class AssessmentItemViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
-    queryset = AssessmentItem.objects.all()
-    serializer_class = AssessmentItemSerializer
-
-class ChatConversationViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
-    queryset = ChatConversation.objects.all()
-    serializer_class = ChatConversationSerializer
-
-__all__ = ["chat_completions", "list_models", "serve_swarm_config", "ChatMessage", "TeachingUnitViewSet", "TopicViewSet", "LearningObjectiveViewSet", "SubtopicViewSet", "CourseViewSet", "StudentViewSet", "EnrollmentViewSet", "AssessmentItemViewSet", "ChatConversationViewSet"]
+__all__ = ["chat_completions", "list_models", "serve_swarm_config", "ChatMessage"]

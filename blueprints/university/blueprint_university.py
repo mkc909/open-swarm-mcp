@@ -35,6 +35,9 @@ class UniversitySupportBlueprint(BlueprintBase):
             "description": "Multi-agent system for university support using SQLite tools.",
             "required_mcp_servers": [],
             "env_vars": ["SQLITE_DB_PATH"],
+            "models_module": "blueprints.university.models",
+            "views_module": "blueprints.university.views",
+            "urls_module": "blueprints.university.urls"
         }
 
     def __init__(self, config: dict, **kwargs):

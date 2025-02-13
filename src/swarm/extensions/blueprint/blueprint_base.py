@@ -89,6 +89,12 @@ class BlueprintBase(ABC):
         self.required_mcp_servers = self.metadata.get('required_mcp_servers', [])
         logger.debug(f"Required MCP servers: {self.required_mcp_servers}")
 
+        # Register blueprint-specific models if specified in metadata.
+        self.register_blueprint_models()
+        # Register blueprint-specific views if specified in metadata.
+        self.register_blueprint_views()
+        # Register blueprint-specific urls if specified in metadata.
+        self.register_blueprint_urls()
         # Create Agents Only After Validation Passes
         agents = self.create_agents()
 
@@ -415,6 +421,45 @@ class BlueprintBase(ABC):
             if "response" in chunk:
                 return chunk["response"]
 
+    def _register_module(self, module_key: str, module_description: str) -> None:
+        module_path = self.metadata.get(module_key)
+        if module_path:
+            try:
+                import importlib
+                importlib.import_module(module_path)
+                logger.debug(f"Registered blueprint {module_description} from module: {module_path}")
+            except ImportError as e:
+                logger.error(f"Failed to register blueprint {module_description} from {module_path}: {e}")
+        else:
+            logger.debug(f"No blueprint {module_description} to register.")
+
+    def register_blueprint_models(self) -> None:
+        self._register_module("models_module", "models")
+
+    def register_blueprint_views(self) -> None:
+        self._register_module("views_module", "views")
+
+    def register_blueprint_urls(self) -> None:
+        module_path = self.metadata.get("urls_module")
+        if module_path:
+            try:
+                import importlib
+                m = importlib.import_module(module_path)
+                if hasattr(m, "urlpatterns"):
+                    from django.urls import include, path
+                    urls_module = importlib.import_module("swarm.urls")
+                    if hasattr(urls_module, "urlpatterns"):
+                        urls_module.urlpatterns += [path('', include((m.urlpatterns, self.metadata.get("name", "blueprint"))))]
+                        logger.debug(f"Registered blueprint urls from {module_path} into swarm.urls")
+                    else:
+                        logger.error("swarm.urls does not define urlpatterns")
+                else:
+                    logger.debug(f"No urlpatterns found in blueprint urls module: {module_path}")
+            except ImportError as e:
+                logger.error(f"Failed to register blueprint urls from {module_path}: {e}")
+        else:
+            logger.debug("No blueprint urls_module specified to register.")
+    
     def _pretty_print_response(self, messages) -> None:
         """
         Pretty print the messages returned by the Swarm.

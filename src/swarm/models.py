@@ -153,7 +153,7 @@ def filter_students(name=None, status=None, unit_codes=None):
         q &= Q(status=status)
 
     if unit_codes and unit_codes != 'all':
-        q &= Q(enrollment__course__teaching_units__code__in=unit_codes)
+        q &= Q(enrollments__course__teaching_units__code__in=unit_codes)
 
     return Student.objects.filter(q).distinct()
 

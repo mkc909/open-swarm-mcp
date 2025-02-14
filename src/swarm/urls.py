@@ -23,6 +23,7 @@ router = DefaultRouter()
 router.register(r'v1/chat/messages', ChatMessageViewSet, basename='chatmessage')
 
 urlpatterns = [
+    path('health/', lambda request: HttpResponse("OK"), name='health_check'),
     re_path(r'^v1/chat/completions/?$', views.chat_completions, name='chat_completions'),
     re_path(r'^v1/models/?$', views.list_models, name='list_models'),
     path('schema/', HiddenSpectacularAPIView.as_view(), name='schema'),

@@ -27,6 +27,7 @@ urlpatterns = [
     re_path(r'^v1/chat/completions/?$', views.chat_completions, name='chat_completions'),
     re_path(r'^v1/models/?$', views.list_models, name='list_models'),
     path('schema/', HiddenSpectacularAPIView.as_view(), name='schema'),
+    path('v1/university/', include('blueprints.university.urls')),  # Include University blueprint URLs
     path('swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 ] + router.urls
 

@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import importlib.util
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any, List
 from nemoguardrails import LLMRails, RailsConfig  # type: ignore
@@ -63,6 +64,53 @@ class BlueprintBase(ABC):
         logger.debug("Environment variables loaded from .env.")
 
         self.config = config
+        # Attempt to load blueprint-specific local settings from a settings.py file located in the blueprint's directory.
+        try:
+            module_spec = importlib.util.find_spec(self.__class__.__module__)
+            if module_spec and module_spec.origin:
+                blueprint_dir = os.path.dirname(module_spec.origin)
+                local_settings_path = os.path.join(blueprint_dir, "settings.py")
+                if os.path.isfile(local_settings_path):
+                    spec_local = importlib.util.spec_from_file_location(f"{self.__class__.__name__}.local_settings", local_settings_path)
+                    local_settings = importlib.util.module_from_spec(spec_local)
+                    spec_local.loader.exec_module(local_settings)
+                    self.local_settings = local_settings
+                    logger.debug(f"Loaded local settings from {local_settings_path}")
+                else:
+                    self.local_settings = None
+            else:
+                self.local_settings = None
+        except Exception as e:
+            logger.error(f"Failed to load local settings: {e}")
+            self.local_settings = None
+            # Merge blueprint local settings INSTALLED_APPS into Django settings if available.
+            if hasattr(self, "local_settings") and self.local_settings and hasattr(self.local_settings, "INSTALLED_APPS"):
+                from django.conf import settings as django_settings
+                blueprint_apps = getattr(self.local_settings, "INSTALLED_APPS")
+                for app in blueprint_apps:
+                    if app not in django_settings.INSTALLED_APPS:
+                        django_settings.INSTALLED_APPS.append(app)
+                logger.debug("Merged blueprint local settings INSTALLED_APPS into Django settings.")
+        auto_migrate = self.local_settings is None or getattr(self.local_settings, "AUTO_MIGRATE", True)
+        if auto_migrate:
+            if os.environ.get("DJANGO_SETTINGS_MODULE"):
+                try:
+                    from django.db import connection
+                    from django.core.management import call_command
+                    from django.conf import settings as django_settings
+                    tables = connection.introspection.table_names()
+                    if "blueprints_university" not in django_settings.INSTALLED_APPS:
+                        logger.debug("Blueprint app 'blueprints_university' not in INSTALLED_APPS, skipping migrations.")
+                    elif "blueprints_university_course" not in tables:
+                        logger.debug("Database tables for blueprints_university not found, running migrations...")
+                        call_command("makemigrations", "blueprints_university", interactive=False, verbosity=0)
+                        call_command("migrate", "blueprints_university", interactive=False, verbosity=0)
+                        logger.debug("Migrations for blueprints_university applied.")
+                except RuntimeError as e:
+                    logger.warning("Skipping auto migration due to database access restrictions: " + str(e))
+            else:
+                logger.debug("DJANGO_SETTINGS_MODULE not set; skipping auto migration.")
+        self.swarm = kwargs.get('swarm_instance')
         self.swarm = kwargs.get('swarm_instance')
         if self.swarm is not None:
             logger.debug("Using shared swarm instance from kwargs.")
@@ -438,19 +486,29 @@ class BlueprintBase(ABC):
 
     def register_blueprint_views(self) -> None:
         self._register_module("views_module", "views")
-
     def register_blueprint_urls(self) -> None:
+        # Ensure idempotent registration of blueprint URLs.
+        if getattr(self, "_urls_registered", False):
+            logger.debug("Blueprint URLs have already been registered. Skipping duplicate registration.")
+            return
+        if not os.environ.get("DJANGO_SETTINGS_MODULE"):
+            logger.debug("DJANGO_SETTINGS_MODULE not set; skipping blueprint URL registration.")
+            return
         module_path = self.metadata.get("urls_module")
+        url_prefix = self.metadata.get("url_prefix", "")
         if module_path:
             try:
                 import importlib
                 m = importlib.import_module(module_path)
                 if hasattr(m, "urlpatterns"):
                     from django.urls import include, path
-                    urls_module = importlib.import_module("swarm.urls")
-                    if hasattr(urls_module, "urlpatterns"):
-                        urls_module.urlpatterns += [path('', include((m.urlpatterns, self.metadata.get("name", "blueprint"))))]
-                        logger.debug(f"Registered blueprint urls from {module_path} into swarm.urls")
+                    import swarm.urls as core_urls
+                    if hasattr(core_urls, "urlpatterns"):
+                        core_urls.urlpatterns += [path(url_prefix, include((m.urlpatterns, self.metadata.get("title", "blueprint"))))]
+                        logger.debug(f"Registered blueprint urls from {module_path} with prefix '{url_prefix}' into swarm.urls")
+                        self._urls_registered = True
+                        from django.urls import clear_url_caches
+                        clear_url_caches()
                     else:
                         logger.error("swarm.urls does not define urlpatterns")
                 else:

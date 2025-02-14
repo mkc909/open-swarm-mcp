@@ -1,32 +1,21 @@
 import os
-import sys
-sys.path.insert(0, os.path.join(os.getcwd(), "src"))
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'swarm.settings')
-import shutil
-from pathlib import Path
-from dotenv import load_dotenv
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "swarm.settings")
+import blueprints.university.settings
+import importlib
+import django
+from django.apps import apps
+import pytest
+importlib.reload(blueprints.university.settings)
+django.setup()
 
-# Load environment variables immediately upon importing conftest.py
-env_path = Path(__file__).parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'swarm.settings')
-   
-def pytest_configure():
-    """
-    Pytest configuration hook to set up the testing environment.
-    """
-    import django
-    django.setup()
-    # Copy swarm_config.json to the temporary testing directory
-    config_file = Path(__file__).parent.parent / "swarm_config.json"
-    if config_file.exists():
-        test_config_path = Path(__file__).parent / "swarm_config.json"
-        shutil.copy(config_file, test_config_path)
-        print(f"Copied {config_file} to {test_config_path}")
-        # Debug: Verify the file exists in the test directory
-        if Path(test_config_path).exists():
-            print(f"Verified: {test_config_path} exists.")
-        else:
-            print(f"Error: {test_config_path} does not exist.")
-    else:
-        print(f"Warning: {config_file} not found. Tests may fail if a configuration file is required.")
+# Existing fixtures and configuration can remain here
+
+# Fixture to force registration of the University blueprint
+@pytest.fixture(autouse=True, scope="session")
+def register_university_blueprint():
+    # Import the University blueprint's settings to trigger registration
+    import blueprints.university.settings
+    # Optionally, you can force reload if needed:
+    importlib.reload(blueprints.university.settings)
+    # Verify registration: Django registers the app using the "name" defined in AppConfig
+    assert apps.is_installed("blueprints.university"), "University blueprint not registered"

@@ -10,6 +10,9 @@ class MockBlueprint(BlueprintBase):
         "description": "A mock blueprint for testing.",
     }
 
+    def register_blueprint_urls(self) -> None:
+        pass
+
     def create_agents(self):
         agent1 = MagicMock(name="Agent1")
         agent1.instructions.return_value = "Agent 1 instructions"
@@ -58,6 +61,9 @@ def test_metadata_enforcement():
         class InvalidBlueprint(BlueprintBase):
             metadata = None  # Invalid metadata definition
 
+            def register_blueprint_urls(self) -> None:
+                pass
+        
             def create_agents(self):
                 return {"invalid_agent": MagicMock(name="InvalidAgent")}
 

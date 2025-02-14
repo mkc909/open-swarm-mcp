@@ -14,8 +14,8 @@ from blueprints.university.models import (
     AssessmentItem,
     filter_students
 )
-# Import serializers from the original swarm serializers module
-from src.swarm.serializers import (
+# Import serializers from the university blueprint serializers module
+from blueprints.university.serializers import (
     TeachingUnitSerializer,
     TopicSerializer,
     LearningObjectiveSerializer,

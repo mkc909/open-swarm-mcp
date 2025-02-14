@@ -187,3 +187,6 @@ wp-sites.json
 traces.*
 
 openapi.yaml
+
+*.db
+*.db-shm

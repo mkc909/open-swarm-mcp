@@ -21,7 +21,7 @@ ENV UV_SYSTEM_PYTHON=1
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Install dependencies using uv and create the environment
-RUN uv venv .venv && uv sync
+#RUN uv venv .venv && uv sync
 
 # Expose the application port (default 8000, configurable via $PORT)
 EXPOSE 8000

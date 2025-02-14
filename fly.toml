@@ -27,7 +27,11 @@ grace_period = "120s"  # Wait 120s after machine starts
 interval = "30s"       # Check every 30s
 timeout = "15s"        # Double default timeout to 15 seconds
 method = "GET"
-#path = "/health"       # Your healthcheck endpoint
+path = "/health"       # Your healthcheck endpoint
+
+[deploy]
+wait_timeout = "20m"    # Increase from default 5m
+release_command_timeout = "10m"  # For DB migrations/pre-deploy tasks
 
 [[vm]]
   memory = '256mb'

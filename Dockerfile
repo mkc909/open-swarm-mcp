@@ -1,10 +1,8 @@
 # Use an Astral uv image with Python 3.13
 FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
-# Install Node.js and npm
+# Install cargo (needed for nemoguardrails)
 RUN apt-get update && apt-get install -y \
-    nodejs \
-    npm \
     cargo \
     && rm -rf /var/lib/apt/lists/*
 
@@ -27,13 +25,13 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Expose the application port (default 8000, configurable via $PORT)
 EXPOSE 8000
 
-# Use shell form to allow environment variable substitution (TODO dont hardcode swap filepath)
-CMD if [ "$LOW_VRAM_MODE" = "1" ]; then \
-      mkdir -p /mnt/sqlite_data && \
-      fallocate -l 512M /mnt/sqlite_data/swapfile && \
-      chmod 600 /mnt/sqlite_data/swapfile && \
-      mkswap /mnt/sqlite_data/swapfile && \
-      swapon /mnt/sqlite_data/swapfile; \
+# Use shell form to allow environment variable substitution
+CMD if [ -n "$SWAPFILE_PATH" ]; then \
+      mkdir -p "$(dirname "$SWAPFILE_PATH")" && \
+      fallocate -l 512M "$SWAPFILE_PATH" && \
+      chmod 600 "$SWAPFILE_PATH" && \
+      mkswap "$SWAPFILE_PATH" && \
+      swapon "$SWAPFILE_PATH"; \
     fi && \
     uv run manage.py migrate && \
     uv run manage.py runserver 0.0.0.0:$PORT

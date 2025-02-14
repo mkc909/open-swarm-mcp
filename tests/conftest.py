@@ -1,14 +1,23 @@
 import os
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "swarm.settings")
-import blueprints.university.settings
+import warnings
 import importlib
 import django
 from django.apps import apps
 import pytest
-importlib.reload(blueprints.university.settings)
-django.setup()
 
-# Existing fixtures and configuration can remain here
+# Suppress warnings at the beginning
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="pydantic")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="nemoguardrails")
+
+# Set Django settings module
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "swarm.settings")
+
+# Import and reload settings
+import blueprints.university.settings
+importlib.reload(blueprints.university.settings)
+
+# Setup Django
+django.setup()
 
 # Fixture to force registration of the University blueprint
 @pytest.fixture(autouse=True, scope="session")

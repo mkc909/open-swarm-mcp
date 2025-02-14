@@ -1,7 +1,7 @@
 """
 Rue-Code: Automated Development Team Blueprint
 
-This blueprint sets up an automated task-oriented coding assistant team with specialized agents for coordination, code development, system architecture, and unit testing/git management.
+This blueprint sets up an automated task-oriented coding assistant team with specialized agents for coordination, code development, system architecture, unit testing/git management, and dedicated git revision management.
 
 This blueprint now includes full implementations of core functions from the previous Roo-Code project.
 """
@@ -24,7 +24,7 @@ if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
 
-# Full Implementations of Core Functions from Roo-Code
+# Core Functions Implementations
 
 def execute_command(command: str) -> None:
     """
@@ -124,12 +124,32 @@ def list_files(directory: str) -> List[str]:
 def run_test_command(command: str) -> None:
     """
     Runs a test command, limited to 'npm test' and 'uv run pytest'.
+    For 'uv run pytest', it appends flags to stop after the first error and to suppress warnings.
+    For 'npm test', if applicable, similar flags may be added.
     """
     allowed_commands = ["npm test", "uv run pytest"]
-    if command.strip() in allowed_commands:
-        execute_command(command)
-    else:
+    cmd = command.strip()
+    if cmd not in allowed_commands:
         logger.error("UnitTestingGit is limited to 'npm test' and 'uv run pytest' commands.")
+        return
+    # Modify command for uv run pytest to stop at first error and suppress warnings
+    if cmd == "uv run pytest":
+        cmd = "uv run pytest -x --disable-warnings"
+    # For "npm test", you might add equivalent flags if supported. Uncomment the following line if needed.
+    # elif cmd == "npm test":
+    #     cmd = "npm test -- --bail"
+    execute_command(cmd)
+
+def prepare_git_commit() -> None:
+    """
+    Runs git status and git diff, then prepares a one-line conventional commit message.
+    Executes 'git add' and commits with a default conventional commit message.
+    """
+    logger.debug("GitManager: Preparing git commit...")
+    execute_command("git status")
+    execute_command("git diff")
+    commit_message = "chore: update relevant files"
+    execute_command(f'git add . && git commit -m "{commit_message}"')
 
 # Map of tool names to their implementations
 TOOLS = {
@@ -140,7 +160,8 @@ TOOLS = {
     "apply_diff": apply_diff,
     "search_files": search_files,
     "list_files": list_files,
-    "run_test_command": run_test_command,   # Limited test command runner for UnitTestingGit.
+    "run_test_command": run_test_command,   # For UnitTestingGit.
+    "prepare_git_commit": prepare_git_commit,  # For GitManager.
 }
 
 
@@ -150,12 +171,10 @@ class RueCodeBlueprint(BlueprintBase):
 
     Agents:
       - Coordinator: Central agent managing task delegation with persistent memory.
-      - Code: Responsible for coding (full write allowed); Other agents available: Architect (design, web search, writes Markdown), UnitTestingGit (runs tests: 'npm test' or 'uv run pytest').
-      - Architect: Provides design guidance and web search; can only write Markdown (*.md) files; Other agents available: Code (full coding), UnitTestingGit (runs tests).
-      - UnitTestingGit: Runs test commands limited to 'npm test' and 'uv run pytest'; Other agents available: Code (full coding), Architect (design, Markdown writing).
-    
-    This blueprint implements core functions (execute_command, read_file, write_to_file, write_md_file,
-    apply_diff, search_files, list_files, run_test_command) from the previous Roo-Code project.
+      - Code: Responsible for coding (full write allowed); Available agents: Architect (design, Markdown writing, web search), UnitTestingGit (runs tests), GitManager (revision management).
+      - Architect: Provides design guidance, web search, and can only write Markdown files; Available agents: Code (full coding), UnitTestingGit (runs tests), GitManager (revision management).
+      - UnitTestingGit: Runs test commands ("npm test" or "uv run pytest"); Available agents: Code (full coding), Architect (design), GitManager (revision management).
+      - GitManager: Dedicated to git revision management; always checks git status, reviews git diff, and prepares one-line conventional commits; Available agents: Code (full coding), Architect (design), UnitTestingGit (test execution).
     """
     @property
     def metadata(self) -> Dict[str, Any]:
@@ -164,8 +183,8 @@ class RueCodeBlueprint(BlueprintBase):
             "description": (
                 "An automated task-oriented coding assistant team featuring a Coordinator with persistent memory, "
                 "a Code agent for full-scale development, an Architect for design support and web search (Markdown-only writing), "
-                "and a UnitTestingGit agent for running tests ('npm test' and 'uv run pytest'). "
-                "This blueprint integrates core functions from the previous Roo-Code project."
+                "a UnitTestingGit agent for test execution, and a GitManager for revision management (git status, git diff, "
+                "and one-line conventional commits). This blueprint integrates core functions from the previous Roo-Code project."
             ),
             "required_mcp_servers": [
                 "memory",
@@ -177,29 +196,29 @@ class RueCodeBlueprint(BlueprintBase):
         }
 
     def create_agents(self) -> Dict[str, Agent]:
-        # Retrieve environment variables
+        # Retrieve environment variables.
         brave_api_key = os.getenv("BRAVE_API_KEY", "default-brave-key")
 
         agents: Dict[str, Agent] = {}
 
-        # Coordinator: central agent responsible for delegating tasks.
+        # Coordinator: manages task delegation.
         coordinator_instructions = (
             "You are the Coordinator, managing task delegation with persistent memory. "
-            "Delegate tasks to Code, Architect, or UnitTestingGit. "
-            "Available agents: Code (full coding), Architect (design, web search, Markdown writing), UnitTestingGit (runs tests)."
+            "Available agents: Code (full coding), Architect (design, Markdown writing, web search), "
+            "UnitTestingGit (runs tests), GitManager (revision management)."
         )
         agents["Coordinator"] = Agent(
             name="Coordinator",
             instructions=coordinator_instructions,
             mcp_servers=["memory"],
-            env_vars={}
+            env_vars={},
         )
 
         # Code: full coding capability.
         code_instructions = (
-            "You are the Code agent, the specialist for writing, modifying, and analyzing code with full write access. "
-            "Use tools: execute_command, read_file, write_to_file, apply_diff, and list_files. "
-            "Available agents: Architect (for design and Markdown writing), UnitTestingGit (for test execution)."
+            "You are the Code agent, responsible for writing, modifying, and analyzing code with full write access. "
+            "Use tools: execute_command, read_file, write_to_file, apply_diff, list_files. "
+            "Available agents: Architect (design, Markdown writing, web search), UnitTestingGit (test execution), GitManager (revision management)."
         )
         agents["Code"] = Agent(
             name="Code",
@@ -211,8 +230,8 @@ class RueCodeBlueprint(BlueprintBase):
         # Architect: design and web search; Markdown-only writing.
         architect_instructions = (
             "You are the Architect, providing design guidance, architectural planning, and web search capabilities via search_files. "
-            "Use tools: search_files, list_files, read_file, and write_md_file (Markdown files only). "
-            "Available agents: Code (for full coding), UnitTestingGit (for test execution)."
+            "Use tools: search_files, list_files, read_file, write_md_file (Markdown-only). "
+            "Available agents: Code (full coding), UnitTestingGit (test execution), GitManager (revision management)."
         )
         agents["Architect"] = Agent(
             name="Architect",
@@ -221,20 +240,63 @@ class RueCodeBlueprint(BlueprintBase):
             env_vars={"BRAVE_API_KEY": brave_api_key},
         )
 
-        # UnitTestingGit: limited to running test commands.
+        # UnitTestingGit: runs limited test commands.
         unit_testing_git_instructions = (
-            "You are the UnitTestingGit agent, responsible for running tests. Use tool: run_test_command which is limited to 'npm test' or 'uv run pytest'. "
-            "Available agents: Code (for full coding) and Architect (for design and Markdown writing)."
+            "You are the UnitTestingGit agent, responsible for executing tests using tools limited to 'npm test' and 'uv run pytest'. "
+            "Available agents: Code (full coding), Architect (design, Markdown writing), GitManager (revision management)."
         )
         agents["UnitTestingGit"] = Agent(
             name="UnitTestingGit",
             instructions=unit_testing_git_instructions,
             mcp_servers=["memory"],
-            env_vars={}
+            env_vars={},
         )
 
-        # Assign tool sets to agents using object.__setattr__ to bypass pydantic restrictions
+        # GitManager: dedicated to git revision management.
+        git_manager_instructions = (
+            "You are the GitManager agent, dedicated to revision management. Always run 'git status' and 'git diff', "
+            "and prepare one-line conventional commit messages using prepare_git_commit. "
+            "Available agents: Code (full coding), Architect (design), UnitTestingGit (test execution)."
+        )
+        agents["GitManager"] = Agent(
+            name="GitManager",
+            instructions=git_manager_instructions,
+            mcp_servers=["memory"],
+            env_vars={},
+        )
 
+        # Define a handoff function for returning control.
+        def handoff_back_to_coordinator() -> Agent:
+            return agents["Coordinator"]
+
+        # Define delegation functions with valid names.
+        def delegate_to_code() -> Agent:
+            return agents["Code"]
+
+        def delegate_to_architect() -> Agent:
+            return agents["Architect"]
+
+        def delegate_to_unittestinggit() -> Agent:
+            return agents["UnitTestingGit"]
+
+        def delegate_to_gitmanager() -> Agent:
+            return agents["GitManager"]
+
+        # Assign functions for delegation.
+        agents["Coordinator"].functions = [
+            delegate_to_code,
+            delegate_to_architect,
+            delegate_to_unittestinggit,
+            delegate_to_gitmanager,
+        ]
+        # Each specialized agent should include a handoff function to return control.
+        agents["Code"].functions = [handoff_back_to_coordinator]
+        agents["Architect"].functions = [handoff_back_to_coordinator]
+        agents["UnitTestingGit"].functions = [handoff_back_to_coordinator]
+        # GitManager gets its dedicated git revision management function in addition to handing off.
+        agents["GitManager"].functions = [prepare_git_commit, handoff_back_to_coordinator]
+
+        # Assign tool sets to agents using object.__setattr__ to bypass pydantic restrictions.
         object.__setattr__(agents["Coordinator"], "tools", {})
         object.__setattr__(agents["Code"], "tools", {
             "execute_command": TOOLS["execute_command"],
@@ -252,20 +314,10 @@ class RueCodeBlueprint(BlueprintBase):
         object.__setattr__(agents["UnitTestingGit"], "tools", {
             "run_test_command": TOOLS["run_test_command"],
         })
-
-        # Handoff Functions: Coordinator delegates tasks to specialized agents,
-        # and each specialized agent returns control back to the Coordinator.
-        def handoff_back_to_coordinator() -> Agent:
-            return agents["Coordinator"]
-
-        agents["Coordinator"].functions = [
-            lambda: agents["Code"],
-            lambda: agents["Architect"],
-            lambda: agents["UnitTestingGit"]
-        ]
-
-        for agent_name in ["Code", "Architect", "UnitTestingGit"]:
-            agents[agent_name].functions = [handoff_back_to_coordinator]
+        object.__setattr__(agents["GitManager"], "tools", {
+            "execute_command": TOOLS["execute_command"],
+            "prepare_git_commit": TOOLS["prepare_git_commit"],
+        })
 
         self.set_starting_agent(agents["Coordinator"])
         logger.debug(f"Agents registered: {list(agents.keys())}")

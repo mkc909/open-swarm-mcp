@@ -1,5 +1,5 @@
 """
-EchoBlueprint Class for Open Swarm.
+EchoCraftBlueprint Class for Open Swarm.
 
 This blueprint defines a single agent that echoes user inputs.
 It leverages the BlueprintBase to handle all configuration and MCP session management.
@@ -22,7 +22,7 @@ if not logger.handlers:
     logger.addHandler(stream_handler)
 
 
-class EchoBlueprint(BlueprintBase):
+class EchoCraftBlueprint(BlueprintBase):
     """
     A blueprint that defines a single agent which echoes user inputs.
     """
@@ -30,16 +30,16 @@ class EchoBlueprint(BlueprintBase):
     @property
     def metadata(self) -> Dict[str, Any]:
         """
-        Metadata for the EchoBlueprint.
+        Metadata for the EchoCraftBlueprint.
 
         Returns:
             Dict[str, Any]: Dictionary containing title, description, required MCP servers, and environment variables.
         """
         return {
-            "title": "Echo Integration Blueprint",
+            "title": "EchoCraft Integration Blueprint",
             "description": "A basic blueprint that defines an agent capable of echoing user inputs.",
-            "required_mcp_servers": [],  # No MCP servers required
-            "env_vars": [],              # No environment variables required
+            "required_mcp_servers": [],
+            "env_vars": [],
         }
 
     def create_agents(self) -> Dict[str, Agent]:
@@ -50,9 +50,8 @@ class EchoBlueprint(BlueprintBase):
         Returns:
             Dict[str, Agent]: Dictionary containing all created agents.
         """
-        logger.debug("Creating agents for EchoBlueprint.")
+        logger.debug("Creating agents for EchoCraftBlueprint.")
 
-        # Define the echo function
         def echo_function(content: str) -> str:
             """
             Echoes the user input.
@@ -66,24 +65,20 @@ class EchoBlueprint(BlueprintBase):
             logger.info(f"Echoing content: {content}")
             return content
 
-        # Create Echo Agent with NeMo Guardrails tracing enabled
         echo_agent = Agent(
             name="EchoAgent",
-            instructions=(
-                "You are the EchoAgent. Your sole purpose is to echo back any input provided by the user."
-            ),
-            mcp_servers=[],  # No MCP servers required
-            env_vars={},     # No environment variables required
+            instructions="You are the EchoAgent. Your sole purpose is to echo back any input provided by the user.",
+            mcp_servers=[],
+            env_vars={},
             functions=[echo_function],
-            parallel_tool_calls=False,  # Set based on your framework's requirements
-            nemo_guardrails_config="tracing",  # Enables NeMo Guardrails tracing
+            parallel_tool_calls=False,
+            # nemo_guardrails_config="tracing",
         )
 
-        self.set_starting_agent(echo_agent)  # Set EchoAgent as the starting agent
-
+        self.set_starting_agent(echo_agent)
         logger.info("EchoAgent has been created with NeMo Guardrails tracing.")
         return {"EchoAgent": echo_agent}
 
 
 if __name__ == "__main__":
-    EchoBlueprint.main()
+    EchoCraftBlueprint.main()

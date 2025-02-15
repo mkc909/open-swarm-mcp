@@ -41,15 +41,19 @@ swarm_blueprints_env = os.getenv('SWARM_BLUEPRINTS', '').strip()
 SWARM_BLUEPRINTS = [name.strip() for name in swarm_blueprints_env.split(',') if name.strip()] if swarm_blueprints_env else []
 logger.info(f"Discovered SWARM_BLUEPRINTS env: {SWARM_BLUEPRINTS}")
 
-# Discover and load blueprint settings
-for blueprint_name in os.listdir(BLUEPRINTS_DIR):
-    blueprint_path = BLUEPRINTS_DIR / blueprint_name
-    settings_path = blueprint_path / 'settings.py'
-    if settings_path.exists() and (not SWARM_BLUEPRINTS or blueprint_name in SWARM_BLUEPRINTS):
-        logger.info(f"Loading settings for blueprint: {blueprint_name}")
-        with open(settings_path) as f:
-            code = compile(f.read(), str(settings_path), 'exec')
-            exec(code, globals(), locals())
+# Discover and load blueprint settings only when not in CLI mode
+import os
+if not os.getenv("SWARM_CLI"):
+    for blueprint_name in os.listdir(BLUEPRINTS_DIR):
+        blueprint_path = BLUEPRINTS_DIR / blueprint_name
+        settings_path = blueprint_path / 'settings.py'
+        if settings_path.exists() and (not SWARM_BLUEPRINTS or blueprint_name in SWARM_BLUEPRINTS):
+            logger.info(f"Loading settings for blueprint: {blueprint_name}")
+            with open(settings_path) as f:
+                code = compile(f.read(), str(settings_path), 'exec')
+                exec(code, globals(), locals())
+else:
+    logger.info("CLI mode detected; skipping blueprint settings loading")
 
 ALLOWED_HOSTS = ['*']  # Adjust as needed in production
 

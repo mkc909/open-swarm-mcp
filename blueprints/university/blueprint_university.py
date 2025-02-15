@@ -276,7 +276,7 @@ class UniversitySupportBlueprint(BlueprintBase):
                 "- Maintain a professional and supportive tone throughout the interaction."
             ),
             functions=[course_advisor_search, triage_to_university_poet, triage_to_scheduling_assistant],
-            nemo_guardrails_config="tracing",
+            # nemo_guardrails_config="tracing",
         )
         university_poet = Agent(
             name="UniversityPoet",
@@ -307,7 +307,7 @@ class UniversitySupportBlueprint(BlueprintBase):
                 "Stick to the path, don’t stray, and you’ll be sweet as."
             ),
             functions=[triage_to_course_advisor, triage_to_scheduling_assistant],
-            nemo_guardrails_config="tracing",
+            # nemo_guardrails_config="tracing",
         )
         scheduling_assistant = Agent(
             name="SchedulingAssistant",
@@ -322,7 +322,7 @@ class UniversitySupportBlueprint(BlueprintBase):
                 "- Maintain a clear and efficient communication style, ensuring all information is easily understandable."
             ),
             functions=[scheduling_assistant_search, triage_to_course_advisor, triage_to_university_poet],
-            nemo_guardrails_config="tracing",
+            # nemo_guardrails_config="tracing",
         )
 
         # Register agents

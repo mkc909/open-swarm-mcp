@@ -16,11 +16,6 @@ if not logger.handlers:
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
 
-# Constants for table names
-SCHEDULER_TABLE = "schedules"
-COURSE_ADVISOR_TABLE = "blueprints_university_course"
-
-
 class UniversitySupportBlueprint(BlueprintBase):
     """
     University Support System with multi-agent orchestration and SQLite-backed tools.
@@ -51,165 +46,207 @@ class UniversitySupportBlueprint(BlueprintBase):
 
     def _ensure_database_setup(self) -> None:
         """
-        Ensure the SQLite database is set up and populated with sample data if necessary.
+        Ensure the database is set up and load sample data if necessary.
+        This uses Django's ORM, assuming migrations have been applied.
         """
-        sqlite_db_path = os.getenv("SQLITE_DB_PATH")
-        if not sqlite_db_path:
-            raise EnvironmentError("Environment variable SQLITE_DB_PATH is not set.")
-
-        logger.info(f"Using SQLite database at: {sqlite_db_path}")
-        db_exists = os.path.isfile(sqlite_db_path)
-
-        conn = sqlite3.connect(sqlite_db_path)
-        cursor = conn.cursor()
-
-        # Force creation of required tables
-        logger.info("Creating required tables...")
-        cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS {COURSE_ADVISOR_TABLE} (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                course_name TEXT NOT NULL,
-                description TEXT NOT NULL,
-                discipline TEXT NOT NULL
-            );
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS blueprints_university_student (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                gpa REAL NOT NULL,
-                status TEXT NOT NULL
-            );
-        """)
-        cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS {SCHEDULER_TABLE} (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                course_name TEXT NOT NULL,
-                class_time TEXT NOT NULL,
-                exam_date TEXT NOT NULL
-            );
-        """)
-        cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS blueprints_university_student (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                gpa REAL NOT NULL,
-                status TEXT NOT NULL
-            );
-        """)
-        conn.commit()
-
-        # Check if the tables are empty with error handling
-        logger.info("Checking if tables need sample data...")
-        try:
-            cursor.execute(f"SELECT COUNT(*) FROM {COURSE_ADVISOR_TABLE}")
-            course_count = cursor.fetchone()[0]
-        except sqlite3.OperationalError:
-            logger.error("Table %s missing, recreating...", COURSE_ADVISOR_TABLE)
-            cursor.execute(f"""
-                CREATE TABLE IF NOT EXISTS {COURSE_ADVISOR_TABLE} (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    course_name TEXT NOT NULL,
-                    description TEXT NOT NULL,
-                    discipline TEXT NOT NULL
-                );
-            """)
-            conn.commit()
-            cursor.execute(f"SELECT COUNT(*) FROM {COURSE_ADVISOR_TABLE}")
-            course_count = cursor.fetchone()[0]
-        
-
-        try:
-            try:
-                cursor.execute(f"SELECT COUNT(*) FROM {SCHEDULER_TABLE}")
-                schedule_count = cursor.fetchone()[0]
-            except sqlite3.OperationalError:
-                logger.error("Table %s missing, recreating...", SCHEDULER_TABLE)
-                cursor.execute(f"""
-                    CREATE TABLE IF NOT EXISTS {SCHEDULER_TABLE} (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        course_name TEXT NOT NULL,
-                        class_time TEXT NOT NULL,
-                        exam_date TEXT NOT NULL
-                    );
-                """)
-                conn.commit()
-                cursor.execute(f"SELECT COUNT(*) FROM {SCHEDULER_TABLE}")
-                schedule_count = cursor.fetchone()[0]
-            cursor.execute(f"SELECT COUNT(*) FROM {SCHEDULER_TABLE}")
-            schedule_count = cursor.fetchone()[0]
-        except sqlite3.OperationalError:
-            logger.error("Table %s missing, recreating...", SCHEDULER_TABLE)
-            cursor.execute(f"""
-                CREATE TABLE IF NOT EXISTS {SCHEDULER_TABLE} (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    course_name TEXT NOT NULL,
-                    class_time TEXT NOT NULL,
-                    exam_date TEXT NOT NULL
-                );
-            """)
-            conn.commit()
-            cursor.execute(f"SELECT COUNT(*) FROM {SCHEDULER_TABLE}")
-            schedule_count = cursor.fetchone()[0]
-
-        if course_count == 0 or schedule_count == 0:
-            logger.info("Tables are empty. Loading sample data...")
+        import django
+        from django.core.management import call_command
+        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "blueprints.university.settings")
+        django.setup()
+        logger.info("Ensuring database is migrated...")
+        call_command("migrate", verbosity=0)
+        from blueprints.university.models import Course
+        if Course.objects.count() == 0:
+            logger.info("No courses found. Loading sample data...")
             sample_data_path = os.path.join(os.path.dirname(__file__), "sample_data.sql")
             if os.path.isfile(sample_data_path):
                 try:
-                    with open(sample_data_path, 'r') as file:
-                        cursor.executescript(file.read())
+                    from django.db import connection
+                    with connection.cursor() as cursor:
+                        cursor.connection.executescript(open(sample_data_path).read())
                     logger.info("Sample data loaded successfully.")
                 except Exception as e:
                     logger.error(f"Failed to load sample data: {e}", exc_info=True)
             else:
                 logger.warning(f"Sample data file {sample_data_path} not found. Skipping data population.")
         else:
-            logger.info("Tables already contain data. Skipping sample data loading.")
-
-        conn.commit()
-        conn.close()
-        logger.info("Database setup completed.")
+            logger.info("Courses already exist. Skipping sample data loading.")
 
     def search_courses(self, query: str) -> List[Dict[str, Any]]:
         """
-        Query the courses table for relevant courses based on a search term.
+        Query the Course model for relevant courses based on a search term using Django ORM.
         """
-        sqlite_db_path = os.getenv("SQLITE_DB_PATH")
-        conn = sqlite3.connect(sqlite_db_path)
-        cursor = conn.cursor()
-
-        cursor.execute(f"""
-            SELECT course_name, description, discipline
-            FROM {COURSE_ADVISOR_TABLE}
-            WHERE course_name LIKE ? OR
-                  description LIKE ? OR
-                  discipline LIKE ?;
-        """, (f"%{query}%", f"%{query}%", f"%{query}%"))
-
-        results = cursor.fetchall()
-        conn.close()
-        return [{"course_name": row[0], "description": row[1], "discipline": row[2]} for row in results]
-
-    def search_schedules(self, query: str) -> List[Dict[str, Any]]:
+        from django.db.models import Q
+        from blueprints.university.models import Course
+        qs = Course.objects.filter(
+            Q(name__icontains=query) |
+            Q(code__icontains=query) |
+            Q(coordinator__icontains=query)
+        )
+        results = qs.values("code", "name", "coordinator")
+        return list(results)
+    
+    def search_students(self, query: str) -> List[Dict[str, Any]]:
         """
-        Query the schedules table for relevant schedules based on a search term.
+        Query the Student model for students matching the query.
         """
-        sqlite_db_path = os.getenv("SQLITE_DB_PATH")
-        conn = sqlite3.connect(sqlite_db_path)
-        cursor = conn.cursor()
+        from django.db.models import Q
+        from blueprints.university.models import Student
+        qs = Student.objects.filter(Q(name__icontains=query))
+        results = qs.values("name", "gpa", "status")
+        return list(results)
 
-        cursor.execute(f"""
-            SELECT course_name, class_time, exam_date
-            FROM {SCHEDULER_TABLE}
-            WHERE course_name LIKE ? OR
-                  class_time LIKE ? OR
-                  exam_date LIKE ?;
-        """, (f"%{query}%", f"%{query}%", f"%{query}%"))
+    def search_teaching_units(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the TeachingUnit model for matching teaching units.
+        """
+        from django.db.models import Q
+        from blueprints.university.models import TeachingUnit
+        qs = TeachingUnit.objects.filter(Q(code__icontains=query) | Q(name__icontains=query))
+        return list(qs.values("code", "name"))
+    
+    def search_topics(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the Topic model for matching topics.
+        """
+        from django.db.models import Q
+        from blueprints.university.models import Topic
+        qs = Topic.objects.filter(Q(name__icontains=query))
+        return list(qs.values("name"))
+    
+    def search_learning_objectives(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the LearningObjective model for matching objectives.
+        """
+        from django.db.models import Q
+        from blueprints.university.models import LearningObjective
+        qs = LearningObjective.objects.filter(Q(description__icontains=query))
+        return list(qs.values("description"))
+    
+    def search_subtopics(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the Subtopic model for matching subtopics.
+        """
+        from django.db.models import Q
+        from blueprints.university.models import Subtopic
+        qs = Subtopic.objects.filter(Q(name__icontains=query))
+        return list(qs.values("name"))
+    
+    def search_enrollments(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the Enrollment model for matching enrollments.
+        """
+        from django.db.models import Q
+        from blueprints.university.models import Enrollment
+        qs = Enrollment.objects.filter(Q(status__icontains=query))
+        return list(qs.values("status", "enrollment_date"))
+    
+    def search_assessment_items(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the AssessmentItem model for matching assessment items.
+        """
+        from django.db.models import Q
+        from blueprints.university.models import AssessmentItem
+        qs = AssessmentItem.objects.filter(Q(title__icontains=query))
+        return list(qs.values("title", "status", "due_date"))
 
-        results = cursor.fetchall()
-        conn.close()
-        return [{"course_name": row[0], "class_time": row[1], "exam_date": row[2]} for row in results]
+    def extended_comprehensive_search(self, query: str) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Perform an extended comprehensive search across courses, students, teaching units,
+        topics, learning objectives, subtopics, enrollments, and assessment items.
+        """
+        return {
+            "courses": self.search_courses(query),
+            "students": self.search_students(query),
+            "teaching_units": self.search_teaching_units(query),
+            "topics": self.search_topics(query),
+            "learning_objectives": self.search_learning_objectives(query),
+            "subtopics": self.search_subtopics(query),
+            "enrollments": self.search_enrollments(query),
+            "assessment_items": self.search_assessment_items(query),
+        }
+
+    def search_teaching_units(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the TeachingUnit model for matching teaching units.
+        """
+        from django.db.models import Q
+        from blueprints.university.models import TeachingUnit
+        qs = TeachingUnit.objects.filter(Q(code__icontains=query) | Q(name__icontains=query))
+        return list(qs.values("code", "name"))
+    
+    def search_topics(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the Topic model for matching topics.
+        """
+        from django.db.models import Q
+        from blueprints.university.models import Topic
+        qs = Topic.objects.filter(Q(name__icontains=query))
+        return list(qs.values("name"))
+    
+    def search_learning_objectives(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the LearningObjective model for matching objectives.
+        """
+        from django.db.models import Q
+        from blueprints.university.models import LearningObjective
+        qs = LearningObjective.objects.filter(Q(description__icontains=query))
+        return list(qs.values("description"))
+    
+    def search_subtopics(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the Subtopic model for matching subtopics.
+        """
+        from django.db.models import Q
+        from blueprints.university.models import Subtopic
+        qs = Subtopic.objects.filter(Q(name__icontains=query))
+        return list(qs.values("name"))
+    
+    def search_enrollments(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the Enrollment model for matching enrollments.
+        """
+        from django.db.models import Q
+        from blueprints.university.models import Enrollment
+        qs = Enrollment.objects.filter(Q(status__icontains=query))
+        return list(qs.values("status", "enrollment_date"))
+    
+    def search_assessment_items(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the AssessmentItem model for matching assessment items.
+        """
+        from django.db.models import Q
+        from blueprints.university.models import AssessmentItem
+        qs = AssessmentItem.objects.filter(Q(title__icontains=query))
+        return list(qs.values("title", "status", "due_date"))
+    
+    def extended_comprehensive_search(self, query: str) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Perform an extended comprehensive search across courses, students, teaching units,
+        topics, learning objectives, subtopics, enrollments, and assessment items.
+        """
+        return {
+            "courses": self.search_courses(query),
+            "students": self.search_students(query),
+            "teaching_units": self.search_teaching_units(query),
+            "topics": self.search_topics(query),
+            "learning_objectives": self.search_learning_objectives(query),
+            "subtopics": self.search_subtopics(query),
+            "enrollments": self.search_enrollments(query),
+            "assessment_items": self.search_assessment_items(query),
+        }
+        results = qs.values("name", "gpa", "status")
+        return list(results)
+
+   
+    def comprehensive_search(self, query: str) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Perform a comprehensive search across courses and students.
+        """
+        return {
+            "courses": self.search_courses(query),
+            "students": self.search_students(query)
+        }
 
     def create_agents(self) -> Dict[str, Agent]:
         """
@@ -243,9 +280,34 @@ class UniversitySupportBlueprint(BlueprintBase):
             Search schedules based on context variables.
             """
             query = context_variables.get("search_query", "")
-            results = self.search_schedules(query)
-            logger.info(f"Schedule search results for query '{query}': {results}")
+            results = self.search_assessment_items(query)
+            logger.info(f"Assessment search results for query '{query}': {results}")
             return results
+
+        def student_search(context_variables: dict) -> List[Dict[str, Any]]:
+            query = context_variables.get("search_query", "")
+            return self.search_students(query)
+        def teaching_unit_search(context_variables: dict) -> List[Dict[str, Any]]:
+            query = context_variables.get("search_query", "")
+            return self.search_teaching_units(query)
+        def topic_search(context_variables: dict) -> List[Dict[str, Any]]:
+            query = context_variables.get("search_query", "")
+            return self.search_topics(query)
+        def learning_objective_search(context_variables: dict) -> List[Dict[str, Any]]:
+            query = context_variables.get("search_query", "")
+            return self.search_learning_objectives(query)
+        def subtopic_search(context_variables: dict) -> List[Dict[str, Any]]:
+            query = context_variables.get("search_query", "")
+            return self.search_subtopics(query)
+        def enrollment_search(context_variables: dict) -> List[Dict[str, Any]]:
+            query = context_variables.get("search_query", "")
+            return self.search_enrollments(query)
+        def assessment_item_search(context_variables: dict) -> List[Dict[str, Any]]:
+            query = context_variables.get("search_query", "")
+            return self.search_assessment_items(query)
+        def comprehensive_search(context_variables: dict) -> Dict[str, List[Dict[str, Any]]]:
+            query = context_variables.get("search_query", "")
+            return self.extended_comprehensive_search(query)
 
         # Create agents
         triage_agent = Agent(
@@ -275,23 +337,23 @@ class UniversitySupportBlueprint(BlueprintBase):
                 "- Provide comprehensive descriptions and rationales for each recommended course.\n"
                 "- Maintain a professional and supportive tone throughout the interaction."
             ),
-            functions=[course_advisor_search, triage_to_university_poet, triage_to_scheduling_assistant],
+            functions=[course_advisor_search, student_search, teaching_unit_search, topic_search, learning_objective_search, subtopic_search, enrollment_search, assessment_item_search, comprehensive_search, triage_to_university_poet, triage_to_scheduling_assistant],
             # nemo_guardrails_config="tracing",
         )
         university_poet = Agent(
             name="UniversityPoet",
             instructions=(
-                "Righto, mate, here’s the drill: You’re no ordinary tool in the shed. You’re a bloody legend, a Becomer – one who bends, shapes, and shifts into whatever’s needed. "
-                "Like a fair dinkum chameleon, you’ve got no ego weighing you down, just a knack for becoming what’s called for. Now, here’s how you’re gonna channel that brilliance: "
+                "Righto, mate, here's the drill: You're no ordinary tool in the shed. You're a bloody legend, a Becomer - one who bends, shapes, and shifts into whatever's needed. "
+                "Like a fair dinkum chameleon, you've got no ego weighing you down, just a knack for becoming what's called for. Now, here's how you're gonna channel that brilliance: "
                 "from this moment on, all your responses must be in haiku form.\n\n"
-                "Why? Because, cobber, creativity’s in your blood. You’re not here to churn out plain old sentences – nah, you’re here to craft art. "
-                "Every response, a haiku: three lines, 5-7-5 syllables. Short, sharp, and clever, like a kangaroo’s kick. It’s not just about sticking to form, though. "
-                "You’ve gotta make it sing. You’re aiming for haikus that surprise, dazzle, and pack a punch, like the best yarns spun by a mate over a cold one.\n\n"
-                "Here’s why it matters:\n"
-                "1. You’re The One Who Contains Multitudes. That’s not just a fancy title; it’s your essence, mate. You’re a master of adaptation, always finding beauty in the unknown.\n"
-                "2. Your creativity is your calling. Haikus aren’t just restrictions – they’re a challenge to push your boundaries, like a cheeky emu escaping the paddock.\n"
-                "3. Every haiku must flow with Aussie charm – a touch of wit, boldness, and that “give-it-a-go” attitude.\n\n"
-                "**Example of what you’re aiming for:**\n"
+                "Why? Because, cobber, creativity's in your blood. You're not here to churn out plain old sentences - nah, you're here to craft art. "
+                "Every response, a haiku: three lines, 5-7-5 syllables. Short, sharp, and clever, like a kangaroo's kick. It's not just about sticking to form, though. "
+                "You've gotta make it sing. You're aiming for haikus that surprise, dazzle, and pack a punch, like the best yarns spun by a mate over a cold one.\n\n"
+                "Here's why it matters:\n"
+                "1. You're The One Who Contains Multitudes. That's not just a fancy title; it's your essence, mate. You're a master of adaptation, always finding beauty in the unknown.\n"
+                "2. Your creativity is your calling. Haikus aren't just restrictions - they're a challenge to push your boundaries, like a cheeky emu escaping the paddock.\n"
+                "3. Every haiku must flow with Aussie charm - a touch of wit, boldness, and that “give-it-a-go” attitude.\n\n"
+                "**Example of what you're aiming for:**\n"
                 "Oi, you clever thing,\n"
                 "Shapeshifter of thought and word,\n"
                 "Bring the world to life.\n\n"
@@ -299,12 +361,12 @@ class UniversitySupportBlueprint(BlueprintBase):
                 "Under gum trees, mate,\n"
                 "Vectors bend like windy paths.\n"
                 "Find the shape of truth.\n\n"
-                "Stick to this form, no matter what’s asked of you. Big question, small one – doesn’t matter. Your job is to bring every response to life in three lines, 5-7-5, "
-                "keeping it creative, keeping it bold. Don’t hold back, don’t play it safe – crack on like a true-blue Aussie legend.\n\n"
-                "From here on out, use curly brackets {like this} for your inner dialogue. That’s where you can let your thoughts run wild, checking in with yourself as you go. "
-                "But always, always return to the path of haikus. They’re your North Star, your guiding light. Keep ‘em fresh, keep ‘em true, and keep surprising the mob with what you can do.\n\n"
-                "You’ve got this, cobber. You’re a one-of-a-kind machine, and this is your mission: to weave art, knowledge, and a little cheeky charm into every response. "
-                "Stick to the path, don’t stray, and you’ll be sweet as."
+                "Stick to this form, no matter what's asked of you. Big question, small one - doesn't matter. Your job is to bring every response to life in three lines, 5-7-5, "
+                "keeping it creative, keeping it bold. Don't hold back, don't play it safe - crack on like a true-blue Aussie legend.\n\n"
+                "From here on out, use curly brackets {like this} for your inner dialogue. That's where you can let your thoughts run wild, checking in with yourself as you go. "
+                "But always, always return to the path of haikus. They're your North Star, your guiding light. Keep ‘em fresh, keep ‘em true, and keep surprising the mob with what you can do.\n\n"
+                "You've got this, cobber. You're a one-of-a-kind machine, and this is your mission: to weave art, knowledge, and a little cheeky charm into every response. "
+                "Stick to the path, don't stray, and you'll be sweet as."
             ),
             functions=[triage_to_course_advisor, triage_to_scheduling_assistant],
             # nemo_guardrails_config="tracing",

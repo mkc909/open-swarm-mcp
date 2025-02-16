@@ -40,7 +40,6 @@ class UniversityBlueprintIntegrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('TEST101', response.content.decode())
 
-    @skip("Broken test disabled")
     def test_integration_course(self):
         # Create a teaching unit first.
         self.client.post('/v1/university/teaching-units/',
@@ -60,31 +59,34 @@ class UniversityBlueprintIntegrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('Test Course', response.content.decode())
 
-    @skip("Broken test disabled")
-    def test_integration_enrollment(self):
-        # Create teaching unit, course and student.
-        self.client.post('/v1/university/teaching-units/',
-            data={'code': 'TEST101', 'name': 'Test Unit', 'teaching_prompt': 'Test prompt'},
-            content_type='application/json')
-        self.client.post('/v1/university/courses/',
-            data={
-                'name': 'Test Course',
-                'code': 'TSTC',
-                'coordinator': 'Coordinator Name',
-                'teaching_units': [1],
-                'teaching_prompt': 'Course prompt'
-            },
-            content_type='application/json')
-        self.client.post('/v1/university/students/',
-            data={'name': 'Test Student', 'gpa': '4.0', 'status': 'active'},
-            content_type='application/json')
-        response = self.client.post('/v1/university/enrollments/',
-            data={'student': 1, 'course': 1, 'status': 'enrolled'},
-            content_type='application/json')
-        self.assertEqual(response.status_code, 201)
-        response = self.client.get('/v1/university/enrollments/')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('enrolled', response.content.decode())
+        
+        def test_integration_enrollment(self):
+            # Create teaching unit, course and student.
+            response = self.client.post('/v1/university/teaching-units/',
+                data={'code': 'TEST101', 'name': 'Test Unit', 'teaching_prompt': 'Test prompt'},
+                content_type='application/json')
+            self.assertEqual(response.status_code, 201)
+            response = self.client.post('/v1/university/courses/',
+                data={
+                    'name': 'Test Course',
+                    'code': 'TSTC',
+                    'coordinator': 'Coordinator Name',
+                    'teaching_units': [1],
+                    'teaching_prompt': 'Course prompt'
+                },
+                content_type='application/json')
+            self.assertEqual(response.status_code, 201)
+            response = self.client.post('/v1/university/students/',
+                data={'name': 'Test Student', 'gpa': '4.0', 'status': 'active'},
+                content_type='application/json')
+            self.assertEqual(response.status_code, 201)
+            response = self.client.post('/v1/university/enrollments/',
+                data={'student': 1, 'course': 1, 'status': 'enrolled'},
+                content_type='application/json')
+            self.assertEqual(response.status_code, 201)
+            response = self.client.get('/v1/university/enrollments/')
+            self.assertEqual(response.status_code, 200)
+            self.assertIn('enrolled', response.content.decode())
 
     @skip("Broken test disabled")
     def test_integration_assessment_item(self):

@@ -17,9 +17,10 @@ class TeachingUnit(models.Model):
     teaching_prompt = models.TextField(
         blank=True, null=True, help_text="Instructions or guidelines for teaching this unit."
     )
-
+    
     class Meta:
         app_label = "blueprints_university"
+        db_table = "swarm_teachingunit"
         verbose_name = "Teaching Unit"
         verbose_name_plural = "Teaching Units"
 
@@ -39,6 +40,7 @@ class Topic(models.Model):
 
     class Meta:
         app_label = "blueprints_university"
+        db_table = "swarm_topic"
         verbose_name = "Topic"
         verbose_name_plural = "Topics"
 
@@ -52,9 +54,10 @@ class LearningObjective(models.Model):
         Topic, related_name="learning_objectives", on_delete=models.CASCADE
     )
     description = models.TextField(help_text="Detailed description of the learning objective.")
-
+    
     class Meta:
         app_label = "blueprints_university"
+        db_table = "swarm_learningobjective"
         verbose_name = "Learning Objective"
         verbose_name_plural = "Learning Objectives"
 
@@ -74,6 +77,7 @@ class Subtopic(models.Model):
 
     class Meta:
         app_label = "blueprints_university"
+        db_table = "swarm_subtopic"
         verbose_name = "Subtopic"
         verbose_name_plural = "Subtopics"
 
@@ -97,6 +101,7 @@ class Course(models.Model):
 
     class Meta:
         app_label = "blueprints_university"
+        db_table = "swarm_course"
         verbose_name = "Course"
         verbose_name_plural = "Courses"
 
@@ -137,6 +142,7 @@ class Student(models.Model):
 
     class Meta:
         app_label = "blueprints_university"
+        db_table = "swarm_student"
         verbose_name = "Student"
         verbose_name_plural = "Students"
 
@@ -185,6 +191,7 @@ class Enrollment(models.Model):
 
     class Meta:
         app_label = "blueprints_university"
+        db_table = "swarm_enrollment"
         unique_together = ('student', 'course')
         verbose_name = "Enrollment"
         verbose_name_plural = "Enrollments"
@@ -199,9 +206,7 @@ class AssessmentItem(models.Model):
         ('pending', 'Pending'),
         ('completed', 'Completed'),
     )
-    enrollment = models.ForeignKey(
-        Enrollment, related_name="assessments", on_delete=models.CASCADE
-    )
+    enrollment = models.ForeignKey(Enrollment, related_name="assessments", on_delete=models.CASCADE)
     title = models.CharField(max_length=255, help_text="Title of the assessment (e.g., 'Midterm Exam').")
     status = models.CharField(
         max_length=20,
@@ -219,6 +224,7 @@ class AssessmentItem(models.Model):
 
     class Meta:
         app_label = "blueprints_university"
+        db_table = "swarm_assessmentitem"
         ordering = ["due_date"]
         verbose_name = "Assessment Item"
         verbose_name_plural = "Assessment Items"

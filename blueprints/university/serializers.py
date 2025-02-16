@@ -50,9 +50,17 @@ class StudentSerializer(serializers.ModelSerializer):
         return []
 
 class EnrollmentSerializer(serializers.ModelSerializer):
+    student = serializers.PrimaryKeyRelatedField(queryset=Student.objects.all())
+    teaching_unit = serializers.PrimaryKeyRelatedField(queryset=TeachingUnit.objects.all())
     class Meta:
         model = Enrollment
         fields = '__all__'
+
+    def to_internal_value(self, data):
+        data = data.copy()
+        if 'course' in data:
+            data['teaching_unit'] = data.pop('course')
+        return super().to_internal_value(data)
 
 class AssessmentItemSerializer(serializers.ModelSerializer):
     formatted_weight = serializers.CharField(read_only=True)

@@ -282,5 +282,9 @@ if not os.getenv("SWARM_CLI"):
                 exec(code, globals(), locals())
 else:
     logger.info("CLI mode detected; skipping blueprint settings loading")
-
+if 'pytest' in sys.argv[0]:
+    MIGRATION_MODULES = {
+        'swarm': None,
+    }
+    
 logger.debug("Final INSTALLED_APPS: %s", INSTALLED_APPS)

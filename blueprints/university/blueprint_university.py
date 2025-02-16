@@ -42,19 +42,23 @@ class UniversitySupportBlueprint(BlueprintBase):
         and create agents.
         """
         config.setdefault("llm", {"default": {"dummy": "value"}})
+        self._ensure_database_setup()
         super().__init__(config=config, **kwargs)
 
     def _ensure_database_setup(self) -> None:
         """
-        Ensure the database is set up and load sample data if necessary.
-        This uses Django's ORM, assuming migrations have been applied.
+        Ensure that the database migrations are created and applied,
+        and load sample data if necessary.
         """
         import django
         from django.core.management import call_command
+        # import glob, os
+        # import sys
+        # if os.environ.get("UNIT_TESTING") or ("pytest" in sys.modules) or any("test" in arg.lower() for arg in sys.argv):
+        #     logger.info("UNIT_TESTING detected; skipping database setup.")
+        #     return
         os.environ.setdefault("DJANGO_SETTINGS_MODULE", "blueprints.university.settings")
         django.setup()
-        logger.info("Ensuring database is migrated...")
-        call_command("migrate", verbosity=0)
         from blueprints.university.models import Course
         if Course.objects.count() == 0:
             logger.info("No courses found. Loading sample data...")

@@ -51,12 +51,12 @@ class SuggestionBlueprint(BlueprintBase):
         """
         logger.debug("Creating SuggestionAgent with structured JSON output.")
 
-        # ✅ Fix: Ensure response format has required fields
+        # Ensure response format has required fields
         response_format = {
             "type": "json_schema",
             "json_schema": {
-                "name": "suggestion_response",  # ✅ Required name field
-                "schema": {  # ✅ Required schema field
+                "name": "suggestion_response",  # Required name field
+                "schema": {  # Required schema field
                     "type": "object",
                     "properties": {
                         "suggestions": {
@@ -72,15 +72,14 @@ class SuggestionBlueprint(BlueprintBase):
             }
         }
 
-        # ✅ Fix: Remove `tool_choice`
         suggestion_agent = Agent(
             name="SuggestionAgent",
             instructions="Generate three structured follow-up questions in JSON format.",
             mcp_servers=[],
             env_vars={},
             functions=[],  # No function calls, just structured text response
-            parallel_tool_calls=False,  # ✅ Still required for compatibility
-            response_format=response_format,  # ✅ Structured output
+            parallel_tool_calls=False,  # Still required for compatibility
+            response_format=response_format,  # Structured output
         )
 
         self.set_starting_agent(suggestion_agent)  # Set as the starting agent

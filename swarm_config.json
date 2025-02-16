@@ -70,6 +70,22 @@
 
     "mcpServers": {
 
+        "mcp-npx-fetch": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@tokenizin/mcp-npx-fetch"
+            ]
+        },
+
+        "mcp-doc-forge": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@cablate/mcp-doc-forge"
+            ]
+        },
+
         "youtube-transcript": {
             "command": "uvx",
             "args": [

@@ -6,7 +6,7 @@ from blueprints.university.models import (
 class TeachingUnitSerializer(serializers.ModelSerializer):
     class Meta:
         model = TeachingUnit
-        fields = '__all__'
+        fields = ['id', 'code', 'name', 'teaching_prompt']
 
 class TopicSerializer(serializers.ModelSerializer):
     class Meta:
@@ -36,14 +36,7 @@ class CourseSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         teaching_units = validated_data.pop('teaching_units', [])
         course = Course.objects.create(**validated_data)
-        from blueprints.university.models import TeachingUnit
-        for unit in teaching_units:
-            # If 'unit' is not an instance (i.e., an integer), fetch the TeachingUnit instance.
-            if not hasattr(unit, 'pk'):
-                unit_instance = TeachingUnit.objects.get(pk=unit)
-                course.teaching_units.add(unit_instance)
-            else:
-                course.teaching_units.add(unit)
+        course.teaching_units.set(teaching_units)
         return course
 class StudentSerializer(serializers.ModelSerializer):
     courses = serializers.SerializerMethodField()
@@ -51,9 +44,9 @@ class StudentSerializer(serializers.ModelSerializer):
         model = Student
         fields = ("id", "name", "gpa", "status", "courses")
     def get_courses(self, obj):
-        # Use the through relationship via enrollments instead of direct courses field
+        # Use the through relationship via enrollments; explicitly iterate to avoid ORM lookup issues.
         if hasattr(obj, 'enrollments'):
-            return list(obj.enrollments.values_list("course__id", flat=True))
+            return [enrollment.course.id for enrollment in obj.enrollments.all()]
         return []
 
 class EnrollmentSerializer(serializers.ModelSerializer):

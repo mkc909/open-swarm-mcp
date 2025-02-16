@@ -36,8 +36,14 @@ class CourseSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         teaching_units = validated_data.pop('teaching_units', [])
         course = Course.objects.create(**validated_data)
+        from blueprints.university.models import TeachingUnit
         for unit in teaching_units:
-            course.teaching_units.add(unit)
+            # If 'unit' is not an instance (i.e., an integer), fetch the TeachingUnit instance.
+            if not hasattr(unit, 'pk'):
+                unit_instance = TeachingUnit.objects.get(pk=unit)
+                course.teaching_units.add(unit_instance)
+            else:
+                course.teaching_units.add(unit)
         return course
 class StudentSerializer(serializers.ModelSerializer):
     courses = serializers.SerializerMethodField()

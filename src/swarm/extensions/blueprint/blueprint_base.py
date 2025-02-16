@@ -91,26 +91,6 @@ class BlueprintBase(ABC):
                     if app not in django_settings.INSTALLED_APPS:
                         django_settings.INSTALLED_APPS.append(app)
                 logger.debug("Merged blueprint local settings INSTALLED_APPS into Django settings.")
-        auto_migrate = self.local_settings is None or getattr(self.local_settings, "AUTO_MIGRATE", True)
-        if auto_migrate:
-            if os.environ.get("DJANGO_SETTINGS_MODULE"):
-                try:
-                    from django.db import connection
-                    from django.core.management import call_command
-                    from django.conf import settings as django_settings
-                    tables = connection.introspection.table_names()
-                    if "blueprints_university" not in django_settings.INSTALLED_APPS:
-                        logger.debug("Blueprint app 'blueprints_university' not in INSTALLED_APPS, skipping migrations.")
-                    elif "blueprints_university_course" not in tables:
-                        logger.debug("Database tables for blueprints_university not found, running migrations...")
-                        call_command("makemigrations", "blueprints_university", interactive=False, verbosity=0)
-                        call_command("migrate", "blueprints_university", interactive=False, verbosity=0)
-                        logger.debug("Migrations for blueprints_university applied.")
-                except RuntimeError as e:
-                    logger.warning("Skipping auto migration due to database access restrictions: " + str(e))
-            else:
-                logger.debug("DJANGO_SETTINGS_MODULE not set; skipping auto migration.")
-        self.swarm = kwargs.get('swarm_instance')
         self.swarm = kwargs.get('swarm_instance')
         if self.swarm is not None:
             logger.debug("Using shared swarm instance from kwargs.")

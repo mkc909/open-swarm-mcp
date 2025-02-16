@@ -206,7 +206,7 @@
                 "OPENAPI_SPEC_URL": "https://machines-api-spec.fly.dev/swagger/doc.json",
                 "SERVER_URL_OVERRIDE": "https://api.machines.dev",
                 "TOOL_WHITELIST": "/machines/list,/machines/start,/machines/status",
-                "API_AUTH_BEARER": "${FLY_API_KEY}"
+                "API_AUTH_BEARER": "${FLY_API_TOKEN}"
             }
         },
 

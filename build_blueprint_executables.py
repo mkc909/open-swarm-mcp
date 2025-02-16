@@ -19,6 +19,7 @@ def main():
                 command = [
                     "pyinstaller",
                     "--onefile",
+                    "--distpath", ".",
                     "--name", output_name,
                     "--add-data", "blueprints:blueprints",
                     "--add-data", "nemo_guardrails/default_config.yml:nemoguardrails/rails/llm",

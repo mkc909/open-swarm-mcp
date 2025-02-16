@@ -17,7 +17,7 @@ class TeachingUnit(models.Model):
     teaching_prompt = models.TextField(
         blank=True, null=True, help_text="Instructions or guidelines for teaching this unit."
     )
-    
+
     class Meta:
         app_label = "blueprints_university"
         db_table = "swarm_teachingunit"
@@ -54,7 +54,7 @@ class LearningObjective(models.Model):
         Topic, related_name="learning_objectives", on_delete=models.CASCADE
     )
     description = models.TextField(help_text="Detailed description of the learning objective.")
-    
+
     class Meta:
         app_label = "blueprints_university"
         db_table = "swarm_learningobjective"
@@ -93,7 +93,9 @@ class Course(models.Model):
     )
     coordinator = models.CharField(max_length=255, help_text="Name of the course coordinator.")
     teaching_units = models.ManyToManyField(
-        TeachingUnit, related_name="courses", help_text="Teaching units included in this course."
+        TeachingUnit,
+        related_name="courses",
+        help_text="Teaching units included in this course."
     )
     teaching_prompt = models.TextField(
         blank=True, null=True, help_text="Instructions or guidelines for teaching this course."
@@ -109,15 +111,18 @@ class Course(models.Model):
         return f"{self.code} - {self.name}"
 
     @property
-    def enrolled_students(self):
+    def enrolled_students_count(self):
         """Dynamically calculates the number of enrolled students."""
-        return self.enrollments.count()
+        return Student.objects.filter(enrollments__teaching_unit__in=self.teaching_units.all()).distinct().count()
 
     @property
     def average_gpa(self):
         """Dynamically calculates the average GPA for the course."""
-        average = self.enrollments.aggregate(Avg('student__gpa'))['student__gpa__avg']
-        return average if average is not None else 0.0
+        students_in_course = Student.objects.filter(enrollments__teaching_unit__in=self.teaching_units.all()).distinct()
+        if students_in_course.exists():
+            return students_in_course.aggregate(Avg('gpa'))['gpa__avg']
+        else:
+            return 0.0
 
 
 class Student(models.Model):
@@ -136,8 +141,8 @@ class Student(models.Model):
         default='active',
         help_text="Current status of the student.",
     )
-    courses = models.ManyToManyField(
-        Course, through='Enrollment', related_name="students", help_text="Courses the student is enrolled in."
+    teaching_units = models.ManyToManyField(
+        TeachingUnit, through='Enrollment', related_name="students", help_text="Teaching Units the student is enrolled in."
     )
 
     class Meta:
@@ -156,23 +161,19 @@ def filter_students(name=None, status=None, unit_codes=None):
     Uses AND logic for all filters.
     """
     q = Q()
-
     if name:
         q &= Q(name__icontains=name)
-
     if status and status != 'all':
         q &= Q(status=status)
-
-    if unit_codes and unit_codes != 'all':
-        q &= Q(enrollments__course__teaching_units__code__in=unit_codes)
-
+    if unit_codes and 'all' not in unit_codes:
+        q &= Q(enrollments__teaching_unit__code__in=unit_codes)
     return Student.objects.filter(q).distinct()
 
 
 class Enrollment(models.Model):
     """
-    Represents the enrollment of a student in a course. This is the through model
-    for the many-to-many relationship between Student and Course.
+    Represents the enrollment of a student in a Teaching Unit.
+    This is a through model for the many-to-many relationship between Student and TeachingUnit.
     """
     STATUS_CHOICES = (
         ('enrolled', 'Enrolled'),
@@ -180,7 +181,7 @@ class Enrollment(models.Model):
         ('dropped', 'Dropped'),
     )
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="enrollments")
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments")
+    teaching_unit = models.ForeignKey(TeachingUnit, on_delete=models.CASCADE, related_name="enrollments")
     enrollment_date = models.DateField(auto_now_add=True, help_text="Date the student enrolled in the course.")
     status = models.CharField(
         max_length=20,
@@ -192,12 +193,12 @@ class Enrollment(models.Model):
     class Meta:
         app_label = "blueprints_university"
         db_table = "swarm_enrollment"
-        unique_together = ('student', 'course')
+        unique_together = ('student', 'teaching_unit')
         verbose_name = "Enrollment"
         verbose_name_plural = "Enrollments"
 
     def __str__(self):
-        return f"{self.student.name} - {self.course.name}"
+        return f"{self.student.name} - {self.teaching_unit.name}"
 
 
 class AssessmentItem(models.Model):
@@ -241,3 +242,31 @@ class AssessmentItem(models.Model):
     def formatted_weight(self):
         """Formats the weight as a percentage string."""
         return f"{self.weight}%"
+
+
+# class ChatConversation(models.Model):
+#     """Represents a single chat session."""
+#     conversation_id = models.CharField(max_length=255, primary_key=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='conversations')
+    
+#     chat_messages: "RelatedManager[ChatMessage]"
+
+#     def __str__(self):
+#         return f"ChatConversation({self.conversation_id})"
+    
+#     @property
+#     def messages(self):
+#         return self.chat_messages.all()
+
+
+# class ChatMessage(models.Model):
+#     """Stores individual chat messages within a conversation."""
+#     conversation = models.ForeignKey(ChatConversation, related_name="chat_messages", on_delete=models.CASCADE)
+#     sender = models.CharField(max_length=50)
+#     content = models.TextField()
+#     timestamp = models.DateTimeField(auto_now_add=True)
+#     tool_call_id = models.CharField(max_length=255, blank=True, null=True)
+
+#     class Meta:
+#         ordering = ["timestamp"]

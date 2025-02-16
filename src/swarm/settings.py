@@ -75,6 +75,16 @@ INSTALLED_APPS = [
     'swarm.extensions.blueprint.modes.rest_mode',
 ]
 
+# TODO make this a generic method
+logger.debug("Before university update, INSTALLED_APPS: %s", INSTALLED_APPS)
+try:
+    from blueprints.university import settings as university_settings
+    university_settings.update_installed_apps(globals())
+    logger.debug("University update succeeded.")
+except Exception as e:
+    logger.error("University update failed: %s", e)
+logger.debug("After university update, INSTALLED_APPS: %s", INSTALLED_APPS)
+
 MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Enables static file serving
     'allauth.account.middleware.AccountMiddleware',
@@ -174,7 +184,7 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
-USE_TZ = True
+USE_TZ = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
@@ -282,3 +292,4 @@ REST_FRAMEWORK = {
 # SESSION_COOKIE_HTTPONLY = True
 # CSRF_COOKIE_HTTPONLY = True
 # CSRF_TRUSTED_ORIGINS = ['http://localhost:8000']
+logger.debug("Final INSTALLED_APPS: %s", INSTALLED_APPS)

@@ -30,11 +30,16 @@ class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
         fields = '__all__'
-
 class StudentSerializer(serializers.ModelSerializer):
+    courses = serializers.SerializerMethodField()
     class Meta:
         model = Student
-        fields = '__all__'
+        fields = ("id", "name", "gpa", "status", "courses")
+    def get_courses(self, obj):
+        # Use the through relationship via enrollments instead of direct courses field
+        if hasattr(obj, 'enrollments'):
+            return list(obj.enrollments.values_list("course__id", flat=True))
+        return []
 
 class EnrollmentSerializer(serializers.ModelSerializer):
     class Meta:

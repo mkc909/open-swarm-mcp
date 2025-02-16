@@ -41,20 +41,6 @@ swarm_blueprints_env = os.getenv('SWARM_BLUEPRINTS', '').strip()
 SWARM_BLUEPRINTS = [name.strip() for name in swarm_blueprints_env.split(',') if name.strip()] if swarm_blueprints_env else []
 logger.info(f"Discovered SWARM_BLUEPRINTS env: {SWARM_BLUEPRINTS}")
 
-# Discover and load blueprint settings only when not in CLI mode
-import os
-if not os.getenv("SWARM_CLI"):
-    for blueprint_name in os.listdir(BLUEPRINTS_DIR):
-        blueprint_path = BLUEPRINTS_DIR / blueprint_name
-        settings_path = blueprint_path / 'settings.py'
-        if settings_path.exists() and (not SWARM_BLUEPRINTS or blueprint_name in SWARM_BLUEPRINTS):
-            logger.info(f"Loading settings for blueprint: {blueprint_name}")
-            with open(settings_path) as f:
-                code = compile(f.read(), str(settings_path), 'exec')
-                exec(code, globals(), locals())
-else:
-    logger.info("CLI mode detected; skipping blueprint settings loading")
-
 ALLOWED_HOSTS = ['*']  # Adjust as needed in production
 
 # Application definition
@@ -74,16 +60,6 @@ INSTALLED_APPS = [
     'swarm',
     'swarm.extensions.blueprint.modes.rest_mode',
 ]
-
-# TODO make this a generic method
-logger.debug("Before university update, INSTALLED_APPS: %s", INSTALLED_APPS)
-try:
-    from blueprints.university import settings as university_settings
-    university_settings.update_installed_apps(globals())
-    logger.debug("University update succeeded.")
-except Exception as e:
-    logger.error("University update failed: %s", e)
-logger.debug("After university update, INSTALLED_APPS: %s", INSTALLED_APPS)
 
 MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Enables static file serving
@@ -292,4 +268,19 @@ REST_FRAMEWORK = {
 # SESSION_COOKIE_HTTPONLY = True
 # CSRF_COOKIE_HTTPONLY = True
 # CSRF_TRUSTED_ORIGINS = ['http://localhost:8000']
+
+# Discover and load blueprint settings only when not in CLI mode
+import os
+if not os.getenv("SWARM_CLI"):
+    for blueprint_name in os.listdir(BLUEPRINTS_DIR):
+        blueprint_path = BLUEPRINTS_DIR / blueprint_name
+        settings_path = blueprint_path / 'settings.py'
+        if settings_path.exists() and (not SWARM_BLUEPRINTS or blueprint_name in SWARM_BLUEPRINTS):
+            logger.info(f"Loading settings for blueprint: {blueprint_name}")
+            with open(settings_path) as f:
+                code = compile(f.read(), str(settings_path), 'exec')
+                exec(code, globals(), locals())
+else:
+    logger.info("CLI mode detected; skipping blueprint settings loading")
+
 logger.debug("Final INSTALLED_APPS: %s", INSTALLED_APPS)

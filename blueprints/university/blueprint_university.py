@@ -42,7 +42,7 @@ class UniversitySupportBlueprint(BlueprintBase):
         and create agents.
         """
         config.setdefault("llm", {"default": {"dummy": "value"}})
-        self._ensure_database_setup()
+        # self._ensure_database_setup()
         super().__init__(config=config, **kwargs)
 
     def _ensure_database_setup(self) -> None:

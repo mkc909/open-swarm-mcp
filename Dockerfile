@@ -4,6 +4,7 @@ FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 # Install cargo (needed for nemoguardrails)
 RUN apt-get update && apt-get install -y \
     cargo \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy uvx alongside uv

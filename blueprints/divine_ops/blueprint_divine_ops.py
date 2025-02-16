@@ -112,7 +112,7 @@ class MassiveSoftwareDevSysadminBlueprint(BlueprintBase):
         # --- Retrieve environment variables (optional if needed) ---
         allowed_paths = os.getenv("ALLOWED_PATH", "/default/path")
         brave_api_key = os.getenv("BRAVE_API_KEY", "default-brave-key")
-        fly_url = os.getenv("FLY_API_KEY", "")
+        fly_url = os.getenv("FLY_API_TOKEN", "")
         openapi_spec_url = os.getenv("OPENAPI_SPEC_URL", "")
         sqlite_db_path = os.getenv("SQLITE_DB_PATH", "/tmp/sqlite.db")
         weather_api_key = os.getenv("WEATHER_API_KEY", "")

@@ -23,13 +23,22 @@ class SubtopicSerializer(serializers.ModelSerializer):
         model = Subtopic
         fields = '__all__'
 
+from blueprints.university.models import TeachingUnit
 class CourseSerializer(serializers.ModelSerializer):
     enrolled_students = serializers.IntegerField(read_only=True)
     average_gpa = serializers.FloatField(read_only=True)
+    teaching_units = serializers.PrimaryKeyRelatedField(queryset=TeachingUnit.objects.all(), many=True)
     
     class Meta:
         model = Course
         fields = '__all__'
+    
+    def create(self, validated_data):
+        teaching_units = validated_data.pop('teaching_units', [])
+        course = Course.objects.create(**validated_data)
+        for unit in teaching_units:
+            course.teaching_units.add(unit)
+        return course
 class StudentSerializer(serializers.ModelSerializer):
     courses = serializers.SerializerMethodField()
     class Meta:

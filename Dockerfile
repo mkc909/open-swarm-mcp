@@ -28,7 +28,7 @@ EXPOSE 8000
 # Use shell form to allow environment variable substitution
 CMD if [ -n "$SWAPFILE_PATH" ]; then \
       mkdir -p "$(dirname "$SWAPFILE_PATH")" && \
-      fallocate -l 512M "$SWAPFILE_PATH" && \
+      fallocate -l 768M "$SWAPFILE_PATH" && \
       chmod 600 "$SWAPFILE_PATH" && \
       mkswap "$SWAPFILE_PATH" && \
       swapon "$SWAPFILE_PATH"; \

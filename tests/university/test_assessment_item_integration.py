@@ -1,4 +1,5 @@
 import os
+os.environ.setdefault('ENABLE_API_AUTH', 'false')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'swarm.settings')
 import django
 django.setup()

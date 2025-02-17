@@ -15,14 +15,14 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uvx /bin/
 WORKDIR /app
 
 # Copy NeMo Guardrails pyproject.toml and poetry.lock
-COPY ./nemo_guardrails/ ./nemo_guardrails/
+COPY ./nemo_guardrails/ .
 
 # Set environment variables
 ENV UV_SYSTEM_PYTHON=1
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Install NeMo Guardrails dependencies using uv
-RUN uv pip install --project nemo_guardrails .
+RUN uv sync
 
 # Download the `all-MiniLM-L6-v2` model
 RUN python -c "from fastembed.embedding import FlagEmbedding; FlagEmbedding('sentence-transformers/all-MiniLM-L6-v2');"

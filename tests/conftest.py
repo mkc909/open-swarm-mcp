@@ -1,5 +1,6 @@
 import os
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "swarm.settings")
+os.environ.setdefault("ENABLE_API_AUTH", "false")
 import uuid
 import pytest
 from django.conf import settings

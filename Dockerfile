@@ -22,7 +22,7 @@ ENV UV_SYSTEM_PYTHON=1
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Install NeMo Guardrails dependencies using uv
-RUN uv pip install --pyproject pyproject.toml
+RUN uv pip install --project nemo_guardrails .
 
 # Download the `all-MiniLM-L6-v2` model
 RUN python -c "from fastembed.embedding import FlagEmbedding; FlagEmbedding('sentence-transformers/all-MiniLM-L6-v2');"

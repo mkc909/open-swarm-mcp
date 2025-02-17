@@ -43,20 +43,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 [tool.uv]
 override-dependencies = [
-    "onnx ; sys_platform == 'never'",
     "annoy ; sys_platform == 'never'",
-    "numpy ; sys_platform == 'never'",
-    "onnxruntime ; sys_platform == 'never'",
-    "httpx ; sys_platform == 'never'",
-    "langchain ; sys_platform == 'never'",
-    "langchain-core ; sys_platform == 'never'",
-    "langchain-community ; sys_platform == 'never'",
-    "lark ; sys_platform == 'never'",
-    "prompt-toolkit ; sys_platform == 'never'",
-    "starlette ; sys_platform == 'never'",
-    "typer ; sys_platform == 'never'",
-    "uvicorn ; sys_platform == 'never'",
-    "watchdog ; sys_platform == 'never'",
 ]
 [tool.hatch.metadata]
 allow-direct-references = true

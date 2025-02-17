@@ -51,3 +51,6 @@ class EnvOrTokenAuthentication(TokenAuthentication):
 
         # Fallback to Django's TokenAuthentication
         return super().authenticate(request)
+
+    def authenticate_header(self, request):
+        return "Bearer"

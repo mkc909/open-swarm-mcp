@@ -1,6 +1,30 @@
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from drf_spectacular.utils import extend_schema
+import os
+
+from swarm.auth import EnvOrTokenAuthentication
+
+# Base viewset to handle dynamic permission based on ENABLE_API_AUTH
+from rest_framework.permissions import IsAuthenticated, AllowAny
+class UniversityBaseViewSet(ModelViewSet):
+    authentication_classes = [EnvOrTokenAuthentication]
+    permission_classes = [AllowAny]
+
+    def initial(self, request, *args, **kwargs):
+        # Force authentication early to trigger errors if token is invalid.
+        self.perform_authentication(request)
+        if not request.user or not request.user.is_authenticated:
+            from rest_framework.exceptions import AuthenticationFailed
+            raise AuthenticationFailed("Invalid token.")
+        super().initial(request, *args, **kwargs)
+
+    def get_permissions(self):
+        enable_auth = os.getenv("ENABLE_API_AUTH", "false").lower() in ("true", "1", "t")
+        if enable_auth:
+            return [IsAuthenticated()]
+        else:
+            return [AllowAny()]
 
 # Import models from the university blueprint
 from blueprints.university.models import (
@@ -26,39 +50,27 @@ from blueprints.university.serializers import (
     AssessmentItemSerializer
 )
 
-class TeachingUnitViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+class TeachingUnitViewSet(UniversityBaseViewSet):
     queryset = TeachingUnit.objects.all()
     serializer_class = TeachingUnitSerializer
 
-class TopicViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+class TopicViewSet(UniversityBaseViewSet):
     queryset = Topic.objects.all()
     serializer_class = TopicSerializer
 
-class LearningObjectiveViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+class LearningObjectiveViewSet(UniversityBaseViewSet):
     queryset = LearningObjective.objects.all()
     serializer_class = LearningObjectiveSerializer
 
-class SubtopicViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+class SubtopicViewSet(UniversityBaseViewSet):
     queryset = Subtopic.objects.all()
     serializer_class = SubtopicSerializer
 
-class CourseViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+class CourseViewSet(UniversityBaseViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
 
-class StudentViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+class StudentViewSet(UniversityBaseViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
 
@@ -72,15 +84,11 @@ class StudentViewSet(ModelViewSet):
             return filter_students(name=name, status=status, unit_codes=unit_codes)
         return super().get_queryset()
 
-class EnrollmentViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+class EnrollmentViewSet(UniversityBaseViewSet):
     queryset = Enrollment.objects.all()
     serializer_class = EnrollmentSerializer
 
-class AssessmentItemViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+class AssessmentItemViewSet(UniversityBaseViewSet):
     queryset = AssessmentItem.objects.all()
     serializer_class = AssessmentItemSerializer
 

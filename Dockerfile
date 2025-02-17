@@ -21,7 +21,14 @@ ENV UV_SYSTEM_PYTHON=1
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Install dependencies using uv 
-RUN uv sync
+RUN if [ -n "$SWAPFILE_PATH" ]; then \
+      mkdir -p "$(dirname "$SWAPFILE_PATH")" && \
+      fallocate -l 768M "$SWAPFILE_PATH" && \
+      chmod 600 "$SWAPFILE_PATH" && \
+      mkswap "$SWAPFILE_PATH" && \
+      swapon "$SWAPFILE_PATH"; \
+    fi && \
+    uv sync
 
 # Expose the application port (default 8000, configurable via $PORT)
 EXPOSE 8000

@@ -72,7 +72,7 @@ class EchoCraftBlueprint(BlueprintBase):
             env_vars={},
             functions=[echo_function],
             parallel_tool_calls=False,
-            # nemo_guardrails_config="tracing",
+            nemo_guardrails_config="tracing",
         )
 
         self.set_starting_agent(echo_agent)

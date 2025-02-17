@@ -162,6 +162,51 @@ class Swarm:
         self.client = client
 
         logger.info("Swarm initialized successfully.")
+        
+    def register_agent_functions_with_nemo(self, agent: Agent) -> None:
+        """
+        Registers the agent's functions as actions with the runtime.
+        Should be invoked just prior to calling nemo generate().
+        """
+        if not getattr(agent, "nemo_guardrails_instance", None):
+            if getattr(agent, "nemo_guardrails_config", None):
+                config_path = f"nemo_guardrails/{agent.nemo_guardrails_config}/config.yml"
+                try:
+                    from nemoguardrails.guardrails import Guardrails
+                    agent.nemo_guardrails_instance = Guardrails.from_yaml(config_path)
+                    logger.debug("Initialized NeMo Guardrails instance from config.")
+                except Exception as e:
+                    logger.error(f"Error initializing NeMo Guardrails instance: {e}")
+                    return
+            else:
+                logger.debug("No NeMo Guardrails instance or config for agent, skipping function registration.")
+                return
+        if not getattr(agent, "nemo_guardrails_instance", None):
+            if getattr(agent, "nemo_guardrails_config", None):
+                config_path = f"nemo_guardrails/{agent.nemo_guardrails_config}/config.yml"
+                try:
+                    from nemoguardrails.guardrails import Guardrails
+                    agent.nemo_guardrails_instance = Guardrails.from_yaml(config_path)
+                    logger.debug("Initialized NeMo Guardrails instance from config.")
+                except Exception as e:
+                    logger.error(f"Error initializing NeMo Guardrails instance: {e}")
+                    return
+            else:
+                logger.debug("No NeMo Guardrails instance or config for agent, skipping function registration.")
+                return
+        if not agent.functions:
+            logger.debug("Agent has no functions to register.")
+            return
+        for func in agent.functions:
+            action_name = getattr(func, '__name__', None) or getattr(func, '__qualname__', None)
+            if not action_name:
+                logger.warning("Skipping function registration: function has no name attribute")
+                continue
+            try:
+                agent.nemo_guardrails_instance.runtime.register_action(func, name=action_name)
+                logger.debug(f"Successfully registered function '{action_name}' as action.")
+            except Exception as e:
+                logger.error(f"Error registering function '{action_name}': {e}")
 
     async def discover_and_merge_agent_tools(self, agent: Agent, debug: bool = False) -> List[AgentFunction]:
         """
@@ -295,7 +340,7 @@ class Swarm:
         if "temperature" in new_llm_config:
             create_params["temperature"] = new_llm_config["temperature"]
 
-        # ✅ Ensure `response_format` is passed if agent specifies it
+        # Ensure `response_format` is passed if agent specifies it
         if agent.response_format:
             create_params["response_format"] = agent.response_format
 
@@ -306,6 +351,7 @@ class Swarm:
 
         try:
             if agent.nemo_guardrails_instance and messages[-1].get('content'):
+                self.register_agent_functions_with_nemo(agent)
 
                 options = GenerationOptions(
                     llm_params={

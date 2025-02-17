@@ -15,7 +15,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uvx /bin/
 WORKDIR /app
 
 # Copy NeMo Guardrails pyproject.toml and poetry.lock
-COPY ./NeMo-pyproject.toml ./poetry.lock ./
+COPY ./nemo_guardrails/ ./nemo_guardrails/
 
 # Set environment variables
 ENV UV_SYSTEM_PYTHON=1

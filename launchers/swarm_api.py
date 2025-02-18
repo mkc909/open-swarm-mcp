@@ -6,36 +6,46 @@ from os import path, listdir, makedirs
 
 def main():
     parser = argparse.ArgumentParser(description="Swarm REST Launcher")
-    parser.add_argument("--blueprint", required=True, help="Path to blueprint Python file (for configuration purposes)")
+    parser.add_argument("--blueprint", required=True, help="Comma-separated blueprint file paths or names for configuration purposes")
     parser.add_argument("--port", type=int, default=8000, help="Port to run the REST server")
     parser.add_argument("--config", default="~/.swarm/swarm_config.json", help="Configuration file path")
     parser.add_argument("--daemon", action="store_true", help="Run in daemon mode and print process id")
     args = parser.parse_args()
-    blueprint_path = None
-    # Process blueprint argument: allow blueprint name from managed directory.
-    if path.exists(args.blueprint):
-        if path.isdir(args.blueprint):
-            blueprint_arg = args.blueprint
-            matches = [f for f in listdir(blueprint_arg) if f.startswith("blueprint_") and f.endswith(".py")]
-            if not matches:
-                print("Error: No blueprint file found in directory:", blueprint_arg)
-                sys.exit(1)
-            blueprint_path = path.join(blueprint_arg, matches[0])
-            print(f"Using blueprint file: {blueprint_path}")
+
+    # Split blueprints by comma and strip whitespace
+    bp_list = [bp.strip() for bp in args.blueprint.split(",") if bp.strip()]
+    blueprint_paths = []
+    for bp_arg in bp_list:
+        resolved = None
+        if path.exists(bp_arg):
+            if path.isdir(bp_arg):
+                matches = [f for f in listdir(bp_arg) if f.startswith("blueprint_") and f.endswith(".py")]
+                if not matches:
+                    print("Error: No blueprint file found in directory:", bp_arg)
+                    sys.exit(1)
+                resolved = path.join(bp_arg, matches[0])
+                print(f"Using blueprint file from directory: {resolved}")
+            else:
+                resolved = bp_arg
+                print(f"Using blueprint file: {resolved}")
         else:
-            blueprint_path = args.blueprint
-    else:
-        managed_path = path.expanduser("~/.swarm/blueprints/" + args.blueprint)
-        if path.isdir(managed_path):
-            matches = [f for f in listdir(managed_path) if f.startswith("blueprint_") and f.endswith(".py")]
-            if not matches:
-                print("Error: No blueprint file found in managed directory:", managed_path)
+            managed_path = path.expanduser("~/.swarm/blueprints/" + bp_arg)
+            if path.isdir(managed_path):
+                matches = [f for f in listdir(managed_path) if f.startswith("blueprint_") and f.endswith(".py")]
+                if not matches:
+                    print("Error: No blueprint file found in managed directory:", managed_path)
+                    sys.exit(1)
+                resolved = path.join(managed_path, matches[0])
+                print(f"Using managed blueprint: {resolved}")
+            else:
+                print("Error: Blueprint not found:", bp_arg)
                 sys.exit(1)
-            blueprint_path = path.join(managed_path, matches[0])
-            print(f"Using managed blueprint: {blueprint_path}")
-        else:
-            print("Error: Blueprint not found:", args.blueprint)
-            sys.exit(1)
+        if resolved:
+            blueprint_paths.append(resolved)
+
+    print("Blueprints to be configured:")
+    for bp in blueprint_paths:
+        print(" -", bp)
 
     config_path = path.expanduser(args.config)
     if not path.exists(config_path):
@@ -43,12 +53,8 @@ def main():
         with open(config_path, 'w') as f:
             f.write("{}")
         print("Default config file created at:", config_path)
-    
-    # Inform user about the blueprint selection (currently for configuration/documentation)
-    print("Using blueprint:", blueprint_path)
-    print("Launching Django server on port 0.0.0.0:{}".format(args.port))
 
-    # Pass through the command to manage.py to run Django's runserver
+    print("Launching Django server on port 0.0.0.0:{}".format(args.port))
     try:
         if args.daemon:
             proc = subprocess.Popen(["python", "manage.py", "runserver", f"0.0.0.0:{args.port}"])

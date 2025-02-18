@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+ #!/usr/bin/env python3
 import argparse
 import importlib.util
 import os
@@ -80,11 +80,11 @@ def run_blueprint(blueprint_name):
         print("Error: Failed to load blueprint module from:", blueprint_file)
         sys.exit(1)
     blueprint = importlib.util.module_from_spec(spec)
-    import sys
+    loader = spec.loader
     src_path = os.path.join(os.getcwd(), "src")
     if src_path not in sys.path:
         sys.path.insert(0, src_path)
-    spec.loader.exec_module(blueprint)
+    loader.exec_module(blueprint)
     if hasattr(blueprint, "main"):
         blueprint.main()
     else:
@@ -144,6 +144,7 @@ def main():
     parser_install = subparsers.add_parser("install", help="Install a blueprint as a CLI utility.")
     parser_install.add_argument("name", help="Blueprint name to install as a CLI utility.")
     parser_install.add_argument("--wrapper-dir", default="bin", help="Directory to place the wrapper script (default: ./bin)")
+    parser_migrate = subparsers.add_parser("migrate", help="Apply Django database migrations.")
     
     args = parser.parse_args()
     ensure_managed_dir()

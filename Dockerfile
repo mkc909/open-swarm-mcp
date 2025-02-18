@@ -4,7 +4,10 @@
 FROM python:3.10 AS nemo-builder
 
 # Install git and gcc/g++ for annoy
-RUN apt-get update && apt-get install -y git gcc g++
+RUN apt-get update && apt-get install -y git gcc g++ git
+
+WORKDIR /nemoguardrails
+RUN git clone https://github.com/NVIDIA/NeMo-Guardrails/ && cp NeMo-Guardrails/{pyproject.toml,poetry.lock} /nemoguardrails/ && cp NeMo-Guardrails/examples/bots /config
 
 # Set POETRY_VERSION and NEMO_VERSION environment variables
 ENV POETRY_VERSION=1.8.2
@@ -18,10 +21,6 @@ RUN if [ "$(uname -m)" = "x86_64" ]; then \
 RUN pip install --no-cache-dir poetry==$POETRY_VERSION
 
 # Copy project files
-WORKDIR /nemoguardrails
-COPY pyproject.toml poetry.lock /nemoguardrails/
-# Copy the rest of the project files
-COPY . /nemoguardrails
 RUN poetry config virtualenvs.create false && \
     poetry install --all-extras --no-interaction --no-ansi && \
     poetry install --with dev --no-interaction --no-ansi

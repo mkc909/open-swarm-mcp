@@ -3,7 +3,6 @@ FROM python:3.10
 
 # Build-time argument for port (default: 8000)
 ARG PORT=8000
-# Set runtime environment variable for the port
 ENV PORT=${PORT}
 
 # Install system dependencies required for building packages
@@ -26,17 +25,16 @@ RUN pip install --no-cache-dir "poetry==1.8.2"
 # Install blis explicitly without PEP517 support to avoid build issues
 RUN pip install --no-cache-dir --no-use-pep517 blis==1.2.0
 
-# Configure Poetry to install dependencies into the system environment and use the legacy installer
+# Configure Poetry to install dependencies directly into the system environment
 RUN poetry config virtualenvs.create false && \
-    poetry config experimental.new-installer false && \
     poetry install --all-extras --no-interaction --no-ansi && \
     poetry install --with dev --no-interaction --no-ansi
 
 # Expose the specified port
 EXPOSE ${PORT}
 
-# Use shell form to allow environment variable substitution; if SWAPFILE_PATH is defined, create a swap file,
-# then run Django migrations and start the development server on the specified port.
+# Use shell form to allow environment variable substitution;
+# if SWAPFILE_PATH is defined, create a swap file, then run Django migrations and start the server on the specified port.
 CMD if [ -n "$SWAPFILE_PATH" ]; then \
       mkdir -p "$(dirname "$SWAPFILE_PATH")" && \
       fallocate -l 768M "$SWAPFILE_PATH" && \

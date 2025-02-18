@@ -45,7 +45,6 @@ FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 # Copy NeMo Guardrails files from the builder stage
 COPY --from=nemo-builder /nemoguardrails /app/nemoguardrails
 COPY --from=nemo-builder /root/.cache /root/.cache
-COPY --from=nemo-builder /config /config
 
 # Set working directory inside the container
 WORKDIR /app

@@ -7,7 +7,7 @@ FROM python:3.10 AS nemo-builder
 RUN apt-get update && apt-get install -y git gcc g++ git
 
 WORKDIR /nemoguardrails
-RUN git clone https://github.com/NVIDIA/NeMo-Guardrails/ && cp NeMo-Guardrails/pyproject.toml NeMo-Guardrails/poetry.lock /nemoguardrails/ && cp -pvr NeMo-Guardrails/examples/bots /config
+RUN git clone https://github.com/NVIDIA/NeMo-Guardrails/ && cp -pvr NeMo-Guardrails /nemoguardrails 
 
 # Set POETRY_VERSION and NEMO_VERSION environment variables
 ENV POETRY_VERSION=1.8.2
@@ -31,7 +31,7 @@ WORKDIR /nemoguardrails
 # Download the `all-MiniLM-L6-v2` model
 RUN python -c "from fastembed.embedding import FlagEmbedding; FlagEmbedding('sentence-transformers/all-MiniLM-L6-v2');"
 
-RUN nemoguardrails --help
+#RUN nemoguardrails --help
 # Ensure the entry point is installed as a script
 RUN poetry install --all-extras --no-interaction --no-ansi
 

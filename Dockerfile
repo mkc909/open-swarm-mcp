@@ -61,6 +61,10 @@ ENV PYTHONPATH="/app/nemoguardrails:$PYTHONPATH"
 #ARG NEMO_VERSION=0.11.0
 #RUN sed -i "s/nemoguardrails>=0.11.0/nemoguardrails==${NEMO_VERSION}/g" pyproject.toml
 
+# TODO optimise
+# Install git and gcc/g++ for annoy
+RUN apt-get update && apt-get install -y git gcc g++ git
+
 # Install Django app dependencies using uv
 RUN uv sync
 

@@ -24,11 +24,6 @@ dependencies = [
     "mcp>=1.2.0",
     "nemoguardrails>=0.11.0",
     "openai>=1.58.1",
-    "pytest>=8.3.4",
-    "pytest-asyncio>=0.25.1",
-    "pytest-cov>=6.0.0",
-    "pytest-django>=4.9.0",
-    "pytest-mock>=3.14.0",
     "python-dotenv>=1.0.1",
     "redis>=5.2.1",
     "requests>=2.32.3",
@@ -36,12 +31,24 @@ dependencies = [
     "drf-spectacular>=0.23.0",
     "pyinstaller>=6.12.0",
 ]
+
 [project.scripts]
 swarm-cli = "launchers.swarm_cli:main"
 swarm-api = "launchers.swarm_api:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.25.1",
+    "pytest-cov>=6.0.0",
+    "pytest-django>=4.9.0",
+    "pytest-mock>=3.14.0",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
 [tool.hatch.metadata]
 allow-direct-references = true
 
@@ -56,6 +63,7 @@ include = ["launchers/**"]
 
 [tool.uv.workspace]
 members = ["open-swarm"]
+
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "src.swarm.settings"
 pythonpath = ["src"]  # Add the 'src' directory to the Python path for pytest

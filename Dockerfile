@@ -4,7 +4,7 @@ FROM python:3.11-slim
 ARG PORT=8000
 ENV PORT=${PORT}
 
-# Install system dependencies required for building packages
+# Install system-level build dependencies
 RUN apt-get update && apt-get install -y \
     git \
     gcc \
@@ -18,13 +18,14 @@ WORKDIR /app
 # Copy all project files into the container
 COPY . .
 
-# Upgrade pip to the latest version
-RUN pip install --upgrade pip
+# Upgrade pip to the latest version for compatibility
+RUN pip install --upgrade pip setuptools wheel
 
-# Install BLIS explicitly (do not disable PEP 517 processing)
-RUN pip install --no-cache-dir blis==1.2.0
+# Install BLIS with generic architecture support
+ENV BLIS_ARCH="generic"
+RUN pip install --no-cache-dir --no-binary=blis blis==1.2.0
 
-# Install the project along with its dependencies using the build backend defined in pyproject.toml
+# Install the project along with its dependencies using Hatchling (as set in pyproject.toml)
 RUN pip install .
 
 # Expose the specified port

@@ -1,41 +1,55 @@
-# Build stage for NeMo Guardrails
-FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS nemo-builder
+# syntax=docker/dockerfile:experimental
 
-# Install necessary packages
-RUN apt-get update && apt-get install -y \
-    cargo \
-    g++ \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+# NeMo Guardrails build stage
+FROM python:3.10 AS nemo-builder
 
-# Copy uvx alongside uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uvx /bin/
+# Install git and gcc/g++ for annoy
+RUN apt-get update && apt-get install -y git gcc g++
 
-# Set working directory inside the container
-WORKDIR /app
+# Set POETRY_VERSION and NEMO_VERSION environment variables
+ENV POETRY_VERSION=1.8.2
+ARG NEMO_VERSION=0.11.0
 
-# Copy NeMo Guardrails pyproject.toml and poetry.lock
-COPY ./nemo_guardrails/ .
+RUN if [ "$(uname -m)" = "x86_64" ]; then \
+  export ANNOY_COMPILER_ARGS="-D_CRT_SECURE_NO_WARNINGS,-DANNOYLIB_MULTITHREADED_BUILD,-march=x86-64"; \
+  fi
 
-# Set environment variables
-ENV UV_SYSTEM_PYTHON=1
-ENV PATH="/app/.venv/bin:$PATH"
+# Install Poetry
+RUN pip install --no-cache-dir poetry==$POETRY_VERSION
 
-# Install NeMo Guardrails dependencies using uv
-RUN uv sync
+# Copy project files
+WORKDIR /nemoguardrails
+COPY pyproject.toml poetry.lock /nemoguardrails/
+# Copy the rest of the project files
+COPY . /nemoguardrails
+RUN poetry config virtualenvs.create false && \
+    poetry install --all-extras --no-interaction --no-ansi && \
+    poetry install --with dev --no-interaction --no-ansi
+
+# We copy the example bot configurations
+WORKDIR /config
+COPY ./examples/bots /config
+
+# Run app.py when the container launches
+WORKDIR /nemoguardrails
 
 # Download the `all-MiniLM-L6-v2` model
 RUN python -c "from fastembed.embedding import FlagEmbedding; FlagEmbedding('sentence-transformers/all-MiniLM-L6-v2');"
+
+RUN nemoguardrails --help
+# Ensure the entry point is installed as a script
+RUN poetry install --all-extras --no-interaction --no-ansi
 
 # Final stage
 FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
 # Copy uvx alongside uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uvx /bin/
+#COPY --from=ghcr.io/astral-sh/uv:latest /uvx /bin/
 
-# Copy NeMo Guardrails environment from the builder stage
-COPY --from=nemo-builder /app/.venv /app/.venv
+# Copy NeMo Guardrails files from the builder stage
+COPY --from=nemo-builder /nemoguardrails /app/nemoguardrails
 COPY --from=nemo-builder /root/.cache /root/.cache
+COPY --from=nemo-builder /config /config
 
 # Set working directory inside the container
 WORKDIR /app
@@ -45,7 +59,12 @@ COPY . .
 
 # Set environment variables
 ENV UV_SYSTEM_PYTHON=1
-ENV PATH="/app/.venv/bin:$PATH"
+ENV PATH="/app/nemoguardrails/bin:$PATH"
+ENV PYTHONPATH="/app/nemoguardrails:$PYTHONPATH"
+
+# Update pyproject.toml with the specific NeMo Guardrails version
+ARG NEMO_VERSION
+RUN sed -i 's/nemoguardrails>=0.11.0/nemoguardrails=='$NEMO_VERSION'/g' pyproject.toml
 
 # Install Django app dependencies using uv
 RUN uv sync

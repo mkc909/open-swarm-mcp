@@ -16,8 +16,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy all project files into the container
-COPY . .
+# Copy only pyproject.toml and poetry.lock first
+# This ensures that Poetry sees your [tool.poetry] section
+COPY pyproject.toml poetry.lock* ./
 
 # Install Poetry (using a specific version)
 RUN pip install --no-cache-dir "poetry==1.8.2"
@@ -25,16 +26,19 @@ RUN pip install --no-cache-dir "poetry==1.8.2"
 # Install blis explicitly without PEP517 support to avoid build issues
 RUN pip install --no-cache-dir --no-use-pep517 blis==1.2.0
 
-# Configure Poetry to install dependencies directly into the system environment
+# Configure Poetry to install dependencies into the system environment and install them
 RUN poetry config virtualenvs.create false && \
-    poetry install --all-extras --no-interaction --no-ansi && \
-    poetry install --with dev --no-interaction --no-ansi
+    poetry install --all-extras --no-interaction --no-ansi
+
+# Now copy the remaining project files
+COPY . .
 
 # Expose the specified port
 EXPOSE ${PORT}
 
-# Use shell form to allow environment variable substitution;
-# if SWAPFILE_PATH is defined, create a swap file, then run Django migrations and start the server on the specified port.
+# Use shell form to allow environment variable substitution.
+# If SWAPFILE_PATH is defined, create a swap file,
+# then run Django migrations and start the server on the specified port.
 CMD if [ -n "$SWAPFILE_PATH" ]; then \
       mkdir -p "$(dirname "$SWAPFILE_PATH")" && \
       fallocate -l 768M "$SWAPFILE_PATH" && \

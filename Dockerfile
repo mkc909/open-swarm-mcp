@@ -58,8 +58,8 @@ ENV PATH="/app/nemoguardrails/bin:$PATH"
 ENV PYTHONPATH="/app/nemoguardrails:$PYTHONPATH"
 
 # Update pyproject.toml with the specific NeMo Guardrails version
-ARG NEMO_VERSION
-RUN sed -i "s/nemoguardrails>=0.11.0/nemoguardrails==${NEMO_VERSION}/g" pyproject.toml
+#ARG NEMO_VERSION=0.11.0
+#RUN sed -i "s/nemoguardrails>=0.11.0/nemoguardrails==${NEMO_VERSION}/g" pyproject.toml
 
 # Install Django app dependencies using uv
 RUN uv sync

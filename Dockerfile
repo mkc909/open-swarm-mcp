@@ -25,10 +25,6 @@ RUN poetry config virtualenvs.create false && \
     poetry install --all-extras --no-interaction --no-ansi && \
     poetry install --with dev --no-interaction --no-ansi
 
-# We copy the example bot configurations
-WORKDIR /config
-COPY ./examples/bots /config
-
 # Run app.py when the container launches
 WORKDIR /nemoguardrails
 

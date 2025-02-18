@@ -7,7 +7,7 @@ FROM python:3.10 AS nemo-builder
 RUN apt-get update && apt-get install -y git gcc g++ git
 
 WORKDIR /nemoguardrails
-RUN git clone https://github.com/NVIDIA/NeMo-Guardrails/ && cp NeMo-Guardrails/{pyproject.toml,poetry.lock} /nemoguardrails/ && cp NeMo-Guardrails/examples/bots /config
+RUN git clone https://github.com/NVIDIA/NeMo-Guardrails/ && cp NeMo-Guardrails/pyproject.toml NeMo-GUardrails/poetry.lock /nemoguardrails/ && cp NeMo-Guardrails/examples/bots /config
 
 # Set POETRY_VERSION and NEMO_VERSION environment variables
 ENV POETRY_VERSION=1.8.2

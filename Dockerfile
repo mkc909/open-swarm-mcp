@@ -1,44 +1,38 @@
-# syntax=docker/dockerfile:experimental
 FROM python:3.10
 
-# Build-time argument for port (default: 8000)
+# Build argument and environment variable for runtime port (default: 8000)
 ARG PORT=8000
 ENV PORT=${PORT}
 
-# Install system dependencies required for building packages
+# Install system-level build dependencies
 RUN apt-get update && apt-get install -y \
     git \
     gcc \
     g++ \
     libopenblas-dev \
-    liblapack-dev \
- && rm -rf /var/lib/apt/lists/*
+    liblapack-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy only pyproject.toml and poetry.lock first
-# This ensures that Poetry sees your [tool.poetry] section
-COPY pyproject.toml poetry.lock* ./
+# Copy all project files into the container
+COPY . .
 
-# Install Poetry (using a specific version)
-RUN pip install --no-cache-dir "poetry==1.8.2"
+# Upgrade pip for best compatibility
+RUN pip install --upgrade pip
 
-# Install blis explicitly without PEP517 support to avoid build issues
+# Install BLIS explicitly without PEP517 support (to avoid build issues)
 RUN pip install --no-cache-dir --no-use-pep517 blis==1.2.0
 
-# Configure Poetry to install dependencies into the system environment and install them
-RUN poetry config virtualenvs.create false && \
-    poetry install --all-extras --no-interaction --no-ansi
-
-# Now copy the remaining project files
-COPY . .
+# Install the project along with its dependencies declared in [project]
+# This uses your Hatchling build backend as specified in pyproject.toml
+RUN pip install .
 
 # Expose the specified port
 EXPOSE ${PORT}
 
-# Use shell form to allow environment variable substitution.
-# If SWAPFILE_PATH is defined, create a swap file,
-# then run Django migrations and start the server on the specified port.
+# Use shell form to allow environment variable substitution:
+# if SWAPFILE_PATH is defined, create a swap file, then run Django migrations and start the server.
 CMD if [ -n "$SWAPFILE_PATH" ]; then \
       mkdir -p "$(dirname "$SWAPFILE_PATH")" && \
       fallocate -l 768M "$SWAPFILE_PATH" && \

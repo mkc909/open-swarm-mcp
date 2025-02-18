@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y git gcc g++ git
 
 WORKDIR /app
 RUN git clone https://github.com/NVIDIA/NeMo-Guardrails/ && cp -pvr NeMo-Guardrails /nemoguardrails 
+WORKDIR /nemoguardrails
 
 # Set POETRY_VERSION and NEMO_VERSION environment variables
 ENV POETRY_VERSION=1.8.2

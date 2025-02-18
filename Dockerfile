@@ -63,7 +63,7 @@ ENV PYTHONPATH="/app/nemoguardrails:$PYTHONPATH"
 
 # TODO optimise
 # Install git and gcc/g++ for annoy
-RUN apt-get update && apt-get install -y git gcc g++ git
+RUN apt-get update && apt-get install -y gcc g++ git cargo
 
 # Install Django app dependencies using uv
 RUN uv sync

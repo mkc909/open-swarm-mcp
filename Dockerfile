@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# Build-time argument for the port (default: 8000)
+# Build-time argument for runtime port (default: 8000)
 ARG PORT=8000
 ENV PORT=${PORT}
 
@@ -21,10 +21,10 @@ COPY . .
 # Upgrade pip to the latest version
 RUN pip install --upgrade pip
 
-# Install BLIS explicitly without PEP517 support to avoid build issues
-RUN pip install --no-cache-dir --no-use-pep517 blis==1.2.0
+# Install BLIS explicitly (do not disable PEP 517 processing)
+RUN pip install --no-cache-dir blis==1.2.0
 
-# Install the project along with its dependencies using Hatchling (as set in pyproject.toml)
+# Install the project along with its dependencies using the build backend defined in pyproject.toml
 RUN pip install .
 
 # Expose the specified port

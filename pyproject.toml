@@ -1,12 +1,12 @@
 [project]
-name = "swarm"
+name = "open-swarm"
 version = "0.1.0"
 description = "A tool for orchestrating Swarm using both CLI and API."
 readme = "README.md"
 authors = [
     { name = "Matthew Hand", email = "matthewhandau@gmail.com" }
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
     "aiofiles>=24.1.0",
     "aiohttp>=3.11.11",
@@ -37,14 +37,25 @@ dependencies = [
     "pyinstaller>=6.12.0",
 ]
 [project.scripts]
-open-swarm-mcp = "open_swarm_mcp:main"
+swarm-cli = "launchers.swarm_cli:main"
+swarm-api = "launchers.swarm_rest:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.hatch.metadata.build]
+packages = [
+    { include = "launchers" },
+    { include = "src" }
+]
+
+[tool.hatch.build.targets.wheel]
+include = ["launchers/**"]
+
 [tool.uv.workspace]
-members = ["open-swarm-mcp"]
+members = ["open-swarm"]
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "src.open_swarm_mcp.settings"
+DJANGO_SETTINGS_MODULE = "src.swarm.settings"
 pythonpath = ["src"]  # Add the 'src' directory to the Python path for pytest

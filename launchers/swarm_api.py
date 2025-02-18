@@ -2,8 +2,6 @@
 import argparse
 import subprocess
 import sys
-import os
-from os import path, listdir, makedirs
 from os import path, listdir, makedirs
 
 def main():
@@ -11,6 +9,7 @@ def main():
     parser.add_argument("--blueprint", required=True, help="Path to blueprint Python file (for configuration purposes)")
     parser.add_argument("--port", type=int, default=8000, help="Port to run the REST server")
     parser.add_argument("--config", default="~/.swarm/swarm_config.json", help="Configuration file path")
+    parser.add_argument("--daemon", action="store_true", help="Run in daemon mode and print process id")
     args = parser.parse_args()
     blueprint_path = None
     # Process blueprint argument: allow blueprint name from managed directory.
@@ -51,10 +50,13 @@ def main():
 
     # Pass through the command to manage.py to run Django's runserver
     try:
-        subprocess.run(["python", "manage.py", "runserver", f"0.0.0.0:{args.port}"], check=True)
+        if args.daemon:
+            proc = subprocess.Popen(["python", "manage.py", "runserver", f"0.0.0.0:{args.port}"])
+            print("Running in daemon mode. Process ID:", proc.pid)
+        else:
+            subprocess.run(["python", "manage.py", "runserver", f"0.0.0.0:{args.port}"], check=True)
     except subprocess.CalledProcessError as e:
         print("Error launching Django server:", e)
-        import sys
         sys.exit(1)
 
 if __name__ == "__main__":

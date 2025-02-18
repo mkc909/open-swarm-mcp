@@ -159,7 +159,7 @@ def main():
         if not os.path.exists(config_path):
             os.makedirs(os.path.dirname(config_path), exist_ok=True)
             with open(config_path, 'w') as f:
-                f.write('{\n    "llm": {},\n    "mcpServers": {}\n}\n')
+                f.write('{\n    "llm": {\n        "default": {\n            "provider": "openai",\n            "model": "gpt-4o",\n            "base_url": "https://api.openai.com/v1",\n            "api_key": "${OPENAI_API_KEY}"\n        }\n    },\n    "mcpServers": {\n        "everything": {\n            "command": "npx",\n            "args": ["-y", "@modelcontextprotocol/server-everything"],\n            "env": {}\n        }\n    }\n}\n')
             print("Default config file created at:", config_path)
         run_blueprint(args.name)
     elif args.command == "install":

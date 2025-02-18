@@ -2,54 +2,41 @@ import os
 import sys
 import pytest  # type: ignore
 
-def test_swarm_install_creates_executable(monkeypatch, tmp_path, capsys):
+def test_swarm_cli_install_creates_executable(monkeypatch, tmp_path, capsys):
+    import os
     # Create a dummy blueprint file
     blueprint_path = tmp_path / "dummy_blueprint.py"
     blueprint_path.write_text("def main():\n    print('Hello from dummy blueprint')")
     
-    # Monkey-patch build_executable to simulate successful executable creation
-    from launchers import build_launchers
-    def fake_build_executable(blueprint, output):
-        assert blueprint == str(blueprint_path)
-        return os.path.join(str(output), "dummy_executable")
-    monkeypatch.setattr(build_launchers, "build_executable", fake_build_executable)
-    
-    # Set command line arguments for swarm_install
-    from launchers import swarm_install
-    test_args = ["swarm-install", str(blueprint_path), "--output", str(tmp_path)]
+    # Use swarm_cli.add_blueprint to add the blueprint to the managed directory
+    from launchers import swarm_cli
+    test_args = ["swarm-cli", "add", str(blueprint_path)]
     monkeypatch.setattr(sys, "argv", test_args)
+    swarm_cli.main()
     
-    # Run swarm_install launcher
-    swarm_install.main()
+    # Now, test installing the blueprint as a CLI utility
+    test_args = ["swarm-cli", "install", "dummy_blueprint", "--wrapper-dir", str(tmp_path)]
+    monkeypatch.setattr(sys, "argv", test_args)
+    swarm_cli.main()
     
     # Capture and assert expected output
     captured = capsys.readouterr().out
-    assert "Successfully created standalone utility at:" in captured
-    assert "dummy_executable" in captured
+    assert "Blueprint 'dummy_blueprint' installed as CLI utility at:" in captured
+    # Verify that the wrapper script exists
+    wrapper_path = os.path.join(str(tmp_path), "dummy_blueprint")
+    assert os.path.exists(wrapper_path)
 
 def test_swarm_install_failure(monkeypatch, tmp_path, capsys):
-    # Create a dummy blueprint file
-    blueprint_path = tmp_path / "dummy_blueprint.py"
-    blueprint_path.write_text("def main():\n    print('Hello')")
-    
-    # Monkey-patch build_executable to simulate failure (returning None)
-    from launchers import build_launchers
-    def fake_build_executable_fail(blueprint, output):
-        return None
-    monkeypatch.setattr(build_launchers, "build_executable", fake_build_executable_fail)
-    
-    # Set command line arguments for swarm_install
-    from launchers import swarm_install
-    test_args = ["swarm-install", str(blueprint_path), "--output", str(tmp_path)]
+    # Attempt to install a blueprint that has not been registered.
+    from launchers import swarm_cli
+    test_args = ["swarm-cli", "install", "nonexistent_blueprint", "--wrapper-dir", str(tmp_path)]
     monkeypatch.setattr(sys, "argv", test_args)
     
-    # Expect the launcher to exit on failure
     with pytest.raises(SystemExit):
-        swarm_install.main()
+         swarm_cli.main()
     
-    # Capture and assert the failure message
     captured = capsys.readouterr().out
-    assert "Failed to create standalone utility" in captured
+    assert "Error: Blueprint 'nonexistent_blueprint' is not registered." in captured
 def test_swarm_cli_creates_default_config(monkeypatch, tmp_path, capsys):
     # Create a dummy blueprint file with a main function.
     blueprint_file = tmp_path / "dummy_blueprint.py"
@@ -60,9 +47,12 @@ def test_swarm_cli_creates_default_config(monkeypatch, tmp_path, capsys):
     if config_path.exists():
         config_path.unlink()
     
-    # Set command line arguments for swarm_cli launcher with --config option.
+    # Import swarm_cli and monkey-patch run_blueprint to bypass actual blueprint execution.
     from launchers import swarm_cli
-    test_args = ["swarm-cli", str(blueprint_file), "--config", str(config_path)]
+    monkeypatch.setattr(swarm_cli, "run_blueprint", lambda name: None)
+    
+    # Set command line arguments for swarm_cli launcher with --config option using the 'run' command.
+    test_args = ["swarm-cli", "run", "dummy_blueprint", "--config", str(config_path)]
     monkeypatch.setattr(sys, "argv", test_args)
     
     # Run swarm_cli launcher.

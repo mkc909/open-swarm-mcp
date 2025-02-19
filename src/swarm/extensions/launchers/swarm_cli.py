@@ -7,6 +7,16 @@ import subprocess
 import shutil
 import json
 
+def resolve_env_vars(data):
+    if isinstance(data, dict):
+        return {k: resolve_env_vars(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [resolve_env_vars(item) for item in data]
+    elif isinstance(data, str):
+        return os.path.expandvars(data)
+    else:
+        return data
+
 # Managed blueprints directory
 MANAGED_DIR = os.path.expanduser("~/.swarm/blueprints")
 
@@ -225,18 +235,36 @@ def main():
             else:
                 print(f"No entries found in {section}.")
         elif args.action == "add":
-            if not args.name or not args.json:
-                print("Error: --name and --json are required for adding an entry.")
-                sys.exit(1)
-            try:
-                entry_data = json.loads(args.json)
-            except json.JSONDecodeError:
-                print("Error: --json must be a valid JSON string.")
-                sys.exit(1)
-            config.setdefault(section, {})[args.name] = entry_data
-            with open(config_path, "w") as f:
-                json.dump(config, f, indent=4)
-            print(f"Entry '{args.name}' added to {section} in configuration.")
+            if args.section == "mcpServers" and not args.name:
+                if not args.json:
+                    print("Error: --json is required for adding an mcpServers block when --name is omitted.")
+                    sys.exit(1)
+                try:
+                    update_data = json.loads(args.json)
+                except json.JSONDecodeError:
+                    print("Error: --json must be a valid JSON string.")
+                    sys.exit(1)
+                if "mcpServers" not in update_data:
+                    print("Error: JSON block must contain 'mcpServers' key for merging.")
+                    sys.exit(1)
+                config.setdefault("mcpServers", {})
+                config["mcpServers"].update(update_data["mcpServers"])
+                with open(config_path, "w") as f:
+                    json.dump(config, f, indent=4)
+                print("MCP servers updated in configuration.")
+            else:
+                if not args.name or not args.json:
+                    print("Error: --name and --json are required for adding an entry.")
+                    sys.exit(1)
+                try:
+                    entry_data = json.loads(args.json)
+                except json.JSONDecodeError:
+                    print("Error: --json must be a valid JSON string.")
+                    sys.exit(1)
+                config.setdefault(section, {})[args.name] = entry_data
+                with open(config_path, "w") as f:
+                    json.dump(config, f, indent=4)
+                print(f"Entry '{args.name}' added to {section} in configuration.")
         elif args.action == "remove":
             if not args.name:
                 print("Error: --name is required for removing an entry.")

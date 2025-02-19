@@ -542,6 +542,7 @@ Below is a simplified diagram illustrating how the **Open Swarm** HTTP service c
 
 - **Beta Features**
   - [x] Blueprints can extend Django DB and REST.
+  - [x] Stateful chat completion based on jmespath defined by envvar STATEFUL_CHAT_ID_PATH.
   - [ ] Automatic MCP server config loading
     - [x] Claude Desktop on Windows
     - [x] Roo-CLI on Linux remote SSH

@@ -23,12 +23,12 @@ router = DefaultRouter()
 router.register(r'v1/chat/messages', ChatMessageViewSet, basename='chatmessage')
 
 urlpatterns = [
-    path(r'^health/?$', lambda request: HttpResponse("OK"), name='health_check'),
+    re_path(r'^health/?$', lambda request: HttpResponse("OK"), name='health_check'),
     re_path(r'^v1/chat/completions/?$', views.chat_completions, name='chat_completions'),
     re_path(r'^v1/models/?$', views.list_models, name='list_models'),
-    path('schema/', HiddenSpectacularAPIView.as_view(), name='schema'),
-    path('v1/university/', include('blueprints.university.urls')),  # Include University blueprint URLs
-    path('swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('v1/university/', include('blueprints.university.urls')),  # TODO isnt this dynamically registered?
+    re_path(r'^schema/?$', HiddenSpectacularAPIView.as_view(), name='schema'),
+    re_path(r'^swagger-ui/?$', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 ] + router.urls
 
 if ENABLE_ADMIN:

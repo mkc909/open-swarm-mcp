@@ -15,143 +15,12 @@ https://github.com/user-attachments/assets/1335f7fb-ff61-4e96-881c-7d3154eb9f14
 ---
 
 ## Table of Contents
-- [Swarm CLI and Swarm API](#swarm-cli-and-swarm-api)
 - [Key Features](#key-features)
+- [Quickstart](#quickstart)
 - [Blueprints](#blueprints)
-- [Operational Modes](#operational-modes)
-- [Configuration & Multiple LLM Providers](#configuration--multiple-llm-providers)
-- [Installation](#installation)
-- [Running Open Swarm](#running-open-swarm)
-- [Deploying with Docker](#deploying-with-docker)
-  - [Deploy with Docker Compose (Recommended)](#deploy-with-docker-compose-recommended)
-  - [Deploy Standalone](#deploy-standalone)
-- [Progress Tracker](#progress-tracker)
 - [Further Documentation](#further-documentation)
 - [License](#license)
 - [Acknowledgements](#acknowledgements)
-
----
-
-## Swarm CLI and Swarm API
-
-This section details how to use the **swarm-cli** and **swarm-api** utilities. They are essential tools for administration and integration in the Open Swarm framework.
-
-### Swarm CLI
-
-The **swarm-cli** utility is a command-line tool that manages blueprints and configuration settings for your Open Swarm deployment. It supports managing configurations for both language models (LLM) and MCP servers.
-
-#### Default Configuration Creation
-
-On first execution of a blueprint, if no configuration file is found at the default location (`~/.swarm/swarm_config.json`), a simple default configuration is automatically created. This default uses the OpenAI GPT-4o settings:
-```json
-{
-    "llm": {
-        "default": {
-            "provider": "openai",
-            "model": "gpt-4o",
-            "base_url": "https://api.openai.com/v1",
-            "api_key": "${OPENAI_API_KEY}"
-        }
-    },
-    "mcpServers": {}
-}
-```
-*Note:* The default configuration only records the environment variable placeholder `${OPENAI_API_KEY}`. The user must supply a valid `OPENAI_API_KEY` (and other required keys) through their environment variables.
-
-#### Configuring Additional LLM Providers
-
-Users can augment the LLM configuration by adding new entries. For example, to add an alternative provider:
-```json
-{
-    "deepseek-r1-distill-llama-70b": {
-        "provider": "openai",
-        "model": "deepseek-r1-distill-llama-70b",
-        "base_url": "https://api.groq.com/openai/v1",
-        "api_key": "${GROQ_API_KEY}"
-    }
-}
-```
-Or to add a reasoning model (that may be referenced as the `reason` model in blueprint code):
-```json
-{
-    "reason": {
-        "provider": "openai",
-        "model": "o3-mini",
-        "base_url": "https://api.openai.com/v1",
-        "api_key": "${OPENAI_API_KEY}",
-        "reasoning_effort": "high"
-    }
-}
-```
-Use the command:
-```
-swarm-cli config add --section llm --name <entry_name> --json '<json_blob>' --config ~/.swarm/swarm_config.json
-```
-
-#### Configuring MCP Servers
-
-The **swarm-cli** utility also supports MCP server configurations. You can merge a multiline JSON block into the existing `mcpServers` section. For instance, to add an MCP server without environment variables:
-```json
-{
-    "mcp-npx-fetch": {
-        "command": "npx",
-        "args": [
-            "-y",
-            "@tokenizin/mcp-npx-fetch"
-        ]
-    }
-}
-```
-To merge an entire MCP servers block:
-```json
-{
-    "mcpServers": {
-        "mcp-doc-forge": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@cablate/mcp-doc-forge"
-            ]
-        }
-    }
-}
-```
-For MCP servers with environment variables, for example:
-```json
-{
-    "brave-search": {
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-brave-search"],
-        "env": {
-            "BRAVE_API_KEY": "${BRAVE_API_KEY}"
-        }
-    },
-```    
-
-When the environment variable is referenced as a command argument, best practice is to explicitly list in the `env` section for runtime validation:
-```json
-    "filesystem": {
-        "command": "npx",
-        "args": [
-            "-y",
-            "@modelcontextprotocol/server-filesystem",
-            "${ALLOWED_PATH}"
-        ],
-        "env": {
-            "ALLOWED_PATH": "${ALLOWED_PATH}"
-        }
-    }
-}
-```
-When adding an MCP servers block, run:
-```
-swarm-cli config add --section mcpServers --json '<multiline_json_block>' --config ~/.swarm/swarm_config.json
-```
-*Note:* When merging MCP server blocks, do not provide a `--name` parameter; the JSON block must include the `"mcpServers"` key.
-
-### Swarm API
-
-The **swarm-api** component offers programmatic access to Open Swarm functionalities. It enables external applications to interact with blueprints and internal services via RESTful endpoints. For example, you can perform chat completions and list available blueprints using endpoints that mimic the OpenAI Chat Completions API. Detailed API documentation is provided separately.
 
 ---
 
@@ -180,12 +49,95 @@ The **swarm-api** component offers programmatic access to Open Swarm functionali
      - While the framework is compatible with OpenAI-like API clients, it assumes the client application maintains the `sender` field and, ideally, displays it in the user interface.
      - **Note:** Most OpenAI API-compatible applications will ignore the `sender` field by default and not display the agent name. Custom UI or logic is required to utilise and present this information.
 
-6. **Configurable LLM Providers**  
+6. **Configurable LLMs**  
    - Supports multiple OpenAI-compatible providers in a single environment (e.g., `openai`, `grok`, `ollama`).
    - Allows specifying different models/providers for different agents—even within the same blueprint.
-   - Use environment variable `DEFAULT_LLM` to specify default LLM model provider used by blueprints, e.g., `DEFAULT_LLM=ollama`
+   - Use environment variable `DEFAULT_LLM` to specify default LLM model used by blueprints, e.g., `DEFAULT_LLM=deepseek-r1-distill-llama-70b`
 
 ---
+
+## Quickstart
+
+Follow these simple steps to get Open Swarm up and running:
+
+1. **Install the Package**  
+   Run:
+   ```bash
+   pip install open-swarm
+   ```
+
+2. **Configure an LLM Provider**  
+   When you run a blueprint for the first time, Open Swarm checks for a configuration file at `~/.swarm/swarm_config.json`. If the file is missing, it will automatically create a default configuration as shown below:
+   ```json
+   {
+       "llm": {
+           "default": {
+               "provider": "openai",
+               "model": "gpt-4o",
+               "base_url": "https://api.openai.com/v1",
+               "api_key": "${OPENAI_API_KEY}"
+           }
+       },
+       "mcpServers": {}
+   }
+   ```
+   Make sure to set the `OPENAI_API_KEY` environment variable with your valid OpenAI API key.
+
+   An example of using an alternative provider:
+
+   `swarm-cli config add --section llm --name deepseek-r1-distill-llama-70b --json '{"provider": "openai", "model": "deepseek-r1-distill-llama-70b", "base_url": "https://api.groq.com/openai/v1", "api_key": "${GROQ_API_KEY}"}' `
+
+
+3. **(Optional) Configure a Simple MCP Server**  
+   To add an MCP server for additional utilities (e.g., file fetching), use the `swarm-cli config add --json '<multiline_json_block>'`. For example:
+
+   ```json
+      "filesystem": {
+         "command": "npx",
+         "args": [
+               "-y",
+               "@modelcontextprotocol/server-filesystem ${ALLOWED_PATH}"
+         ],
+         "env": {
+               "ALLOWED_PATH": "${ALLOWED_PATH}"
+         }
+      }
+   ```
+
+4. **Add an Example Blueprint**  
+   Add an example blueprint by running:
+   ```bash
+   swarm-cli add /path/to/your/blueprint.py --name example
+   ```
+   This copies your blueprint into the managed blueprints directory.
+
+   Example blueprints are provided here: https://github.com/matthewhand/open-swarm/tree/main/blueprints
+
+5. **Run the Blueprint from CLI**  
+   Execute the blueprint with:
+   ```bash
+   swarm-cli run example
+   ```
+
+---
+
+## Overview
+
+Open Swarm provides the following core components:
+
+- **Swarm CLI:**  
+  A command-line tool for managing blueprints and configuration settings. It allows you to add, list, delete, run, and install blueprints, as well as update configuration entries for LLM providers and MCP servers.
+
+- **Swarm API:**  
+  An HTTP REST service that exposes endpoints such as `/v1/models` and `/v1/chat/completion(s)`. These endpoints let external applications interact with Open Swarm in an OpenAI API-compatible manner, publishing blueprints as models and processing chat completions.  Additional endpoints can be exposed via blueprints.
+
+- **Swarm SDK:**  
+  Open Swarm can be used as a Python module.  It is backwards compatible with the original OpenAI Swarm educational framework.  It also adds many extensions including configuration loading, MCP server integration, Python Django DB and REST features, etc etc.
+
+For detailed usage instructions, please refer to the [USERGUIDE.md](./USERGUIDE.md). For developer-specific guidance, see [DEVELOPMENT.md](./DEVELOPMENT.md).
+
+---
+
 
 ## Blueprints
 
@@ -237,285 +189,6 @@ Open Swarm includes a growing library of **Blueprint** examples:
 | **Flowise Blueprint**          | Integrates with Flowise for visual flow orchestration.                      | Broken (uvx-based, requires Flowise setup)|
 
 ---
-
-## Operational Modes
-
-1. **REST Mode**  
-   - Launch Django with `uv run manage.py runserver 0.0.0.0:8000`.  
-   - Access endpoints:
-     - `POST /v1/chat/completions`: Chat-style agent interactions (OpenAI-compatible).
-     - `GET /v1/models`: Lists available blueprints.
-     - `http://localhost:8000/<blueprint_name>/`: Interactive, web-based blueprint tester.
-   - (TODO) Optionally integrate with Django Admin at `/admin`.
-
-2. **CLI Mode**  
-   - Execute specific blueprint files (e.g., `uv run blueprints/university/blueprint_university.py`).  
-   - Great for local testing, debugging, and iterative development.
-
----
-
-## Configuration & Multiple LLM Providers
-
-Open Swarm uses:
-- **`.env`** files for API keys or critical environment variables (e.g., `OPENAI_API_KEY`).
-- **`swarm_config.json`** (or custom JSON) for advanced settings, including:
-  - **`llm`**: Define multiple OpenAI-compatible endpoints (e.g., `openai`, `grok`, `ollama`). Configurable LLM Providers are fully supported and now allow you to specify additional parameters such as `temperature` and `reasoning`. The `reasoning` parameter is particularly useful for setups like o3-mini.
-  - **`mcp_servers`**: Tools/services that agents can call.
-
-Different agents in a single blueprint can reference different LLM providers. For example:
-```json
-{
-  "llm": {
-    "openai": {
-      "provider": "openai",
-      "model": "gpt-4",
-      "base_url": "https://api.openai.com/v1",
-      "api_key": "${OPENAI_API_KEY}",
-      "temperature": 0.7,
-    },
-    "grok": {
-      "provider": "openai",
-      "model": "grok-2-1212",
-      "base_url": "https://api.x.ai/v1",
-      "api_key": "${XAI_API_KEY}"
-    },
-    "ollama": {
-      "provider": "openai",
-      "model": "llama3.2",
-      "base_url": "http://localhost:11434/v1",
-      "api_key": ""
-    }
-  }
-}
-```
-
----
-
-## Installation
-
-1. **Clone the Repository**  
-   ```bash
-   git clone https://github.com/matthewhand/open-swarm.git
-   cd open-swarm
-   ```
-2. **Install Dependencies**  
-   ```bash
-   # Install 'uv' => https://docs.astral.sh/uv/
-   uv python install 3.12
-   uv venv
-   source .venv/bin/activate
-   uv sync
-   ```
-3. **Environment Setup**  
-   - Copy `.env.example` to `.env` and fill in sensitive details (`OPENAI_API_KEY`, etc.).
-   ```bash
-   cp .env.example .env
-   vi .env
-   ```
-   - *(Optional)* Update `swarm_config.json` to add or modify LLM providers, MCP servers, etc.
-
----
-
-## Running Open Swarm
-
-### Running with the REST API
-
-1.  **Start the Django REST API Server:**
-    ```bash
-    uv run manage.py migrate
-    uv run manage.py runserver 0.0.0.0:8000
-    ```
-2.  **Access the Interactive Blueprint Pages:**
-    - Open your web browser and visit:
-      - `http://localhost:8000/<blueprint_name>` (e.g., `http://localhost:8000/university`)
-      - You will see a text input where you can type queries.
-      - The `sender` of the response (the name of the agent that responded) will be shown above each response.
-      - Below is a screenshot showing an example of the interactive HTML page:
-      
-          <img src="assets/images/20250105-Open-Swarm-HTML-Page.png" alt="Interactive Chat Interface" width="70%"/>
-3.  **Integrate with Open WebUI:**
-    - Open Swarm has full compatibility with OpenAI API-compatible UIs, such as [Open WebUI](https://github.com/open-webui/open-webui). By using a client like Open WebUI you will not only see the `sender` field, but also experience a more engaging chat UI with other features.
-    - To configure Open WebUI to use Open Swarm:
-      - Start the REST API server via `uv run manage.py runserver 0.0.0.0:8000`
-      - Install the custom function from the [Open WebUI Functions Hub](https://openwebui.com/f/matthewh/swarm_manifold).
-      - In the custom function valve settings, change the API Base URL if different to the default, `http://host.docker.internal:8000`
-    - To see a demo of Open WebUI with the University Blueprint with expressive voice output, please see the following demonstration video:
-    
-      https://github.com/user-attachments/assets/a4688100-5737-479f-91e5-974db98296d7
-4.  **Access the REST Endpoints Directly:**
-    You can also interact with the API using a tool like `curl`. For example:
-    ```bash
-    curl -X POST http://localhost:8000/v1/chat/completions \
-        -H "Content-Type: application/json" \
-        -d '{"model":"university","messages":[{"role":"user","content":"What courses should I take next semester if I’m interested in data science?"}]}'
-    ```
-    - You will see a JSON response, containing the `sender` field within the response (in `data.choices[0].message.sender`).
-
----
-
-## Deploying with Docker
-
-### Deploy with Docker Compose (Recommended)
-
-1. **Obtain `docker-compose.yaml`**  
-   ```bash
-   wget https://raw.githubusercontent.com/matthewhand/open-swarm/refs/heads/main/docker-compose.yaml
-   ```
-2. **Set up `.env`**  
-   Retrieve the `.env` template and configure the `OPENAI_API_KEY`:
-   ```bash
-   wget https://raw.githubusercontent.com/matthewhand/open-swarm/refs/heads/main/.env.example -O .env
-   sed -i 's/^OPENAI_API_KEY=.*/OPENAI_API_KEY=your_openai_api_key_here/' .env
-   ```
-   Replace `your_openai_api_key_here` with your actual OpenAI API key.
-3. **(Optional) Adjust `swarm_config.json`**  
-   Download and modify `swarm_config.json` if you plan to use local LLM endpoints or different providers.
-4. **Start the Service**  
-   ```bash
-   docker compose up -d
-   ```
-   This:
-   - Builds the image if needed.
-   - Reads port settings and environment variables from `.env`.
-   - Exposes the application on `8000` (unless overridden via `$PORT`).
-
-5. **Access the Application**  
-   - Visit [http://localhost:8000](http://localhost:8000) for the interactive blueprint pages.
-
-### Deploy Standalone 
-
-1. Configure `.env` (mandatory) and `swarm_config.json` (optional) as above
-2. Run the following command:
-   ```bash
-   docker run \
-     --env-file .env \
-     -p ${PORT:-8000}:${PORT:-8000} \
-     -v ./blueprints:/app/blueprints \
-     -v ./swarm_config.json:/app/src/swarm/swarm_config.json \
-     --name open-swarm \
-     --restart unless-stopped \
-     mhand79/open-swarm:latest
-   ```
-
----
-
-## Diagram: Backend HTTP Service Overview
-
-Below is a simplified diagram illustrating how the **Open Swarm** HTTP service can function as a backend for any OpenAI API-compatible client or tool. The service lists configured **Blueprints** via `/v1/models` and performs inference through the `/v1/chat/completions` endpoint. Internally, it can call out to any configured **OpenAI-compatible LLM provider** (OpenAI, Grok, Ollama, etc.) and optionally run **MCP servers** (like database, filesystem, or weather integrations).
-
-```
- ┌─────────────────────────────────────────────────────────────────────┐
- │        OpenAI-Compatible Client Tools that displays sender        │
- │                      e.g. Open-WebUI                              │
- └────────────┬───────────────────────────────────────────────────────┘
-              |                             
-              |   (HTTP: /v1/chat/completions, /v1/models)
-              ▼                             
- ┌─────────────────────────────────────────────────────────────────────┐
- │                 Open Swarm REST API Service (Django)              │
- │  (Exposes /v1/models, /v1/chat/completions, /admin, /<blueprint>)   │
- └─────────────────────────────────────────────────────────────────────┘
-                     |                        | 
-                     |                        | MCP Servers and 
-                     |                        | (filesystem, database, etc.)           
-       LLM Inference |                        |                     
-                     ▼                        ▼                
-       ┌────────────────────────┐         ┌────────────────────────┐
-       │OpenAI-Compatible LLMs  │         │ External APIs/Services │
-       │ (OpenAI, Grok, Ollama) │         │ (Weather, Database, ..)│
-       └────────────────────────┘         └────────────────────────┘
-```
-
----
-
-## Progress Tracker
-
-- **REST Mode**
-  - [x] Inference via `/v1/chat/completions`
-  - [x] Blueprints listed via `/v1/models/`
-  - [x] Execute blueprints via `/<blueprint>` e.g. [http://localhost:8000/university](http://localhost:8000/university)
-  - [x] Simple HTML page
-  - [ ] Application management via `/admin`
-     - [x] User management
-     - [ ] Blueprint management
-  - [ ] Streaming chat (django_chat)
-
-- **CLI Mode**
-  - [x] Blueprint Runner
-  - [ ] Setup Wizard
-
-- **Multiple LLM Providers**
-  - [x] Assign different models per agent in one blueprint
-
-- **Tooling Integration Frameworks**
-  - [x] MCP Servers implementation
-    - [x] npx-based server integration
-    - [ ] uvx server reliability improvements (fix frozen processes)
-  - [x] Official MCP Python SDK integration
-  - [x] Brave Search API integration
-  - [x] SQLite database integration
-  - [x] Filesystem access integration
-
-- **Core Framework Improvements**
-  - [x] Dynamic environment variable documentation
-    - [x] .env.example template
-    - [x] README.md configuration section
-  - [x] Autocompletion with dynamic goal tracking
-  - [x] Nested progress tracking implementation
-  - [x] Interactive task resumption handling
-
-- **Deployment**
-  - [x] Dockerfile and docker-compose.yaml
-  - [x] Publish to Docker Registry
-  - [x] Publish Python module to PyPI
-
-- **Example Blueprints**
-  - [x] `echocraft` (Simple blueprint for function call)
-  - [x] `suggestion` (Simple blueprint demonstrating constrained JSON output)
-  - [x] `database_and_web` (Demonstrates MCP server integrations: Brave Search API & SQLite database; Brave requires API key)
-  - [x] `university` (Demonstrates Django integration with additional REST endpoints at `/v1/university/` alongside `/v1/models` and `/v1/chat/completions`)
-  - [ ] `flowise` (pending uvx fix)
-
-- **Security**
-  - [x] REST endpoint authentication
-    - [x] API key protection (ENABLE_API_AUTH)
-    - [x] Per-user token system
-  - [x] Operational mode controls
-    - [x] Disable admin interface (ENABLE_ADMIN)
-    - [x] Disable web UI (ENABLE_WEBUI)
-  - [ ] CORS access control
-
-- **Beta Features**
-  - [x] Blueprints can extend Django DB and REST.
-  - [ ] Automatic MCP server config loading
-    - [x] Claude Desktop on Windows
-    - [x] Roo-CLI on Linux remote SSH
-    - [ ] Others
-  - [ ] Implement swarm-cli and swarm-api commands
-    - [x] Manage blueprints
-    - [x] Host the API endpoint
-    - [ ] Compile blueprints into standalone CLI commands for shell execution.
-  - [ ] Nemo_guardrails integration
-    - [x] Register config
-    - [ ] Register actions (currently breaks function calling)
-  - [ ] Develop more complex chat UI
-    - [x] HTML concept layout
-    - [ ] Conversation history
-  - [ ] Automated task completion for CLI mode 
-    - [x] Automatically assess goal completion
-    - [x] Continue generation until achieved
-    - [ ] Unit testing
-
-- **Security**
-  - [x] REST endpoint authentication
-    - [x] API key protection (ENABLE_API_AUTH)
-    - [x] Per-user token system
-  - [x] Operational mode controls
-    - [x] Disable admin interface (ENABLE_ADMIN)
-    - [x] Disable web UI (ENABLE_WEBUI)
-  - [x] Restricted blueprint loading via SWARM_BLUEPRINTS environment variable
-  - [ ] CORS access control
-
 ---
 
 ## Further Documentation

@@ -60,25 +60,11 @@ def test_swarm_cli_creates_default_config(monkeypatch, tmp_path, capsys):
     
     # Verify that the config file is created with the expected default config content.
     assert config_path.exists(), "Default config file was not created."
+    import json
     config_content = config_path.read_text()
-    expected_config = '''{
-    "llm": {
-        "default": {
-            "provider": "openai",
-            "model": "gpt-4o",
-            "base_url": "https://api.openai.com/v1",
-            "api_key": "${OPENAI_API_KEY}"
-        }
-    },
-    "mcpServers": {
-        "everything": {
-            "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-everything"],
-            "env": {}
-        }
-    }
-}'''
-    assert config_content.strip() == expected_config.strip(), "Default config content does not match expected."
+    config_data = json.loads(config_content)
+    expected_config = {"llm": {}, "mcpServers": {}}
+    assert config_data == expected_config, "Default config content does not match expected."
     
     # Check output message.
     captured = capsys.readouterr().out

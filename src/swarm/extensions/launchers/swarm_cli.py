@@ -168,7 +168,7 @@ def main():
     parser_config.add_argument("action", choices=["add", "list", "remove"], help="Action to perform on configuration")
     parser_config.add_argument("--section", required=True, choices=["llm", "mcpServers"], help="Configuration section to manage")
     parser_config.add_argument("--name", help="Name of the configuration entry (required for add and remove)")
-    parser_config.add_argument("--entry", help="JSON string for configuration entry (required for add)")
+    parser_config.add_argument("--json", help="JSON string for configuration entry (required for add)")
     parser_config.add_argument("--config", default="~/.swarm/swarm_config.json", help="Path to configuration file")
     
     args = parser.parse_args()
@@ -184,8 +184,9 @@ def main():
         config_path = os.path.expanduser(args.config)
         if not os.path.exists(config_path):
             os.makedirs(os.path.dirname(config_path), exist_ok=True)
+            default_config = {"llm": {}, "mcpServers": {}}
             with open(config_path, 'w') as f:
-                f.write('{\n    "llm": {},\n    "mcpServers": {}\n}\n')
+                json.dump(default_config, f, indent=4)
             print("Default config file created at:", config_path)
         run_blueprint(args.name)
     elif args.command == "install":
@@ -224,13 +225,13 @@ def main():
             else:
                 print(f"No entries found in {section}.")
         elif args.action == "add":
-            if not args.name or not args.entry:
-                print("Error: --name and --entry are required for adding an entry.")
+            if not args.name or not args.json:
+                print("Error: --name and --json are required for adding an entry.")
                 sys.exit(1)
             try:
-                entry_data = json.loads(args.entry)
+                entry_data = json.loads(args.json)
             except json.JSONDecodeError:
-                print("Error: --entry must be a valid JSON string.")
+                print("Error: --json must be a valid JSON string.")
                 sys.exit(1)
             config.setdefault(section, {})[args.name] = entry_data
             with open(config_path, "w") as f:

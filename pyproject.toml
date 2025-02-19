@@ -30,12 +30,11 @@ dependencies = [
    "whitenoise>=6.8.2",
    "drf-spectacular>=0.23.0",
    "pyinstaller>=6.12.0",
-   "python-semantic-release>=9.20.0",
 ]
 
 [project.scripts]
-swarm-cli = "launchers.swarm_cli:main"
-swarm-api = "launchers.swarm_api:main"
+swarm-cli = "swarm.extensions.launchers.swarm_cli:main"
+swarm-api = "swarm.extensions.launchers.swarm_api:main"
 
 [project.optional-dependencies]
 dev = [
@@ -44,6 +43,7 @@ dev = [
    "pytest-cov>=6.0.0",
    "pytest-django>=4.9.0",
    "pytest-mock>=3.14.0",
+   "python-semantic-release>=9.20.0",   
 ]
 
 [build-system]

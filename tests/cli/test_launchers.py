@@ -9,7 +9,7 @@ def test_swarm_cli_install_creates_executable(monkeypatch, tmp_path, capsys):
     blueprint_path.write_text("def main():\n    print('Hello from dummy blueprint')")
     
     # Use swarm_cli.add_blueprint to add the blueprint to the managed directory
-    from launchers import swarm_cli
+    from swarm.extensions.launchers import swarm_cli
     test_args = ["swarm-cli", "add", str(blueprint_path)]
     monkeypatch.setattr(sys, "argv", test_args)
     swarm_cli.main()
@@ -28,7 +28,7 @@ def test_swarm_cli_install_creates_executable(monkeypatch, tmp_path, capsys):
 
 def test_swarm_install_failure(monkeypatch, tmp_path, capsys):
     # Attempt to install a blueprint that has not been registered.
-    from launchers import swarm_cli
+    from swarm.extensions.launchers import swarm_cli
     test_args = ["swarm-cli", "install", "nonexistent_blueprint", "--wrapper-dir", str(tmp_path)]
     monkeypatch.setattr(sys, "argv", test_args)
     
@@ -48,7 +48,7 @@ def test_swarm_cli_creates_default_config(monkeypatch, tmp_path, capsys):
         config_path.unlink()
     
     # Import swarm_cli and monkey-patch run_blueprint to bypass actual blueprint execution.
-    from launchers import swarm_cli
+    from swarm.extensions.launchers import swarm_cli
     monkeypatch.setattr(swarm_cli, "run_blueprint", lambda name: None)
     
     # Set command line arguments for swarm_cli launcher with --config option using the 'run' command.

@@ -52,13 +52,22 @@ build-backend = "hatchling.build"
 
 [tool.hatch.version]
 source = "vcs"
-scheme = "standard"  # Ensures compliance with PEP 440
+scheme = "standard"
 
-[tool.hatch.build.targets.sdist]
-include = ["launchers/**", "src/**"]
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.metadata.build]
+packages = [
+   { include = "launchers" },
+   { include = "src" }
+]
 
 [tool.hatch.build.targets.wheel]
-include = ["launchers/**", "src/**"]
+include = ["launchers/**"]
+
+[tool.uv.workspace]
+members = ["open-swarm"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "src.swarm.settings"

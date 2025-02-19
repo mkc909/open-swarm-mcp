@@ -2,9 +2,9 @@ name: Publish to TestPyPI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   release:
-    types: [ published ]
+    types: [published]
 
 permissions:
   contents: read
@@ -18,28 +18,41 @@ jobs:
       url: https://test.pypi.org/project/open-swarm/
 
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
-    
-    - name: Install build tools
-      run: |
-        python -m pip install --upgrade pip
-        pip install build wheel twine
-    
-    - name: Build package artifacts
-      run: python -m build
-    
-    - name: Validate package structure
-      run: twine check dist/*
-    
-    - name: Publish to TestPyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        repository-url: https://test.pypi.org/legacy/
-        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        attestations: false
-        twine-args: --verbose
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up Python environment
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Install build tools
+      - name: Install build tools
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install build wheel twine
+
+      # Build package artifacts
+      - name: Build package artifacts
+        run: |
+          source venv/bin/activate
+          python -m build
+
+      # Validate package structure
+      - name: Validate package structure
+        run: |
+          source venv/bin/activate
+          twine check dist/*
+
+      # Publish to TestPyPI
+      - name: Publish to TestPyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        run: |
+          source venv/bin/activate
+          twine upload --repository-url https://test.pypi.org/legacy/ dist/*

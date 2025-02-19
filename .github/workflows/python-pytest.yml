@@ -2,9 +2,9 @@ name: Python Tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -12,9 +12,16 @@ jobs:
 
     steps:
       # Checkout the repository
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # Install Node.js and npm (similar to the Dockerfile)
+      # Set up Python environment
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Install Node.js and npm
       - name: Install Node.js and npm
         run: |
           sudo apt-get update
@@ -22,20 +29,20 @@ jobs:
           node -v
           npm -v
 
-      # Install uv
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-        
-      # Set up Python environment with uv
-      - name: Set up Python
-        run: uv python install
-
-      # Install project dependencies
+      # Install dependencies
       - name: Install dependencies
-        run: uv sync --all-extras --dev
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt --no-dependencies
+          pip install nemoguardrails==<specific_version>
+          pip install pytest
 
       # Run tests
       - name: Run tests
-        run: uv run pytest
+        run: |
+          source venv/bin/activate
+          pytest
         env:
           PYTHONPATH: ${{ github.workspace }}/src

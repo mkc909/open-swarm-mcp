@@ -113,7 +113,7 @@ def resolve_placeholders(obj: Any) -> Any:
     else:
         return obj
 
-def load_server_config(file_path: str = None) -> dict:
+def load_server_config(file_path: Optional[str] = None) -> dict:
     """
     Loads the server configuration from a JSON file and resolves placeholders.
 
@@ -128,7 +128,18 @@ def load_server_config(file_path: str = None) -> dict:
         ValueError: If the file contains invalid JSON or unresolved placeholders.
     """
     if file_path is None:
-        file_path = os.path.join(os.getcwd(), "swarm_config.json")
+        candidate_paths = [
+            os.path.join(os.getcwd(), "swarm_config.json"),
+            os.path.join(os.path.expanduser("~"), ".swarm", "swarm_config.json"),
+            os.path.join(".", "swarm_config.json")
+        ]
+        for candidate in candidate_paths:
+            if os.path.exists(candidate):
+                file_path = candidate
+                break
+        if file_path is None or not os.path.exists(file_path):
+            logger.error("No configuration file found in candidate paths: " + ", ".join(candidate_paths))
+            raise FileNotFoundError("No configuration file found in candidate paths.")
 
     logger.debug(f"Attempting to load configuration from {file_path}")
 
@@ -307,9 +318,9 @@ def validate_and_select_llm_provider(config: Dict[str, Any]) -> Dict[str, Any]:
     """
     logger.debug("Validating and selecting LLM provider.")
     try:
-        selected_llm = get_default_llm_config(config)
-        validate_api_keys(config, selected_llm)
-        return selected_llm
+        llm_name = os.getenv("DEFAULT_LLM", "default")
+        validate_api_keys(config, llm_name)
+        return config.get("llm", {}).get(llm_name)
     except ValueError as e:
         logger.error(f"LLM provider validation failed: {e}")
         raise
@@ -408,7 +419,7 @@ def load_and_validate_llm(config: Dict[str, Any], llm_name: Optional[str] = None
     llm_config = load_llm_config(config, llm_name)
 
     # Validate the API keys
-    validate_api_keys(config, llm_name)
+    validate_api_keys(config, llm_name or "default")
 
     logger.debug(f"LLM configuration for '{llm_name}' is valid and loaded.")
     return llm_config

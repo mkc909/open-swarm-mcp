@@ -1,5 +1,6 @@
 [project]
 name = "open-swarm"
+version = "0.1.0"  # Manually set version to avoid +gce27176 issues
 description = "A tool for orchestrating Swarm using both CLI and API."
 readme = "README.md"
 authors = [
@@ -31,7 +32,6 @@ dependencies = [
    "pyinstaller>=6.12.0",
    "python-semantic-release>=9.20.0",
 ]
-dynamic = ["version"]
 
 [project.scripts]
 swarm-cli = "launchers.swarm_cli:main"
@@ -47,27 +47,8 @@ dev = [
 ]
 
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
-build-backend = "hatchling.build"
-
-[tool.hatch.version]
-source = "vcs"
-scheme = "standard"
-
-[tool.hatch.metadata]
-allow-direct-references = true
-
-[tool.hatch.metadata.build]
-packages = [
-   { include = "launchers" },
-   { include = "src" }
-]
-
-[tool.hatch.build.targets.wheel]
-include = ["launchers/**"]
-
-[tool.uv.workspace]
-members = ["open-swarm"]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "src.swarm.settings"

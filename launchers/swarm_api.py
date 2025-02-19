@@ -19,12 +19,8 @@ def main():
         resolved = None
         if path.exists(bp_arg):
             if path.isdir(bp_arg):
-                matches = [f for f in listdir(bp_arg) if f.startswith("blueprint_") and f.endswith(".py")]
-                if not matches:
-                    print("Error: No blueprint file found in directory:", bp_arg)
-                    sys.exit(1)
-                resolved = path.join(bp_arg, matches[0])
-                print(f"Using blueprint file from directory: {resolved}")
+                resolved = bp_arg
+                print(f"Using blueprint directory: {resolved}")
             else:
                 resolved = bp_arg
                 print(f"Using blueprint file: {resolved}")

@@ -21,14 +21,18 @@ def add_blueprint(source_path, blueprint_name=None):
         print("Error: source file/directory does not exist:", source_path)
         sys.exit(1)
     
-    # Determine the blueprint file path from source.
+    # Determine how to handle the blueprint source.
     if os.path.isdir(source_path):
-        # Look for a matching blueprint file in the directory.
-        files = [f for f in os.listdir(source_path) if f.startswith("blueprint_") and f.endswith(".py")]
-        if not files:
-            print("Error: No blueprint file found in directory:", source_path)
-            sys.exit(1)
-        blueprint_file = os.path.join(source_path, files[0])
+        # For directory source, infer blueprint name from directory if not provided.
+        if not blueprint_name:
+            blueprint_name = os.path.basename(os.path.normpath(source_path))
+        # Copy the entire directory to the managed blueprints directory.
+        target_dir = os.path.join(MANAGED_DIR, blueprint_name)
+        if os.path.exists(target_dir):
+            shutil.rmtree(target_dir)
+        shutil.copytree(source_path, target_dir)
+        print(f"Blueprint '{blueprint_name}' added successfully to {target_dir}.")
+        return
     else:
         blueprint_file = source_path
 

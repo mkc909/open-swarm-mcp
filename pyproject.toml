@@ -1,6 +1,6 @@
 [project]
 name = "open-swarm"
-version = "0.1.0"  # Manually set version to avoid +gce27176 issues
+version = "0.1.0"  # This will be updated dynamically in GitHub Actions
 description = "A tool for orchestrating Swarm using both CLI and API."
 readme = "README.md"
 authors = [

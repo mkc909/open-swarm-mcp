@@ -15,6 +15,7 @@ https://github.com/user-attachments/assets/1335f7fb-ff61-4e96-881c-7d3154eb9f14
 ---
 
 ## Table of Contents
+- [Swarm CLI and Swarm API](#swarm-cli-and-swarm-api)
 - [Key Features](#key-features)
 - [Blueprints](#blueprints)
 - [Operational Modes](#operational-modes)
@@ -31,6 +32,129 @@ https://github.com/user-attachments/assets/1335f7fb-ff61-4e96-881c-7d3154eb9f14
 
 ---
 
+## Swarm CLI and Swarm API
+
+This section details how to use the **swarm-cli** and **swarm-api** utilities. They are essential tools for administration and integration in the Open Swarm framework.
+
+### Swarm CLI
+
+The **swarm-cli** utility is a command-line tool that manages blueprints and configuration settings for your Open Swarm deployment. It supports managing configurations for both language models (LLM) and MCP servers.
+
+#### Default Configuration Creation
+
+On first execution of a blueprint, if no configuration file is found at the default location (`~/.swarm/swarm_config.json`), a simple default configuration is automatically created. This default uses the OpenAI GPT-4o settings:
+```json
+{
+    "llm": {
+        "default": {
+            "provider": "openai",
+            "model": "gpt-4o",
+            "base_url": "https://api.openai.com/v1",
+            "api_key": "${OPENAI_API_KEY}"
+        }
+    },
+    "mcpServers": {}
+}
+```
+*Note:* The default configuration only records the environment variable placeholder `${OPENAI_API_KEY}`. The user must supply a valid `OPENAI_API_KEY` (and other required keys) through their environment variables.
+
+#### Configuring Additional LLM Providers
+
+Users can augment the LLM configuration by adding new entries. For example, to add an alternative provider:
+```json
+{
+    "deepseek-r1-distill-llama-70b": {
+        "provider": "openai",
+        "model": "deepseek-r1-distill-llama-70b",
+        "base_url": "https://api.groq.com/openai/v1",
+        "api_key": "${GROQ_API_KEY}"
+    }
+}
+```
+Or to add a reasoning model (that may be referenced as the `reason` model in blueprint code):
+```json
+{
+    "reason": {
+        "provider": "openai",
+        "model": "o3-mini",
+        "base_url": "https://api.openai.com/v1",
+        "api_key": "${OPENAI_API_KEY}",
+        "reasoning_effort": "high"
+    }
+}
+```
+Use the command:
+```
+swarm-cli config add --section llm --name <entry_name> --json '<json_blob>' --config ~/.swarm/swarm_config.json
+```
+
+#### Configuring MCP Servers
+
+The **swarm-cli** utility also supports MCP server configurations. You can merge a multiline JSON block into the existing `mcpServers` section. For instance, to add an MCP server without environment variables:
+```json
+{
+    "mcp-npx-fetch": {
+        "command": "npx",
+        "args": [
+            "-y",
+            "@tokenizin/mcp-npx-fetch"
+        ]
+    }
+}
+```
+To merge an entire MCP servers block:
+```json
+{
+    "mcpServers": {
+        "mcp-doc-forge": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@cablate/mcp-doc-forge"
+            ]
+        }
+    }
+}
+```
+For MCP servers with environment variables, for example:
+```json
+{
+    "brave-search": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+        "env": {
+            "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+        }
+    },
+```    
+
+When the environment variable is referenced as a command argument, best practice is to explicitly list in the `env` section for runtime validation:
+```json
+    "filesystem": {
+        "command": "npx",
+        "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem",
+            "${ALLOWED_PATH}"
+        ],
+        "env": {
+            "ALLOWED_PATH": "${ALLOWED_PATH}"
+        }
+    }
+}
+```
+When adding an MCP servers block, run:
+```
+swarm-cli config add --section mcpServers --json '<multiline_json_block>' --config ~/.swarm/swarm_config.json
+```
+*Note:* When merging MCP server blocks, do not provide a `--name` parameter; the JSON block must include the `"mcpServers"` key.
+
+### Swarm API
+
+The **swarm-api** component offers programmatic access to Open Swarm functionalities. It enables external applications to interact with blueprints and internal services via RESTful endpoints. For example, you can perform chat completions and list available blueprints using endpoints that mimic the OpenAI Chat Completions API. Detailed API documentation is provided separately.
+
+---
+
 ## Key Features
 
 1. **Multi-Agent Orchestration**  
@@ -42,7 +166,8 @@ https://github.com/user-attachments/assets/1335f7fb-ff61-4e96-881c-7d3154eb9f14
    - Encourages reusable, modular patterns for different use cases.
 
 3. **Optional MCP Integration**  
-   - (WIP) Integrate with external tools (e.g., databases, web search, filesystems) through **MCP servers**.
+   - Integrate with external tools (e.g., databases, web search, filesystems) through **MCP servers**.
+   - Note `npx` MCP servers work great but `uvx` MCP servers currently have issues.
 
 4. **CLI & REST Interface**  
    - Run from the command line or expose a Django-powered REST API for broader integration.

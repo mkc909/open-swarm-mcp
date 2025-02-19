@@ -3,6 +3,7 @@ import argparse
 import importlib.util
 import os
 import sys
+import subprocess
 import shutil
 
 # Managed blueprints directory
@@ -178,6 +179,13 @@ def main():
         run_blueprint(args.name)
     elif args.command == "install":
         install_blueprint(args.name, args.wrapper_dir)
+    elif args.command == "migrate":
+        try:
+            subprocess.run(["python", "manage.py", "migrate"], check=True)
+            print("Migrations applied successfully.")
+        except subprocess.CalledProcessError as e:
+            print("Error applying migrations:", e)
+            sys.exit(1)
     else:
         parser.print_help()
         sys.exit(1)

@@ -34,11 +34,14 @@ def main():
                 resolved = path.join(managed_path, matches[0])
                 print(f"Using managed blueprint: {resolved}")
             else:
-                print("Error: Blueprint not found:", bp_arg)
-                sys.exit(1)
+                print("Warning: Blueprint not found:", bp_arg, "- skipping.")
+                continue
         if resolved:
             blueprint_paths.append(resolved)
 
+    if not blueprint_paths:
+        print("Error: No valid blueprints found.")
+        sys.exit(1)
     print("Blueprints to be configured:")
     for bp in blueprint_paths:
         print(" -", bp)

@@ -127,19 +127,23 @@ def load_server_config(file_path: Optional[str] = None) -> dict:
         FileNotFoundError: If the configuration file does not exist.
         ValueError: If the file contains invalid JSON or unresolved placeholders.
     """
-    if file_path is None:
-        candidate_paths = [
-            os.path.join(os.getcwd(), "swarm_config.json"),
-            os.path.join(os.path.expanduser("~"), ".swarm", "swarm_config.json"),
-            os.path.join(".", "swarm_config.json")
-        ]
-        for candidate in candidate_paths:
-            if os.path.exists(candidate):
-                file_path = candidate
-                break
-        if file_path is None or not os.path.exists(file_path):
-            logger.error("No configuration file found in candidate paths: " + ", ".join(candidate_paths))
-            raise FileNotFoundError("No configuration file found in candidate paths.")
+    from pathlib import Path
+    if file_path is None or not Path(file_path).exists():
+         from swarm.settings import BASE_DIR
+         current_dir = os.getcwd()
+         candidate_paths = [
+             str(Path(BASE_DIR) / "swarm_config.json"),
+             str(Path(os.path.expanduser("~")) / ".swarm" / "swarm_config.json"),
+             str(Path(current_dir) / "swarm_config.json")
+         ]
+         for candidate in candidate_paths:
+             if Path(candidate).exists():
+                 file_path = candidate
+                 logger.info(f"Using alternative configuration file: {file_path}")
+                 break
+         if file_path is None or not Path(file_path).exists():
+             logger.error("No configuration file found in candidate paths: " + ", ".join(candidate_paths))
+             raise FileNotFoundError("No configuration file found in candidate paths.")
 
     logger.debug(f"Attempting to load configuration from {file_path}")
 

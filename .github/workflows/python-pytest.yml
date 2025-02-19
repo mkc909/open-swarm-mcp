@@ -11,17 +11,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the repository
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # Set up Python environment
-      - name: Set up Python 3.11
+      - name: Set up Python 3.10
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.10"
 
-      # Install Node.js and npm
       - name: Install Node.js and npm
         run: |
           sudo apt-get update
@@ -29,20 +25,15 @@ jobs:
           node -v
           npm -v
 
-      # Install dependencies
-      - name: Install dependencies
+      - name: Install project dependencies
         run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt --no-dependencies
-          pip install nemoguardrails==<specific_version>
-          pip install pytest
+          python -m pip install --upgrade pip
+          # Install dependencies excluding nemoguardrails
+          pip install --no-cache-dir .
+          # Install nemoguardrails without its dependencies
+          pip install --no-cache-dir --no-deps nemoguardrails
 
-      # Run tests
       - name: Run tests
-        run: |
-          source venv/bin/activate
-          pytest
+        run: pytest
         env:
           PYTHONPATH: ${{ github.workspace }}/src

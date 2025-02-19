@@ -1,10 +1,11 @@
- #!/usr/bin/env python3
+#!/usr/bin/env python3
 import argparse
 import importlib.util
 import os
 import sys
 import subprocess
 import shutil
+import json
 
 # Managed blueprints directory
 MANAGED_DIR = os.path.expanduser("~/.swarm/blueprints")
@@ -138,7 +139,9 @@ def main():
                     "  list    : List registered blueprints.\n"
                     "  delete  : Delete a registered blueprint.\n"
                     "  run     : Run a blueprint by name.\n"
-                    "  install : Install a blueprint as a CLI utility.",
+                    "  install : Install a blueprint as a CLI utility.\n"
+                    "  migrate : Apply Django database migrations.\n"
+                    "  config  : Manage swarm configuration (LLM and MCP servers).",
         formatter_class=argparse.RawTextHelpFormatter)
     subparsers = parser.add_subparsers(dest="command", required=True, help="Available subcommands")
     
@@ -158,7 +161,15 @@ def main():
     parser_install = subparsers.add_parser("install", help="Install a blueprint as a CLI utility.")
     parser_install.add_argument("name", help="Blueprint name to install as a CLI utility.")
     parser_install.add_argument("--wrapper-dir", default="bin", help="Directory to place the wrapper script (default: ./bin)")
+    
     parser_migrate = subparsers.add_parser("migrate", help="Apply Django database migrations.")
+    
+    parser_config = subparsers.add_parser("config", help="Manage swarm configuration (LLM and MCP servers).")
+    parser_config.add_argument("action", choices=["add", "list", "remove"], help="Action to perform on configuration")
+    parser_config.add_argument("--section", required=True, choices=["llm", "mcpServers"], help="Configuration section to manage")
+    parser_config.add_argument("--name", help="Name of the configuration entry (required for add and remove)")
+    parser_config.add_argument("--entry", help="JSON string for configuration entry (required for add)")
+    parser_config.add_argument("--config", default="~/.swarm/swarm_config.json", help="Path to configuration file")
     
     args = parser.parse_args()
     ensure_managed_dir()
@@ -174,7 +185,7 @@ def main():
         if not os.path.exists(config_path):
             os.makedirs(os.path.dirname(config_path), exist_ok=True)
             with open(config_path, 'w') as f:
-                f.write('{\n    "llm": {\n        "default": {\n            "provider": "openai",\n            "model": "gpt-4o",\n            "base_url": "https://api.openai.com/v1",\n            "api_key": "${OPENAI_API_KEY}"\n        }\n    },\n    "mcpServers": {\n        "everything": {\n            "command": "npx",\n            "args": ["-y", "@modelcontextprotocol/server-everything"],\n            "env": {}\n        }\n    }\n}\n')
+                f.write('{\n    "llm": {},\n    "mcpServers": {}\n}\n')
             print("Default config file created at:", config_path)
         run_blueprint(args.name)
     elif args.command == "install":
@@ -186,6 +197,57 @@ def main():
         except subprocess.CalledProcessError as e:
             print("Error applying migrations:", e)
             sys.exit(1)
+    elif args.command == "config":
+        config_path = os.path.expanduser(args.config)
+        # Load config; if not exists, create a default configuration
+        if not os.path.exists(config_path):
+            default_conf = {"llm": {}, "mcpServers": {}}
+            os.makedirs(os.path.dirname(config_path), exist_ok=True)
+            with open(config_path, "w") as f:
+                json.dump(default_conf, f, indent=4)
+            print("Default config file created at:", config_path)
+            config = default_conf
+        else:
+            try:
+                with open(config_path, "r") as f:
+                    config = json.load(f)
+            except json.JSONDecodeError:
+                print("Error: Invalid configuration file.")
+                sys.exit(1)
+        section = args.section
+        if args.action == "list":
+            entries = config.get(section, {})
+            if entries:
+                print(f"Entries in {section}:")
+                for key, value in entries.items():
+                    print(f" - {key}: {json.dumps(value, indent=4)}")
+            else:
+                print(f"No entries found in {section}.")
+        elif args.action == "add":
+            if not args.name or not args.entry:
+                print("Error: --name and --entry are required for adding an entry.")
+                sys.exit(1)
+            try:
+                entry_data = json.loads(args.entry)
+            except json.JSONDecodeError:
+                print("Error: --entry must be a valid JSON string.")
+                sys.exit(1)
+            config.setdefault(section, {})[args.name] = entry_data
+            with open(config_path, "w") as f:
+                json.dump(config, f, indent=4)
+            print(f"Entry '{args.name}' added to {section} in configuration.")
+        elif args.action == "remove":
+            if not args.name:
+                print("Error: --name is required for removing an entry.")
+                sys.exit(1)
+            if args.name in config.get(section, {}):
+                del config[section][args.name]
+                with open(config_path, "w") as f:
+                    json.dump(config, f, indent=4)
+                print(f"Entry '{args.name}' removed from {section} in configuration.")
+            else:
+                print(f"Error: Entry '{args.name}' not found in {section}.")
+                sys.exit(1)
     else:
         parser.print_help()
         sys.exit(1)

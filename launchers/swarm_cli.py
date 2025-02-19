@@ -17,6 +17,7 @@ def add_blueprint(source_path, blueprint_name=None):
     Copy the blueprint file from the provided source_path into the managed blueprints directory.
     If blueprint_name is not provided, try to infer it from the filename by stripping a leading "blueprint_" and the .py extension.
     """
+    source_path = os.path.normpath(source_path)
     if not os.path.exists(source_path):
         print("Error: source file/directory does not exist:", source_path)
         sys.exit(1)
@@ -26,11 +27,19 @@ def add_blueprint(source_path, blueprint_name=None):
         # For directory source, infer blueprint name from directory if not provided.
         if not blueprint_name:
             blueprint_name = os.path.basename(os.path.normpath(source_path))
-        # Copy the entire directory to the managed blueprints directory.
+        # Recursively copy the entire directory to the managed blueprints directory.
         target_dir = os.path.join(MANAGED_DIR, blueprint_name)
         if os.path.exists(target_dir):
             shutil.rmtree(target_dir)
-        shutil.copytree(source_path, target_dir)
+        os.makedirs(target_dir, exist_ok=True)
+        for root, dirs, files in os.walk(source_path):
+            rel_path = os.path.relpath(root, source_path)
+            dest_root = os.path.join(target_dir, rel_path) if rel_path != '.' else target_dir
+            os.makedirs(dest_root, exist_ok=True)
+            for file in files:
+                shutil.copy2(os.path.join(root, file), os.path.join(dest_root, file))
+        print("DEBUG: Source directory contents:", os.listdir(source_path))
+        print("DEBUG: Target directory contents after copy:", os.listdir(target_dir))
         print(f"Blueprint '{blueprint_name}' added successfully to {target_dir}.")
         return
     else:

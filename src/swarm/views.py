@@ -1,4 +1,4 @@
-""" 
+"""
 REST Mode Views for Open Swarm MCP.
 
 This module defines asynchronous views to handle chat completions and model listings,
@@ -23,19 +23,18 @@ from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.response import Response  # type: ignore
-from rest_framework.decorators import api_view, authentication_classes, permission_classes  # type: ignore
-from drf_spectacular.utils import extend_schema  # type: ignore
-from drf_spectacular.views import SpectacularAPIView as BaseSpectacularAPIView  # type: ignore
+from rest_framework.response import Response
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from drf_spectacular.utils import extend_schema
+from drf_spectacular.views import SpectacularAPIView as BaseSpectacularAPIView
 
 class HiddenSpectacularAPIView(BaseSpectacularAPIView):
     exclude_from_schema = True
 
 SpectacularAPIView = HiddenSpectacularAPIView
-from rest_framework.permissions import IsAuthenticated, AllowAny  # type: ignore
-from rest_framework.authentication import TokenAuthentication  # type: ignore
-from rest_framework.permissions import IsAuthenticated, AllowAny  # type: ignore
-from rest_framework.viewsets import ModelViewSet  # type: ignore
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.viewsets import ModelViewSet
 
 # Project-specific imports
 from swarm.auth import EnvOrTokenAuthentication
@@ -46,7 +45,7 @@ from swarm.extensions.config.config_loader import load_server_config, load_llm_c
 from swarm.utils.logger_setup import setup_logger
 from swarm.utils.redact import redact_sensitive_data
 from swarm.utils.general_utils import extract_chat_id
-from swarm.extensions.blueprint.blueprint_utils import filter_blueprints  # Import our new utility
+from swarm.extensions.blueprint.blueprint_utils import filter_blueprints
 
 from .settings import DJANGO_DATABASE
 from .models import ChatMessage
@@ -56,10 +55,8 @@ from .serializers import ChatMessageSerializer
 # Initialization
 # -----------------------------------------------------------------------------
 
-# Initialize logger for this module.
 logger = setup_logger(__name__)
 
-# Initialize Redis if available (modified for testing stateful mode).
 REDIS_AVAILABLE = bool(os.getenv("STATEFUL_CHAT_ID_PATH"))
 redis_client = None
 if REDIS_AVAILABLE:
@@ -75,37 +72,30 @@ if REDIS_AVAILABLE:
         logger.warning(f"⚠️ Redis unavailable, falling back to PostgreSQL: {e}")
         REDIS_AVAILABLE = False
 
-# Load configuration from file.
-CONFIG_PATH = Path(settings.BASE_DIR) / "swarm_config.json"
+# Load configuration from file
+CONFIG_PATH = Path('/app/swarm_config.json')  # Hardcode to ensure Docker consistency
 try:
     config = load_server_config(str(CONFIG_PATH))
-    # redacted_config = redact_sensitive_data(config)  # Redact before logging.
-    # logger.debug(f"Loaded configuration from {CONFIG_PATH}: {redacted_config}")
 except Exception as e:
     logger.critical(f"Failed to load configuration from {CONFIG_PATH}: {e}")
     raise e
 
-# -----------------------------------------------------------------------------
-# Blueprint Discovery and Filtering
-# -----------------------------------------------------------------------------
-
-BLUEPRINTS_DIR = settings.BLUEPRINTS_DIR
+# Blueprint discovery at startup
+BLUEPRINTS_DIR = Path('/app/blueprints')  # Hardcode for Docker
 try:
     all_blueprints = discover_blueprints([str(BLUEPRINTS_DIR)])
-    # Apply filtering if the SWARM_BLUEPRINTS environment variable is set.
     if allowed_blueprints := os.getenv("SWARM_BLUEPRINTS"):
         blueprints_metadata = filter_blueprints(all_blueprints, allowed_blueprints)
         logger.info(f"Filtered blueprints using SWARM_BLUEPRINTS: {allowed_blueprints.split(',')}")
     else:
         blueprints_metadata = all_blueprints
-
     redacted_blueprints_metadata = redact_sensitive_data(blueprints_metadata)
     logger.debug(f"Discovered blueprints metadata: {redacted_blueprints_metadata}")
 except Exception as e:
     logger.error(f"Error discovering blueprints: {e}", exc_info=True)
     raise e
 
-# Inject LLM metadata into blueprints.
+# Inject LLM metadata into blueprints
 try:
     llm_config = load_llm_config(config)
     llm_model = llm_config.get("model", "default")
@@ -122,25 +112,12 @@ except ValueError as e:
 # -----------------------------------------------------------------------------
 
 def serialize_swarm_response(response: Any, model_name: str, context_variables: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Serializes the Swarm response while removing non-serializable objects like functions.
-
-    Args:
-        response (Any): The response object from the LLM or blueprint.
-        model_name (str): The name of the model used.
-        context_variables (Dict[str, Any]): Additional context variables maintained across interactions.
-
-    Returns:
-        Dict[str, Any]: A structured JSON response that includes the full conversation history,
-                        tool calls, and additional context.
-    """
     if hasattr(response, "model_dump"):
         response = response.model_dump()
 
     messages = response.get("messages", [])
 
     def remove_functions(obj: Any) -> Any:
-        """Recursively remove callable objects from data structures."""
         if isinstance(obj, dict):
             return {k: remove_functions(v) for k, v in obj.items() if not callable(v)}
         elif isinstance(obj, list):
@@ -176,15 +153,6 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
     }
 
 def parse_chat_request(request: Any) -> Any:
-    """
-    Extract and validate JSON from the incoming request. Returns a tuple of values or an error Response.
-
-    Ensures a conversation_id is present and sets a default role for messages if missing.
-
-    Returns:
-        Tuple containing (body, model, messages, context_variables, conversation_id, tool_call_id)
-        or a DRF Response with an error message.
-    """
     try:
         body = json.loads(request.body)
         model = body.get("model", "default")
@@ -194,7 +162,6 @@ def parse_chat_request(request: Any) -> Any:
         messages = [msg if isinstance(msg, dict) else {"content": msg} for msg in messages]
         context_variables = body.get("context_variables", {})
 
-        # Extract conversation_id and tool_call_id.
         conversation_id = extract_chat_id(body)
         tool_call_id = None
         if messages:
@@ -203,7 +170,6 @@ def parse_chat_request(request: Any) -> Any:
             if tool_calls:
                 tool_call_id = tool_calls[-1].get("id")
 
-        # If in stateful mode and no conversation_id is provided, generate one.
         if not conversation_id and 'STATEFUL_CHAT_ID_PATH' in os.environ:
             conversation_id = str(uuid.uuid4())
             logger.warning(f"⚠️ No conversation_id detected, generating new ID: {conversation_id}")
@@ -220,23 +186,11 @@ def parse_chat_request(request: Any) -> Any:
         return Response({"error": "Invalid JSON payload."}, status=400)
 
 def get_blueprint_instance(model: str, context_vars: dict) -> Any:
-    """
-    Retrieve or instantiate the blueprint corresponding to the specified model.
-    For the "default" model, returns a dummy blueprint if no matching blueprint is found.
-
-    Args:
-        model (str): Model name.
-        context_vars (dict): Context variables from the request.
-
-    Returns:
-        The blueprint instance or a DRF Response with an error.
-    """
-
     blueprint_meta = blueprints_metadata.get(model)
     if not blueprint_meta:
         if model == "default":
             class DummyBlueprint(BlueprintBase):
-                metadata = {"title": "Dummy Blueprint", "env_vars": []}  # type: ignore
+                metadata = {"title": "Dummy Blueprint", "env_vars": []}
 
                 def create_agents(self) -> dict:
                     DummyAgent = type("DummyAgent", (), {"name": "DummyAgent", "mcp_servers": {}, "functions": [], "nemo_guardrails_config": ""})
@@ -269,31 +223,12 @@ def get_blueprint_instance(model: str, context_vars: dict) -> Any:
         logger.error(f"Error initializing blueprint: {e}", exc_info=True)
         return Response({"error": f"Error initializing blueprint: {str(e)}"}, status=500)
 
-def load_conversation_history(conversation_id: Optional[str], messages: List[dict],
-                              tool_call_id: Optional[str] = None) -> List[dict]:
-    """
-    Retrieve conversation history from Redis or the database.
-    
-    This function implements stateful message tracking for chat conversations.
-    If the environment variable STATEFUL_CHAT_ID_PATH is set, Redis is used
-    to store and retrieve conversation history. Should Redis retrieval fail,
-    the function falls back to fetching messages from the PostgreSQL database.
-    
-    Args:
-        conversation_id (Optional[str]): Unique conversation identifier.
-        messages (List[dict]): New messages from the current request.
-        tool_call_id (Optional[str]): Optional tool call identifier to filter history.
-    
-    Returns:
-        List[dict]: A combined list of historical messages and the new messages.
-    """
+def load_conversation_history(conversation_id: Optional[str], messages: List[dict], tool_call_id: Optional[str] = None) -> List[dict]:
     if not conversation_id:
         logger.warning("⚠️ No conversation_id provided, returning only new messages.")
         return messages
 
     past_messages = []
-
-    # Try Redis first if available.
     if REDIS_AVAILABLE and redis_client:
         try:
             history_raw = redis_client.get(conversation_id)
@@ -304,7 +239,6 @@ def load_conversation_history(conversation_id: Optional[str], messages: List[dic
         except Exception as e:
             logger.error(f"⚠️ Error retrieving conversation history from Redis: {e}", exc_info=True)
 
-    # Fallback to database if Redis is unavailable or fails.
     if not past_messages:
         try:
             conversation = ChatConversation.objects.get(conversation_id=conversation_id)
@@ -330,17 +264,6 @@ def load_conversation_history(conversation_id: Optional[str], messages: List[dic
     return formatted_past_messages + messages
 
 def store_conversation_history(conversation_id, full_history, response_obj=None):
-    """
-    Stores new conversation messages in the database (avoiding duplicates) and updates Redis.
-
-    Args:
-        conversation_id (str): Unique conversation identifier.
-        full_history (list): List of message dictionaries.
-        response_obj (Optional[Any]): Optional response data.
-
-    Returns:
-        bool: True if storage was successful, False otherwise.
-    """
     try:
         chat, created = ChatConversation.objects.get_or_create(conversation_id=conversation_id)
         if created:
@@ -383,20 +306,7 @@ def store_conversation_history(conversation_id, full_history, response_obj=None)
         logger.error(f"⚠️ Error storing conversation history: {e}", exc_info=True)
         return False
 
-def run_conversation(blueprint_instance: Any,
-                     messages_extended: List[dict],
-                     context_vars: dict) -> Tuple[Any, dict]:
-    """
-    Executes the blueprint's conversation logic and returns the response and updated context.
-
-    Args:
-        blueprint_instance (Any): The blueprint instance to run.
-        messages_extended (List[dict]): Combined historical and new messages.
-        context_vars (dict): Conversation context variables.
-
-    Returns:
-        Tuple[Any, dict]: The response object and updated context variables.
-    """
+def run_conversation(blueprint_instance: Any, messages_extended: List[dict], context_vars: dict) -> Tuple[Any, dict]:
     result = blueprint_instance.run_with_context(messages_extended, context_vars)
     response_obj = result["response"]
     updated_context = result["context_variables"]
@@ -411,42 +321,17 @@ def run_conversation(blueprint_instance: Any,
 @authentication_classes([EnvOrTokenAuthentication])
 @permission_classes([IsAuthenticated])
 def chat_completions(request):
-    """
-    Handles chat completion requests by routing them to the appropriate handler,
-    either an LLM passthrough or a blueprint-based processor.
-    
-    Workflow:
-      1. Parse the incoming JSON request to extract the model, messages, and context.
-      2. Determine the processing mode:
-           - If the model is configured with "passthrough" in the LLM config,
-             the request is routed to an LLM passthrough handler.
-           - Otherwise, it is processed via a blueprint.
-      3. Retrieve the conversation history:
-           - In stateful mode (indicated by the STATEFUL_CHAT_ID_PATH environment variable),
-             retrieve history from Redis, or fall back to PostgreSQL.
-           - If no conversation_id is provided, generate a new UUID for persistent tracking.
-      4. Execute the conversation logic (either via the LLM or blueprint handler).
-      5. Serialize the complete response, including details like prompt and usage statistics.
-      6. Store the updated conversation history for continuity in future interactions.
-      7. Return the final JSON response.
-    """
     if request.method != "POST":
         return Response({"error": "Method not allowed. Use POST."}, status=405)
 
     logger.info(f"Authenticated User: {request.user}")
-    
+
     parse_result = parse_chat_request(request)
     if isinstance(parse_result, Response):
         return parse_result
 
     body, model, messages, context_vars, conversation_id, tool_call_id = parse_result
-    # Extract conversation details:
-    # - 'conversation_id' is expected to uniquely identify the conversation.
-    # - When STATEFUL_CHAT_ID_PATH is set (stateful mode), if conversation_id is missing,
-    #   a new UUID is generated to enable persistent history tracking via Redis (or fallback to the database).
-    # - 'messages' contains the new client messages to be processed.
-    
-    # Identify the type of model being used: passthrough LLM or blueprint.
+
     llm_cfg = config.get("llm", {})
     if model in llm_cfg and llm_cfg[model].get("passthrough"):
         model_type = "llm"
@@ -496,7 +381,6 @@ def chat_completions(request):
     },
     summary="Lists discovered blueprint folders as models."
 )
-
 @csrf_exempt
 @api_view(["GET"])
 @permission_classes([AllowAny])
@@ -506,45 +390,40 @@ def list_models(request):
         return JsonResponse({"error": "Method not allowed. Use GET."}, status=405)
 
     try:
-        # Use startup blueprints_metadata instead of re-running discovery
-        global blueprints_metadata
+        global blueprints_metadata, config
         allowed = os.getenv("SWARM_BLUEPRINTS")
         if allowed and allowed.strip():
             blueprints_metadata_local = filter_blueprints(blueprints_metadata, allowed)
         else:
             blueprints_metadata_local = blueprints_metadata
         data = [
-            {"id": key, "object": "model", "title": meta.get("title", "No title"), "description": meta.get("description", "No description")}
+            {
+                "id": key,
+                "object": "model",
+                "title": meta.get("title", "No title"),
+                "description": meta.get("description", "No description"),
+            }
             for key, meta in blueprints_metadata_local.items()
         ]
-        
-        # Always include passthrough LLMs
         llm_config = config.get("llm", {})
-        llm_data = []
-        for key, conf in llm_config.items():
-            if conf.get("passthrough"):
-                filtered_conf = {k: v for k, v in conf.items() if k != "api_key"}
-                desc = ", ".join(f"{k}: {v}" for k, v in filtered_conf.items())
-                llm_data.append({
-                    "id": key,
-                    "object": "llm",
-                    "title": key,
-                    "description": desc,
-                })
+        llm_data = [
+            {
+                "id": key,
+                "object": "llm",
+                "title": key,
+                "description": ", ".join(f"{k}: {v}" for k, v in {k: v for k, v in conf.items() if k != "api_key"}.items())
+            }
+            for key, conf in llm_config.items() if conf.get("passthrough")
+        ]
         data.extend(llm_data)
-        
         logger.debug(f"Returning models: {data}")
         return JsonResponse({"object": "list", "data": data}, status=200)
     except Exception as e:
         logger.error(f"Error listing models: {e}", exc_info=True)
-        return JsonResponse({"error": "Internal Server Error"}, status=500)    
-    
+        return JsonResponse({"error": "Internal Server Error"}, status=500)
+
 @csrf_exempt
 def django_chat_webpage(request, blueprint_name):
-    """
-    Renders the chat webpage for Django.
-    Passes the conversation ID and blueprint name to the template.
-    """
     return render(request, 'django_chat_webpage.html', {
         'conversation_id': request.GET.get("conversation_id"),
         'blueprint_name': blueprint_name
@@ -552,11 +431,6 @@ def django_chat_webpage(request, blueprint_name):
 
 @csrf_exempt
 def blueprint_webpage(request, blueprint_name):
-    """
-    Serves a webpage for a specific blueprint.
-    
-    If the blueprint is not found, returns an error page listing available blueprints.
-    """
     logger.debug(f"Received request for blueprint webpage: '{blueprint_name}'")
     if blueprint_name not in blueprints_metadata:
         logger.warning(f"Blueprint '{blueprint_name}' not found.")
@@ -574,13 +448,8 @@ def blueprint_webpage(request, blueprint_name):
 
 @csrf_exempt
 def chatbot(request):
-    """
-    Renders the chatbot interface webpage.
-    """
     logger.debug("Rendering chatbot web UI")
-    context = {
-        "dark_mode": request.session.get('dark_mode', True)
-    }
+    context = {"dark_mode": request.session.get('dark_mode', True)}
     return render(request, "rest_mode/chatbot.html", context)
 
 DEFAULT_CONFIG = {
@@ -596,11 +465,6 @@ DEFAULT_CONFIG = {
 }
 
 def serve_swarm_config(request):
-    """
-    Serves the current Swarm configuration as JSON.
-    
-    If the configuration file is missing or contains invalid JSON, falls back to a default configuration.
-    """
     config_path = Path(settings.BASE_DIR) / "swarm_config.json"
     try:
         with open(config_path, 'r') as f:

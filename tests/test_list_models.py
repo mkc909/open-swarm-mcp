@@ -1,19 +1,44 @@
 import json
 import os
-from django.test import TestCase, Client, override_settings
+from django.test import TestCase, Client
 from django.urls import reverse
 import swarm.extensions.blueprint as bp
+from swarm import views
 
 class BlueprintFilterTestCase(TestCase):
     def setUp(self):
         self.client = Client()
         os.environ["SWARM_BLUEPRINTS"] = ""
-        # Monkey-patch discover_blueprints to return a fixed dictionary.
+        
+        # Store original values
         self.original_discover = bp.discover_blueprints
-        bp.discover_blueprints = lambda paths: {"echo": {"title": "Echo Blueprint"}}
+        self.original_config = views.config
+        self.original_blueprints_metadata = views.blueprints_metadata
+        
+        # Mock discover_blueprints
+        bp.discover_blueprints = lambda paths: {
+            "echo": {"title": "Echo Blueprint", "description": "Echoes input"},
+            "test_bp": {"title": "Test Blueprint", "description": "Test BP"}
+        }
+        
+        # Mock config and blueprints_metadata
+        global config, blueprints_metadata
+        views.config = {
+            "llm": {
+                "mock_llm": {"provider": "test", "model": "mock", "passthrough": True},
+                "other_llm": {"provider": "test", "model": "other", "passthrough": False}
+            },
+            "blueprints": {
+                "echo": {"path": "/mock/path/echo", "api": True},
+                "test_bp": {"path": "/mock/path/test_bp"}
+            }
+        }
+        views.blueprints_metadata = bp.discover_blueprints(["/mock/path"])
 
     def tearDown(self):
         bp.discover_blueprints = self.original_discover
+        views.config = self.original_config
+        views.blueprints_metadata = self.original_blueprints_metadata
         if "SWARM_BLUEPRINTS" in os.environ:
             del os.environ["SWARM_BLUEPRINTS"]
 
@@ -23,9 +48,12 @@ class BlueprintFilterTestCase(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content.decode())
-        for model in data["data"]:
-            self.assertEqual(model["id"], "echo")
-        del os.environ["SWARM_BLUEPRINTS"]
+        
+        blueprint_ids = {model["id"] for model in data["data"] if model["object"] == "model"}
+        llm_ids = {model["id"] for model in data["data"] if model["object"] == "llm"}
+        
+        self.assertEqual(blueprint_ids, {"echo"})
+        self.assertEqual(llm_ids, {"mock_llm"})
 
 if __name__ == "__main__":
     import unittest

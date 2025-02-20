@@ -20,6 +20,8 @@ if CUSTOM_BASE_DIR:
     BASE_DIR = Path(CUSTOM_BASE_DIR)
 else:
     BASE_DIR = Path(__file__).resolve().parent.parent.parent
+    if not (BASE_DIR / 'manage.py').exists():  # Ensure we're in the project root (Docker fix)
+        BASE_DIR = Path('/app')
 logger.debug(f"BASE_DIR resolved to: {BASE_DIR}")
 
 # Load environment variables from .env file
@@ -27,17 +29,15 @@ load_dotenv(dotenv_path=BASE_DIR / '.env')
 
 # Define a logs directory within the base directory
 LOGS_DIR = BASE_DIR / 'logs'
-
-# Ensure the logs directory exists
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Add the project root and the app directory to the system path
-sys.path.append(str(BASE_DIR))  # Add the project root
+sys.path.append(str(BASE_DIR))
 sys.path.append(str(BASE_DIR / 'src/swarm/'))
 logger.debug(f"System path updated: {sys.path}")
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("API_AUTH_KEY", 'django-insecure-your-secret-key')  # Use API_AUTH_KEY if provided, else default value
+SECRET_KEY = os.getenv("API_AUTH_KEY", 'django-insecure-your-secret-key')
 
 # Blueprint discovery and configuration
 blueprints_path_env = os.getenv("BLUEPRINTS_PATH", "").strip()
@@ -73,7 +73,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Enables static file serving
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -89,7 +89,7 @@ ROOT_URLCONF = 'swarm.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'src/swarm/templates'],  # Updated to use pathlib for consistency
+        'DIRS': [BASE_DIR / 'src/swarm/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -105,11 +105,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'swarm.wsgi.application'
 ASGI_APPLICATION = 'swarm.asgi.application'
 
-
 # Database
-# Determine database selection from environment variable (default: sqlite)
 DJANGO_DATABASE = os.getenv("DJANGO_DATABASE", "sqlite").lower()
-
 if DJANGO_DATABASE == "postgres":
     DATABASES = {
         'default': {
@@ -131,84 +128,51 @@ elif DJANGO_DATABASE == "sqlite":
 else:
     raise ValueError(f"Invalid value for DJANGO_DATABASE: {DJANGO_DATABASE}. Must be 'sqlite' or 'postgres'.")
 
-# Warn if stateful mode is enabled but using SQLite
 if os.getenv("STATEFUL_CHAT_ID_PATH") and DJANGO_DATABASE != "postgres":
-    logger.warning("⚠️  WARNING: Stateful chat is enabled, but DJANGO_DATABASE is set to 'sqlite'. "
-                   "Consider switching to 'postgres' for scalability and persistence.")
+    logger.warning("⚠️ Stateful chat enabled with SQLite. Consider 'postgres' for scalability.")
 
 @receiver(connection_created)
 def set_sqlite_optimizations(sender, connection, **kwargs):
-    """Apply SQLite PRAGMA settings when a new database connection is created."""
     if connection.vendor == 'sqlite':
         cursor = connection.cursor()
-        cursor.execute('PRAGMA journal_mode=WAL;')  # Enable Write-Ahead Logging
-        cursor.execute('PRAGMA synchronous=NORMAL;')  # Reduce disk sync overhead
-        cursor.execute('PRAGMA temp_store=MEMORY;')  # Use memory for temp tables
-        cursor.execute('PRAGMA mmap_size=30000000000;')  # Use memory-mapped I/O
-        cursor.execute('PRAGMA cache_size=-5000;')  # Limit cache to 5MB
-        cursor.execute('PRAGMA busy_timeout=5000;')  # Prevent "database is locked" errors
+        cursor.execute('PRAGMA journal_mode=WAL;')
+        cursor.execute('PRAGMA synchronous=NORMAL;')
+        cursor.execute('PRAGMA temp_store=MEMORY;')
+        cursor.execute('PRAGMA mmap_size=30000000000;')
+        cursor.execute('PRAGMA cache_size=-5000;')
+        cursor.execute('PRAGMA busy_timeout=5000;')
         cursor.close()
 
-# Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = False
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'  # Define a root directory for collectstatic
-STATICFILES_DIRS = [
-    BASE_DIR / "src/swarm/static"
-]
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [BASE_DIR / "src/swarm/static"]
 STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-    },
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Logging Configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
-        'verbose': {
-            'format': '[{asctime}] {levelname} {name}: {message}',
-            'style': '{',
-        },
+        'verbose': {'format': '[{asctime}] {levelname} {name}: {message}', 'style': '{'},
     },
     'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
-        },
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'verbose'},
         'file_rest_mode': {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
@@ -227,33 +191,19 @@ LOGGING = {
         },
     },
     'loggers': {
-        'django': {  # Add this logger
-            'handlers': ['console', 'file_default'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-        'rest_mode': {
-            'handlers': ['console', 'file_rest_mode'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        '': {  # Root logger
-            'handlers': ['console', 'file_default'],
-            'level': 'INFO',
-        },
+        'django': {'handlers': ['console', 'file_default'], 'level': 'INFO', 'propagate': True},
+        'rest_mode': {'handlers': ['console', 'file_rest_mode'], 'level': 'DEBUG', 'propagate': False},
+        '': {'handlers': ['console', 'file_default'], 'level': 'INFO'},
     },
 }
 
-ACCOUNT_EMAIL_VERIFICATION = "none"  # Skip email verification
-ACCOUNT_SIGNUP_REDIRECT_URL = "/django_chat/"  # Redirect to homepage after signup
-ACCOUNT_AUTHENTICATION_METHOD = "username_email"  # Allow both username and email login
-ACCOUNT_USERNAME_REQUIRED = True  # Require usernames
-ACCOUNT_EMAIL_REQUIRED = False  # Emails optional for dev POC
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_SIGNUP_REDIRECT_URL = "/django_chat/"
+ACCOUNT_AUTHENTICATION_METHOD = "username_email"
+ACCOUNT_USERNAME_REQUIRED = True
+ACCOUNT_EMAIL_REQUIRED = False
 
-# Caching Configuration
-USE_DJANGO_CACHE = True  # Set to False to disable caching
-# swarm/settings.py
-
+USE_DJANGO_CACHE = True
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -261,29 +211,16 @@ CACHES = {
     }
 }
 
-INSTALLED_APPS += [
-    'rest_framework.authtoken',
-]
+INSTALLED_APPS += ['rest_framework.authtoken']
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'swarm.auth.EnvOrTokenAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': ['swarm.auth.EnvOrTokenAuthentication'],
+    'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
-# Disable CSRF for DRF authentication
-# SESSION_COOKIE_HTTPONLY = True
-# CSRF_COOKIE_HTTPONLY = True
-# CSRF_TRUSTED_ORIGINS = ['http://localhost:8000']
-
-# Discover and load blueprint settings only when not in CLI mode
-import os
+# Discover blueprint settings
 if not os.getenv("SWARM_CLI"):
-    # Attempt to load static blueprint configuration from swarm_config.json.
     config_path = BASE_DIR / "swarm_config.json"
     if config_path.exists():
         try:
@@ -291,47 +228,26 @@ if not os.getenv("SWARM_CLI"):
             with open(config_path, "r") as f:
                 config_data = json.load(f)
             static_blueprints = config_data.get("blueprints", {})
-            if static_blueprints:
-                for blueprint_name, blueprint_conf in static_blueprints.items():
-                    # If SWARM_BLUEPRINTS env var is set, only load blueprints in the allowed list.
-                    allowed = os.getenv("SWARM_BLUEPRINTS", "").strip()
-                    if allowed and blueprint_name not in [bp.strip() for bp in allowed.split(",")]:
-                        continue
-                    bp_settings_path = Path(blueprint_conf["path"]) / "settings.py"
-                    if bp_settings_path.exists():
-                        logger.info(f"Loading static settings for blueprint: {blueprint_name}")
-                        with open(bp_settings_path, "r") as f:
-                            code = compile(f.read(), str(bp_settings_path), "exec")
-                            exec(code, globals())
-                    else:
-                        logger.warning(f"Settings file not found for blueprint '{blueprint_name}' at {bp_settings_path}")
-            else:
-                # No static blueprint configuration found; fall back to dynamic discovery if BLUEPRINTS_PATH is set.
-                bp_path = os.getenv("BLUEPRINTS_PATH", "").strip()
-                if bp_path:
-                    bp_dir = Path(bp_path)
-                    if bp_dir.exists():
-                        for blueprint_name in os.listdir(bp_dir):
-                            blueprint_path = bp_dir / blueprint_name
-                            settings_path = blueprint_path / "settings.py"
-                            if settings_path.exists():
-                                logger.info(f"Loading dynamic settings for blueprint: {blueprint_name}")
-                                with open(settings_path) as f:
-                                    code = compile(f.read(), str(settings_path), "exec")
-                                    exec(code, globals(), globals())
-                    else:
-                        logger.info(f"Dynamic blueprint directory not found: {bp_dir}, skipping blueprint settings loading")
+            for blueprint_name, blueprint_conf in static_blueprints.items():
+                allowed = os.getenv("SWARM_BLUEPRINTS", "").strip()
+                if allowed and blueprint_name not in [bp.strip() for bp in allowed.split(",")]:
+                    continue
+                bp_settings_path = Path(blueprint_conf["path"]) / "settings.py"
+                if bp_settings_path.exists():
+                    logger.info(f"Loading static settings for blueprint: {blueprint_name}")
+                    with open(bp_settings_path, "r") as f:
+                        code = compile(f.read(), str(bp_settings_path), "exec")
+                        exec(code, globals())
                 else:
-                    logger.info("No static blueprint configuration and BLUEPRINTS_PATH not set; skipping blueprint settings loading")
+                    logger.warning(f"Settings file not found for blueprint '{blueprint_name}' at {bp_settings_path}")
         except Exception as e:
-            logger.error(f"Error loading blueprint configuration from swarm_config.json: {e}", exc_info=True)
+            logger.error(f"Error loading blueprint config from swarm_config.json: {e}", exc_info=True)
     else:
         logger.info(f"swarm_config.json not found in BASE_DIR: {BASE_DIR}, skipping blueprint settings loading")
 else:
     logger.info("CLI mode detected; skipping blueprint settings loading")
+
 if 'pytest' in sys.argv[0]:
-    MIGRATION_MODULES = {
-        'swarm': None,
-    }
-    
-logger.debug("Final INSTALLED_APPS: %s", INSTALLED_APPS)
+    MIGRATION_MODULES = {'swarm': None}
+
+logger.debug(f"Final INSTALLED_APPS: {INSTALLED_APPS}")

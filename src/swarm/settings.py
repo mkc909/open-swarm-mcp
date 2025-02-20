@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'swarm',
     'swarm.extensions.blueprint.modes.rest_mode',
+    'blueprints.university',
 ]
 
 MIDDLEWARE = [

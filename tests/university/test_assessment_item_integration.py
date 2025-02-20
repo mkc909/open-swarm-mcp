@@ -2,13 +2,23 @@ import os
 os.environ.setdefault('ENABLE_API_AUTH', 'false')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'swarm.settings')
 import pytest
-pytestmark = pytest.mark.skip(reason="Skipping broken tests pending followup")
 import django
 django.setup()
 from django.test import TestCase, Client
+from unittest.mock import patch
 
 class AssessmentItemIntegrationTests(TestCase):
+    from unittest.mock import patch
+
     def setUp(self):
+        # Ensure API authentication is disabled during this test by patching environment and authentication method
+        self.env_patch = patch.dict(os.environ, {"ENABLE_API_AUTH": "false", "API_AUTH_TOKEN": ""}, clear=False)
+        self.env_patch.start()
+        from swarm.auth import EnvAuthenticatedUser
+        self.auth_patch = patch("swarm.auth.EnvOrTokenAuthentication.authenticate", return_value=(EnvAuthenticatedUser(), None))
+        self.auth_patch.start()
+        import importlib, swarm.auth
+        importlib.reload(swarm.auth)
         self.client = Client()
         # Create prerequisites: teaching unit, course, student, enrollment
         response = self.client.post('/v1/university/teaching-units/',

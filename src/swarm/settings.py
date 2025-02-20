@@ -282,17 +282,50 @@ REST_FRAMEWORK = {
 # Discover and load blueprint settings only when not in CLI mode
 import os
 if not os.getenv("SWARM_CLI"):
-    if BLUEPRINTS_DIR.exists():
-        for blueprint_name in os.listdir(BLUEPRINTS_DIR):
-            blueprint_path = BLUEPRINTS_DIR / blueprint_name
-            settings_path = blueprint_path / 'settings.py'
-            if settings_path.exists() and (not SWARM_BLUEPRINTS or blueprint_name in SWARM_BLUEPRINTS):
-                logger.info(f"Loading settings for blueprint: {blueprint_name}")
-                with open(settings_path) as f:
-                    code = compile(f.read(), str(settings_path), 'exec')
-                    exec(code, globals(), locals())
+    # Attempt to load static blueprint configuration from swarm_config.json.
+    config_path = BASE_DIR / "swarm_config.json"
+    if config_path.exists():
+        try:
+            import json
+            with open(config_path, "r") as f:
+                config_data = json.load(f)
+            static_blueprints = config_data.get("blueprints", {})
+            if static_blueprints:
+                for blueprint_name, blueprint_conf in static_blueprints.items():
+                    # If SWARM_BLUEPRINTS env var is set, only load blueprints in the allowed list.
+                    allowed = os.getenv("SWARM_BLUEPRINTS", "").strip()
+                    if allowed and blueprint_name not in [bp.strip() for bp in allowed.split(",")]:
+                        continue
+                    bp_settings_path = Path(blueprint_conf["path"]) / "settings.py"
+                    if bp_settings_path.exists():
+                        logger.info(f"Loading static settings for blueprint: {blueprint_name}")
+                        with open(bp_settings_path, "r") as f:
+                            code = compile(f.read(), str(bp_settings_path), "exec")
+                            exec(code, globals())
+                    else:
+                        logger.warning(f"Settings file not found for blueprint '{blueprint_name}' at {bp_settings_path}")
+            else:
+                # No static blueprint configuration found; fall back to dynamic discovery if BLUEPRINTS_PATH is set.
+                bp_path = os.getenv("BLUEPRINTS_PATH", "").strip()
+                if bp_path:
+                    bp_dir = Path(bp_path)
+                    if bp_dir.exists():
+                        for blueprint_name in os.listdir(bp_dir):
+                            blueprint_path = bp_dir / blueprint_name
+                            settings_path = blueprint_path / "settings.py"
+                            if settings_path.exists():
+                                logger.info(f"Loading dynamic settings for blueprint: {blueprint_name}")
+                                with open(settings_path) as f:
+                                    code = compile(f.read(), str(settings_path), "exec")
+                                    exec(code, globals(), globals())
+                    else:
+                        logger.info(f"Dynamic blueprint directory not found: {bp_dir}, skipping blueprint settings loading")
+                else:
+                    logger.info("No static blueprint configuration and BLUEPRINTS_PATH not set; skipping blueprint settings loading")
+        except Exception as e:
+            logger.error(f"Error loading blueprint configuration from swarm_config.json: {e}", exc_info=True)
     else:
-        logger.info(f"Blueprints directory not found: {BLUEPRINTS_DIR}, skipping blueprint settings loading")
+        logger.info(f"swarm_config.json not found in BASE_DIR: {BASE_DIR}, skipping blueprint settings loading")
 else:
     logger.info("CLI mode detected; skipping blueprint settings loading")
 if 'pytest' in sys.argv[0]:

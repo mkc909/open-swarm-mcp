@@ -1,7 +1,7 @@
 {
-
+    
     "llm": {
-
+    
         "default": {
             "provider": "openai",
             "model": "gpt-4o",
@@ -44,7 +44,8 @@
             "provider": "openai",
             "model": "deepseek-r1-distill-llama-70b",
             "base_url": "https://api.groq.com/openai/v1",
-            "api_key": "${GROQ_API_KEY}"
+            "api_key": "${GROQ_API_KEY}",
+            "passthrough": true
         },
         "gpt-4o": {
             "provider": "openai",
@@ -54,7 +55,8 @@
             "cost": 0.5,
             "speed": 0.5,
             "intelligence": 0.5,
-            "temperature": 0.1
+            "temperature": 0.1,
+            "passthrough": true
         },
         "gpt-3.5-turbo-instruct": {
             "provider": "openai",
@@ -67,9 +69,9 @@
             "temperature": 0.1
         }
     },
-
+    
     "mcpServers": {
-
+    
         "mcp-npx-fetch": {
             "command": "npx",
             "args": [
@@ -77,7 +79,7 @@
                 "@tokenizin/mcp-npx-fetch"
             ]
         },
-
+    
         "mcp-doc-forge": {
             "command": "npx",
             "args": [
@@ -85,7 +87,7 @@
                 "@cablate/mcp-doc-forge"
             ]
         },
-
+    
         "youtube-transcript": {
             "command": "uvx",
             "args": [
@@ -94,7 +96,7 @@
                 "mcp-youtube-transcript"
             ]
         },
-
+    
         "mcp-wolfram-alpha": {
             "command": "uvx",
             "args": [
@@ -106,7 +108,7 @@
                 "WOLFRAM_API_KEY": "${WOLFRAM_API_KEY}"
             }
         },
-
+    
         "home-assistant": {
             "command": "mcp-proxy",
             "env": {
@@ -114,7 +116,7 @@
                 "API_ACCESS_TOKEN": "${HASS_API_KEY}"
             }
         },
-
+    
         "memory": {
             "command": "npx",
             "args": [
@@ -122,15 +124,18 @@
                 "@modelcontextprotocol/server-memory"
             ]
         },
-
+    
         "server-wp-mcp": {
             "command": "npx",
-            "args": ["-y", "github:matthewhand/server-wp-mcp"],
+            "args": [
+                "-y",
+                "github:matthewhand/server-wp-mcp"
+            ],
             "env": {
-				"WP_SITES_PATH": "${WP_SITES_PATH}"
-			}
+                "WP_SITES_PATH": "${WP_SITES_PATH}"
+            }
         },
-
+    
         "mcp-server-reddit": {
             "command": "uvx",
             "args": [
@@ -139,46 +144,63 @@
                 "mcp-server-reddit"
             ]
         },
-
+    
         "mcp-shell": {
             "command": "npx",
-            "args": ["-y", "github:hdresearch/mcp-shell"]
+            "args": [
+                "-y",
+                "github:hdresearch/mcp-shell"
+            ]
         },
-
+    
         "brave-search": {
             "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-brave-search"
+            ],
             "env": {
-              "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+                "BRAVE_API_KEY": "${BRAVE_API_KEY}"
             }
-          },
-
+        },
+    
         "duckduckgo-search": {
-			"command": "npx",
-			"args": ["-y", "mcp-duckduckgo-search"],
-			"env": {
-				"SERPAPI_KEY": "${SERPAPI_API_KEY}"
-			}
-		},
-
+            "command": "npx",
+            "args": [
+                "-y",
+                "mcp-duckduckgo-search"
+            ],
+            "env": {
+                "SERPAPI_KEY": "${SERPAPI_API_KEY}"
+            }
+        },
+    
         "sqlite": {
             "command": "npx",
-            "args": ["-y", "mcp-server-sqlite-npx", "${SQLITE_DB_PATH}"],
+            "args": [
+                "-y",
+                "mcp-server-sqlite-npx",
+                "${SQLITE_DB_PATH}"
+            ],
             "env": {
-              "npm_config_registry": "https://registry.npmjs.org",
-              "SQLITE_DB_PATH": "${SQLITE_DB_PATH}"
+                "npm_config_registry": "https://registry.npmjs.org",
+                "SQLITE_DB_PATH": "${SQLITE_DB_PATH}"
             }
         },
-
+    
         "sqlite-uvx": {
             "command": "uvx",
-            "args": ["mcp-server-sqlite", "--db-path", "/tmp/test.db"]
+            "args": [
+                "mcp-server-sqlite",
+                "--db-path",
+                "/tmp/test.db"
+            ]
         },
-
+    
         "mcp-flowise": {
             "command": "uvx",
             "args": [
-                "--from", 
+                "--from",
                 "git+https://github.com/matthewhand/mcp-flowise",
                 "mcp-flowise"
             ],
@@ -192,11 +214,11 @@
                 "FLOWISE_CHATFLOW_DESCRIPTIONS": ""
             }
         },
-
+    
         "fly": {
             "command": "uvx",
             "args": [
-                "--from", 
+                "--from",
                 "git+https://github.com/matthewhand/mcp-openapi-proxy",
                 "mcp-flowise"
             ],
@@ -209,7 +231,7 @@
                 "API_AUTH_BEARER": "${FLY_API_TOKEN}"
             }
         },
-
+    
         "rag-docs": {
             "command": "npx",
             "args": [
@@ -222,37 +244,43 @@
                 "QDRANT_API_KEY": "${QDRANT_API_KEY}"
             }
         },
-
+    
         "mcp-installer": {
             "command": "npx",
-            "args": ["-y", "@anaisbetts/mcp-installer"]
+            "args": [
+                "-y",
+                "@anaisbetts/mcp-installer"
+            ]
         },
-
+    
         "sequential-thinking": {
             "command": "npx",
             "args": [
-              "-y",
-              "@modelcontextprotocol/server-sequential-thinking"
+                "-y",
+                "@modelcontextprotocol/server-sequential-thinking"
             ]
         },
-
+    
         "everything": {
             "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-everything"],
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-everything"
+            ],
             "env": {}
         },
-
+    
         "filesystem": {
             "command": "npx",
             "args": [
-              "-y",
-              "@modelcontextprotocol/server-filesystem",
-              "${ALLOWED_PATH}"
+                "-y",
+                "@modelcontextprotocol/server-filesystem",
+                "${ALLOWED_PATH}"
             ],
             "env": {
                 "ALLOWED_PATH": "${ALLOWED_PATH}"
-            } 
+            }
         }
-
+    
     }
 }

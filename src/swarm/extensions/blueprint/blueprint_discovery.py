@@ -54,7 +54,10 @@ def discover_blueprints(directories: List[str]) -> Dict[str, Dict[str, Any]]:
 
             try:
                 # Dynamically import the blueprint module
-                spec = importlib.util.spec_from_file_location(module_name, blueprint_file)
+                spec = importlib.util.spec_from_file_location(module_name, str(blueprint_file))
+                if spec is None or spec.loader is None:
+                    logger.error(f"Cannot load module spec for blueprint file: {blueprint_file}. Skipping.")
+                    continue
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
                 logger.debug(f"Successfully imported module: {module_name}")
@@ -72,7 +75,11 @@ def discover_blueprints(directories: List[str]) -> Dict[str, Dict[str, Any]]:
                         if callable(metadata):
                             metadata = metadata()
                         elif isinstance(metadata, property):
-                            metadata = metadata.fget(obj)
+                            if metadata.fget is not None:
+                                metadata = metadata.fget(obj)
+                            else:
+                                logger.error(f"Blueprint '{blueprint_name}' property 'metadata' has no getter.")
+                                raise ValueError(f"Blueprint '{blueprint_name}' metadata is inaccessible.")
 
                         if not isinstance(metadata, dict):
                             logger.error(f"Metadata for blueprint '{blueprint_name}' is not a dictionary.")

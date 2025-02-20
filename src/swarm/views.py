@@ -501,6 +501,19 @@ def list_models(request):
             }
             for key, meta in blueprints_metadata_local.items()
         ]
+        llm_config = config.get("llm", {})
+        llm_data = []
+        for key, conf in llm_config.items():
+            if conf.get("passthrough"):
+                filtered_conf = { k: v for k, v in conf.items() if k != "api_key" }
+                desc = ", ".join(f"{k}: {v}" for k, v in filtered_conf.items())
+                llm_data.append({
+                    "id": key,
+                    "object": "llm",
+                    "title": key,
+                    "description": desc,
+                })
+        data.extend(llm_data)
         return JsonResponse({"object": "list", "data": data}, status=200)
     except Exception as e:
         logger.error(f"Error listing models: {e}", exc_info=True)

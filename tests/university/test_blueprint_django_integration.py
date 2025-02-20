@@ -1,6 +1,6 @@
 import os
 import pytest
-pytestmark = pytest.mark.skip(reason="Skipping broken tests pending followup")
+# pytestmark = pytest.mark.skip(reason="Skipping broken tests pending followup")
 os.environ.setdefault('ENABLE_API_AUTH', 'false')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'swarm.settings')
 import django

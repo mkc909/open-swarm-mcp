@@ -273,15 +273,19 @@ def load_conversation_history(conversation_id: Optional[str], messages: List[dic
                               tool_call_id: Optional[str] = None) -> List[dict]:
     """
     Retrieve conversation history from Redis or the database.
-    Optionally filters by tool_call_id for context-relevant messages.
-
+    
+    This function implements stateful message tracking for chat conversations.
+    If the environment variable STATEFUL_CHAT_ID_PATH is set, Redis is used
+    to store and retrieve conversation history. Should Redis retrieval fail,
+    the function falls back to fetching messages from the PostgreSQL database.
+    
     Args:
         conversation_id (Optional[str]): Unique conversation identifier.
-        messages (List[dict]): New messages from the request.
-        tool_call_id (Optional[str]): Optional tool call identifier.
-
+        messages (List[dict]): New messages from the current request.
+        tool_call_id (Optional[str]): Optional tool call identifier to filter history.
+    
     Returns:
-        List[dict]: Combined list of historical and new messages.
+        List[dict]: A combined list of historical messages and the new messages.
     """
     if not conversation_id:
         logger.warning("⚠️ No conversation_id provided, returning only new messages.")
@@ -408,16 +412,23 @@ def run_conversation(blueprint_instance: Any,
 @permission_classes([IsAuthenticated])
 def chat_completions(request):
     """
-    Main entry point for chat completion requests.
+    Handles chat completion requests by routing them to the appropriate handler,
+    either an LLM passthrough or a blueprint-based processor.
     
     Workflow:
-      1. Parse the request JSON.
-      2. Lookup and initialize the appropriate blueprint.
-      3. Retrieve conversation history.
-      4. Execute the conversation.
-      5. Serialize the response.
-      6. Store conversation history.
-      7. Return the response.
+      1. Parse the incoming JSON request to extract the model, messages, and context.
+      2. Determine the processing mode:
+           - If the model is configured with "passthrough" in the LLM config,
+             the request is routed to an LLM passthrough handler.
+           - Otherwise, it is processed via a blueprint.
+      3. Retrieve the conversation history:
+           - In stateful mode (indicated by the STATEFUL_CHAT_ID_PATH environment variable),
+             retrieve history from Redis, or fall back to PostgreSQL.
+           - If no conversation_id is provided, generate a new UUID for persistent tracking.
+      4. Execute the conversation logic (either via the LLM or blueprint handler).
+      5. Serialize the complete response, including details like prompt and usage statistics.
+      6. Store the updated conversation history for continuity in future interactions.
+      7. Return the final JSON response.
     """
     if request.method != "POST":
         return Response({"error": "Method not allowed. Use POST."}, status=405)
@@ -429,6 +440,11 @@ def chat_completions(request):
         return parse_result
 
     body, model, messages, context_vars, conversation_id, tool_call_id = parse_result
+    # Extract conversation details:
+    # - 'conversation_id' is expected to uniquely identify the conversation.
+    # - When STATEFUL_CHAT_ID_PATH is set (stateful mode), if conversation_id is missing,
+    #   a new UUID is generated to enable persistent history tracking via Redis (or fallback to the database).
+    # - 'messages' contains the new client messages to be processed.
     
     # Identify the type of model being used: passthrough LLM or blueprint.
     llm_cfg = config.get("llm", {})

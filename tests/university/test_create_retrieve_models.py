@@ -1,5 +1,4 @@
 import pytest
-pytestmark = pytest.mark.skip(reason="Skipping broken tests pending followup")
 from django.test import Client
 
 @pytest.mark.django_db

@@ -15,7 +15,11 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+CUSTOM_BASE_DIR = os.getenv("SWARM_BASE_DIR")
+if CUSTOM_BASE_DIR:
+    BASE_DIR = Path(CUSTOM_BASE_DIR)
+else:
+    BASE_DIR = Path(__file__).resolve().parent.parent.parent
 logger.debug(f"BASE_DIR resolved to: {BASE_DIR}")
 
 # Load environment variables from .env file
@@ -36,8 +40,14 @@ logger.debug(f"System path updated: {sys.path}")
 SECRET_KEY = 'django-insecure-your-secret-key'  # Replace with a strong secret key
 
 # Blueprint discovery and configuration
-BLUEPRINTS_DIR = BASE_DIR / 'blueprints'
-swarm_blueprints_env = os.getenv('SWARM_BLUEPRINTS', '').strip()
+blueprints_path_env = os.getenv("BLUEPRINTS_PATH", "").strip()
+if blueprints_path_env:
+    BLUEPRINTS_DIR = Path(blueprints_path_env)
+elif (BASE_DIR / 'blueprints').exists():
+    BLUEPRINTS_DIR = BASE_DIR / 'blueprints'
+else:
+    BLUEPRINTS_DIR = Path(os.path.expanduser("~/.swarm/blueprints"))
+swarm_blueprints_env = os.getenv("SWARM_BLUEPRINTS", "").strip()
 SWARM_BLUEPRINTS = [name.strip() for name in swarm_blueprints_env.split(',') if name.strip()] if swarm_blueprints_env else []
 logger.info(f"Discovered SWARM_BLUEPRINTS env: {SWARM_BLUEPRINTS}")
 

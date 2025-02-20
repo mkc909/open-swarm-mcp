@@ -94,6 +94,41 @@ def update_null_content(messages):
             message['content'] = ""
     return messages
 
+def truncate_message_history(messages: List[dict], model: str, max_tokens: Optional[int] = None) -> List[dict]:
+    """
+    Truncates the conversation message history to ensure the total token count does not exceed the maximum context size.
+    
+    The maximum context size is determined from the LLM configuration key "max_context" or a global setting specified by the
+    "MAX_OUTPUT" environment variable (default is 2048 tokens).
+    
+    Args:
+        messages (List[dict]): The list of conversation messages.
+        model (str): The model name used to select the appropriate token encoding.
+        max_tokens (Optional[int]): The maximum allowed tokens. If not provided, defaults to the value from MAX_OUTPUT or 2048.
+    
+    Returns:
+        List[dict]: The truncated message list.
+    """
+    import tiktoken
+    from typing import List, Optional
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+    except Exception:
+        encoding = tiktoken.get_encoding("cl100k_base")
+    
+    if max_tokens is None:
+        env_max = os.getenv("MAX_OUTPUT")
+        if env_max:
+            max_tokens = int(env_max)
+        else:
+            max_tokens = 2048
+    
+    total_tokens = sum(len(encoding.encode(msg.get("content", ""))) for msg in messages)
+    while total_tokens > max_tokens and messages:
+        removed = messages.pop(0)
+        total_tokens -= len(encoding.encode(removed.get("content", "")))
+    return messages
+
 # Define a custom message class that provides default values and a dump method.
 class ChatMessage(SimpleNamespace):
     def __init__(self, **kwargs):

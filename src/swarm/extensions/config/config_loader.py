@@ -161,7 +161,7 @@ def load_server_config(file_path: Optional[str] = None) -> dict:
     # Resolve placeholders recursively
     try:
         resolved_config = resolve_placeholders(config)
-        logger.debug(f"Configuration after resolving placeholders: {redact_sensitive_data(resolved_config)}")
+        # logger.debug(f"Configuration after resolving placeholders: {redact_sensitive_data(resolved_config)}")
 
         # Merge external MCP settings if merge is not disabled by env var
         disable_merge = os.getenv("DISABLE_MCP_MERGE", "false").lower() in ("true", "1", "yes")
@@ -197,7 +197,6 @@ def load_server_config(file_path: Optional[str] = None) -> dict:
         logger.error(f"Failed to resolve placeholders in configuration: {e}")
         raise
 
-    globals()["config"] = resolved_config
     globals()["config"] = resolved_config
     return resolved_config
 

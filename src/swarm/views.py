@@ -79,8 +79,8 @@ if REDIS_AVAILABLE:
 CONFIG_PATH = Path(settings.BASE_DIR) / "swarm_config.json"
 try:
     config = load_server_config(str(CONFIG_PATH))
-    redacted_config = redact_sensitive_data(config)  # Redact before logging.
-    logger.debug(f"Loaded configuration from {CONFIG_PATH}: {redacted_config}")
+    # redacted_config = redact_sensitive_data(config)  # Redact before logging.
+    # logger.debug(f"Loaded configuration from {CONFIG_PATH}: {redacted_config}")
 except Exception as e:
     logger.critical(f"Failed to load configuration from {CONFIG_PATH}: {e}")
     raise e
@@ -89,7 +89,7 @@ except Exception as e:
 # Blueprint Discovery and Filtering
 # -----------------------------------------------------------------------------
 
-BLUEPRINTS_DIR = (Path(settings.BASE_DIR) / "blueprints").resolve()
+BLUEPRINTS_DIR = settings.BLUEPRINTS_DIR
 try:
     all_blueprints = discover_blueprints([str(BLUEPRINTS_DIR)])
     # Apply filtering if the SWARM_BLUEPRINTS environment variable is set.

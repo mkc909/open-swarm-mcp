@@ -37,7 +37,7 @@ sys.path.append(str(BASE_DIR / 'src/swarm/'))
 logger.debug(f"System path updated: {sys.path}")
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-your-secret-key'  # Replace with a strong secret key
+SECRET_KEY = os.getenv("API_AUTH_KEY", 'django-insecure-your-secret-key')  # Use API_AUTH_KEY if provided, else default value
 
 # Blueprint discovery and configuration
 blueprints_path_env = os.getenv("BLUEPRINTS_PATH", "").strip()

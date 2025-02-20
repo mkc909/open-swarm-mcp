@@ -429,6 +429,14 @@ def chat_completions(request):
         return parse_result
 
     body, model, messages, context_vars, conversation_id, tool_call_id = parse_result
+    
+    # Identify the type of model being used: passthrough LLM or blueprint.
+    llm_cfg = config.get("llm", {})
+    if model in llm_cfg and llm_cfg[model].get("passthrough"):
+        model_type = "llm"
+    else:
+        model_type = "blueprint"
+    logger.info(f"Identified model type: {model_type} for model: {model}")
 
     blueprint_instance_response = get_blueprint_instance(model, context_vars)
     if isinstance(blueprint_instance_response, Response):
@@ -491,7 +499,10 @@ def list_models(request):
     try:
         all_blueprints = discover_blueprints([str(BLUEPRINTS_DIR)])
         allowed = os.getenv("SWARM_BLUEPRINTS")
-        blueprints_metadata_local = filter_blueprints(all_blueprints, allowed) if allowed else all_blueprints
+        if allowed and allowed.strip():
+            blueprints_metadata_local = filter_blueprints(all_blueprints, allowed)
+        else:
+            blueprints_metadata_local = all_blueprints
         data = [
             {
                 "id": key,
@@ -501,19 +512,21 @@ def list_models(request):
             }
             for key, meta in blueprints_metadata_local.items()
         ]
-        llm_config = config.get("llm", {})
-        llm_data = []
-        for key, conf in llm_config.items():
-            if conf.get("passthrough"):
-                filtered_conf = { k: v for k, v in conf.items() if k != "api_key" }
-                desc = ", ".join(f"{k}: {v}" for k, v in filtered_conf.items())
-                llm_data.append({
-                    "id": key,
-                    "object": "llm",
-                    "title": key,
-                    "description": desc,
-                })
-        data.extend(llm_data)
+        allowed = os.getenv("SWARM_BLUEPRINTS")
+        if allowed is None or allowed == "":
+            llm_config = config.get("llm", {})
+            llm_data = []
+            for key, conf in llm_config.items():
+                if conf.get("passthrough"):
+                    filtered_conf = { k: v for k, v in conf.items() if k != "api_key" }
+                    desc = ", ".join(f"{k}: {v}" for k, v in filtered_conf.items())
+                    llm_data.append({
+                        "id": key,
+                        "object": "llm",
+                        "title": key,
+                        "description": desc,
+                    })
+            data.extend(llm_data)
         return JsonResponse({"object": "list", "data": data}, status=200)
     except Exception as e:
         logger.error(f"Error listing models: {e}", exc_info=True)

@@ -28,24 +28,26 @@ class ViewsTest(TestCase):
                         return False
                 return (DummyUser(), None)
             return None
-        EnvOrTokenAuthentication.authenticate = dummy_authenticate
+        setattr(EnvOrTokenAuthentication, "authenticate", dummy_authenticate)
         # Override authentication and permission classes for chat_completions view.
-        views.chat_completions.authentication_classes = [EnvOrTokenAuthentication]
-        views.chat_completions.permission_classes = []
+        setattr(views.chat_completions, "authentication_classes", [EnvOrTokenAuthentication])
+        setattr(views.chat_completions, "permission_classes", [])
         # Patch get_blueprint_instance to return a dummy blueprint for model "echo"
         self.original_get_blueprint_instance = views.get_blueprint_instance
         from swarm.extensions.blueprint.blueprint_base import BlueprintBase
         class DummyBlueprint(BlueprintBase):
-            metadata = {"title": "Echo Blueprint"}
+            @property
+            def metadata(self):
+                return {"title": "Echo Blueprint", "description": "A dummy blueprint for testing"}
             def create_agents(self):
                 return {}
-            def run_with_context(self, messages, context_vars):
-                return {"response": {"message": "Dummy response"}, "context_variables": context_vars}
+            def run_with_context(self, messages, context_variables):
+                return {"response": {"message": "Dummy response"}, "context_variables": context_variables}
         def dummy_get_blueprint_instance(model, context_vars):
             if model == "echo":
                 return DummyBlueprint(config={'llm': {'default': {'provider': 'openai', 'model': 'default'}}})
             return self.original_get_blueprint_instance(model, context_vars)
-        views.get_blueprint_instance = dummy_get_blueprint_instance
+        setattr(views, "get_blueprint_instance", dummy_get_blueprint_instance)
 
     def tearDown(self):
         # Restore original EnvOrTokenAuthentication

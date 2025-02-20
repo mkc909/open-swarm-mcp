@@ -22,7 +22,7 @@ ENABLE_WEBUI = os.getenv("ENABLE_WEBUI", "false").lower() in ("true", "1", "t")
 router = DefaultRouter()
 router.register(r'v1/chat/messages', ChatMessageViewSet, basename='chatmessage')
 
-urlpatterns = [
+base_urlpatterns = [
     re_path(r'^health/?$', lambda request: HttpResponse("OK"), name='health_check'),
     re_path(r'^v1/chat/completions/?$', views.chat_completions, name='chat_completions'),
     re_path(r'^v1/models/?$', views.list_models, name='list_models'),
@@ -31,13 +31,18 @@ urlpatterns = [
     re_path(r'^swagger-ui/?$', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 ] + router.urls
 
+admin_urlpatterns = []
 if ENABLE_ADMIN:
-    urlpatterns += [path('admin/', admin.site.urls)]
+    admin_urlpatterns = [path('admin/', admin.site.urls)]
+
+webui_urlpatterns = []
 if ENABLE_WEBUI:
-    urlpatterns += [
+    webui_urlpatterns = [
         path('favicon.ico', favicon, name='favicon'),
         path('config/swarm_config.json', views.serve_swarm_config, name='serve_swarm_config'),
         path('<str:blueprint_name>', views.blueprint_webpage, name='blueprint_webpage'),
         path('', views.chatbot, name='chatbot'),
     ]
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    webui_urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+urlpatterns = base_urlpatterns + admin_urlpatterns + webui_urlpatterns

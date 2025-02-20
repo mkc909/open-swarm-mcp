@@ -502,52 +502,43 @@ def chat_completions(request):
 @permission_classes([AllowAny])
 @authentication_classes([])
 def list_models(request):
-    """
-    Lists discovered blueprint folders as models.
-    
-    Returns a JSON response with the metadata of each blueprint.
-    """
-    from pathlib import Path
-    BLUEPRINTS_DIR = (Path(settings.BASE_DIR) / "blueprints").resolve()
     if request.method != "GET":
         return JsonResponse({"error": "Method not allowed. Use GET."}, status=405)
-    
+
     try:
-        all_blueprints = discover_blueprints([str(BLUEPRINTS_DIR)])
+        # Use startup blueprints_metadata instead of re-running discovery
+        global blueprints_metadata
         allowed = os.getenv("SWARM_BLUEPRINTS")
         if allowed and allowed.strip():
-            blueprints_metadata_local = filter_blueprints(all_blueprints, allowed)
+            blueprints_metadata_local = filter_blueprints(blueprints_metadata, allowed)
         else:
-            blueprints_metadata_local = all_blueprints
+            blueprints_metadata_local = blueprints_metadata
         data = [
-            {
-                "id": key,
-                "object": "model",
-                "title": meta.get("title", "No title"),
-                "description": meta.get("description", "No description"),
-            }
+            {"id": key, "object": "model", "title": meta.get("title", "No title"), "description": meta.get("description", "No description")}
             for key, meta in blueprints_metadata_local.items()
         ]
-        allowed = os.getenv("SWARM_BLUEPRINTS")
-        if allowed is None or allowed == "":
-            llm_config = config.get("llm", {})
-            llm_data = []
-            for key, conf in llm_config.items():
-                if conf.get("passthrough"):
-                    filtered_conf = { k: v for k, v in conf.items() if k != "api_key" }
-                    desc = ", ".join(f"{k}: {v}" for k, v in filtered_conf.items())
-                    llm_data.append({
-                        "id": key,
-                        "object": "llm",
-                        "title": key,
-                        "description": desc,
-                    })
-            data.extend(llm_data)
+        
+        # Always include passthrough LLMs
+        llm_config = config.get("llm", {})
+        llm_data = []
+        for key, conf in llm_config.items():
+            if conf.get("passthrough"):
+                filtered_conf = {k: v for k, v in conf.items() if k != "api_key"}
+                desc = ", ".join(f"{k}: {v}" for k, v in filtered_conf.items())
+                llm_data.append({
+                    "id": key,
+                    "object": "llm",
+                    "title": key,
+                    "description": desc,
+                })
+        data.extend(llm_data)
+        
+        logger.debug(f"Returning models: {data}")
         return JsonResponse({"object": "list", "data": data}, status=200)
     except Exception as e:
         logger.error(f"Error listing models: {e}", exc_info=True)
-        return JsonResponse({"error": "Internal Server Error"}, status=500)
-
+        return JsonResponse({"error": "Internal Server Error"}, status=500)    
+    
 @csrf_exempt
 def django_chat_webpage(request, blueprint_name):
     """

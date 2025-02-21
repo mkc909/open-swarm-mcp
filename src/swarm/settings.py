@@ -6,6 +6,9 @@ import logging
 from pathlib import Path
 from dotenv import load_dotenv
 
+# Disable CORS in Django for development purposes, allowing all origins.
+CORS_ALLOW_ALL_ORIGINS = True
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
 

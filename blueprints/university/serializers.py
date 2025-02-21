@@ -38,15 +38,15 @@ class CourseSerializer(serializers.ModelSerializer):
         course = Course.objects.create(**validated_data)
         course.teaching_units.set(teaching_units)
         return course
+
 class StudentSerializer(serializers.ModelSerializer):
     courses = serializers.SerializerMethodField()
     class Meta:
         model = Student
         fields = ("id", "name", "gpa", "status", "courses")
     def get_courses(self, obj):
-        # Use the through relationship via enrollments; explicitly iterate to avoid ORM lookup issues.
         if hasattr(obj, 'enrollments'):
-            return [enrollment.course.id for enrollment in obj.enrollments.all()]
+            return [enrollment.teaching_unit.id for enrollment in obj.enrollments.all()]
         return []
 
 class EnrollmentSerializer(serializers.ModelSerializer):

@@ -17,3 +17,6 @@ try:
     logger.debug("University update succeeded.")
 except Exception as e:
     logger.error("University update failed: %s", e)
+
+# Disable CORS in Django for development purposes, allowing all origins.
+CORS_ALLOW_ALL_ORIGINS = True

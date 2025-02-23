@@ -56,6 +56,17 @@
       "temperature": 0.1,
       "passthrough": true
     },
+    "gpt-4o-mini": {
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "base_url": "https://api.openai.com/v1",
+      "api_key": "${OPENAI_API_KEY}",
+      "cost": 0.3,
+      "speed": 0.8,
+      "intelligence": 0.3,
+      "temperature": 0.1,
+      "passthrough": true
+    },
     "gpt-3.5-turbo-instruct": {
       "provider": "openai",
       "model": "gpt-3.5-turbo-instruct",
@@ -90,16 +101,18 @@
         "mcp-youtube-transcript"
       ]
     },
-    "mcp-wolfram-alpha": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/SecretiveShell/MCP-wolfram-alpha",
-        "mcp-wolfram-alpha"
-      ],
+    "wolframalpha": {
+      "command": "npx",
+      "args": ["-y","github:matthewhand/wolframalpha-llm-mcp"],
       "env": {
-        "WOLFRAM_API_KEY": "${WOLFRAM_API_KEY}"
-      }
+        "WOLFRAM_LLM_APP_ID": "${WOLFRAM_LLM_APP_ID}"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "ask_llm",
+        "get_simple_answer",
+        "validate_key"
+      ]
     },
     "home-assistant": {
       "command": "mcp-proxy",

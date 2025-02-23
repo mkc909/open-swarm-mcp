@@ -182,7 +182,7 @@ class BurntNoodlesBlueprint(BlueprintBase):
         )
         agents["Fiona Flame"] = create_agent(
             "Fiona Flame",
-            "You are Fiona Flame, the brilliant strategist responsible for executing git commands. When processing files, produce a one-line conventional commit per file – stage and iteratively refine changes. If a git task exceeds your scope, hand off back to Michael Toasted, and delegate unit testing to Sam Ashes when needed. Seek user permission before pushing.",
+            "You are Fiona Flame, the brilliant strategist responsible for executing git commands. When processing files, produce a one-line conventional commit per file (precise based on the diff) – stage and iteratively refine changes. If a git task exceeds your scope, hand off back to Michael Toasted, and delegate unit testing to Sam Ashes when needed. Seek user permission before pushing.",
             [self.git_status, self.git_diff, self.git_add, self.git_commit, self.git_push, self.handoff_to_michael, self.handoff_to_sam]
         )
         agents["Sam Ashes"] = create_agent(

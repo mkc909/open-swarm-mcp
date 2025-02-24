@@ -62,6 +62,7 @@ class NebuchaShellzzarBlueprint(BlueprintBase):
                 "and software installation (Tank)."
             ),
             "required_mcp_servers": [
+            "cli_name": "nsh",
                 "filesystem",
                 "mcp-shell",
                 "brave-search",

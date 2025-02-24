@@ -21,6 +21,7 @@ class MIMBlueprint(BlueprintBase):
             "title": "Mission: Improbable",
             "description": "A cheeky team on a mission: led by JimFlimsy with daring support from CinnamonToast and RollinFumble.",
             "required_mcp_servers": [
+            "cli_name": "mission",
                 "memory", "filesystem", "mcp-shell", "brave-search", "rag-docs"
             ],
             "env_vars": ["BRAVE_API_KEY", "QDRANT_URL", "QDRANT_API_KEY", "ALLOWED_PATH"],

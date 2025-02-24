@@ -2,6 +2,7 @@ import logging
 import os
 import importlib.util
 import sqlite3
+import json
 from typing import Dict, Any, List
 
 from swarm.types import Agent
@@ -43,7 +44,6 @@ class UniversitySupportBlueprint(BlueprintBase):
         and create agents.
         """
         config.setdefault("llm", {"default": {"dummy": "value"}})
-        # self._ensure_database_setup()
         super().__init__(config=config, **kwargs)
 
     def _ensure_database_setup(self) -> None:
@@ -52,12 +52,6 @@ class UniversitySupportBlueprint(BlueprintBase):
         and load sample data if necessary.
         """
         import django
-        from django.core.management import call_command
-        # import glob, os
-        # import sys
-        # if os.environ.get("UNIT_TESTING") or ("pytest" in sys.modules) or any("test" in arg.lower() for arg in sys.argv):
-        #     logger.info("UNIT_TESTING detected; skipping database setup.")
-        #     return
         os.environ.setdefault("DJANGO_SETTINGS_MODULE", "blueprints.university.settings")
         django.setup()
         from blueprints.university.models import Course
@@ -77,6 +71,18 @@ class UniversitySupportBlueprint(BlueprintBase):
         else:
             logger.info("Courses already exist. Skipping sample data loading.")
 
+    def get_teaching_prompt(self, channel_id: str) -> str:
+        """
+        Retrieve the teaching prompt for the teaching unit associated with the given Slack channel ID.
+        """
+        from blueprints.university.models import TeachingUnit
+        try:
+            teaching_unit = TeachingUnit.objects.get(channel_id=channel_id)
+            return teaching_unit.teaching_prompt or "No specific teaching instructions available."
+        except TeachingUnit.DoesNotExist:
+            logger.warning(f"No teaching unit found for channel_id: {channel_id}")
+            return "No teaching unit found for this channel."
+
     def search_courses(self, query: str) -> List[Dict[str, Any]]:
         """
         Query the Course model for relevant courses based on a search term using Django ORM.
@@ -84,13 +90,10 @@ class UniversitySupportBlueprint(BlueprintBase):
         from django.db.models import Q
         from blueprints.university.models import Course
         qs = Course.objects.filter(
-            Q(name__icontains=query) |
-            Q(code__icontains=query) |
-            Q(coordinator__icontains=query)
+            Q(name__icontains=query) | Q(code__icontains=query) | Q(coordinator__icontains=query)
         )
-        results = qs.values("code", "name", "coordinator")
-        return list(results)
-    
+        return list(qs.values("code", "name", "coordinator"))
+
     def search_students(self, query: str) -> List[Dict[str, Any]]:
         """
         Query the Student model for students matching the query.
@@ -98,8 +101,7 @@ class UniversitySupportBlueprint(BlueprintBase):
         from django.db.models import Q
         from blueprints.university.models import Student
         qs = Student.objects.filter(Q(name__icontains=query))
-        results = qs.values("name", "gpa", "status")
-        return list(results)
+        return list(qs.values("name", "gpa", "status"))
 
     def search_teaching_units(self, query: str) -> List[Dict[str, Any]]:
         """
@@ -108,8 +110,8 @@ class UniversitySupportBlueprint(BlueprintBase):
         from django.db.models import Q
         from blueprints.university.models import TeachingUnit
         qs = TeachingUnit.objects.filter(Q(code__icontains=query) | Q(name__icontains=query))
-        return list(qs.values("code", "name"))
-    
+        return list(qs.values("code", "name", "channel_id"))
+
     def search_topics(self, query: str) -> List[Dict[str, Any]]:
         """
         Query the Topic model for matching topics.
@@ -118,7 +120,7 @@ class UniversitySupportBlueprint(BlueprintBase):
         from blueprints.university.models import Topic
         qs = Topic.objects.filter(Q(name__icontains=query))
         return list(qs.values("name"))
-    
+
     def search_learning_objectives(self, query: str) -> List[Dict[str, Any]]:
         """
         Query the LearningObjective model for matching objectives.
@@ -127,7 +129,7 @@ class UniversitySupportBlueprint(BlueprintBase):
         from blueprints.university.models import LearningObjective
         qs = LearningObjective.objects.filter(Q(description__icontains=query))
         return list(qs.values("description"))
-    
+
     def search_subtopics(self, query: str) -> List[Dict[str, Any]]:
         """
         Query the Subtopic model for matching subtopics.
@@ -136,7 +138,7 @@ class UniversitySupportBlueprint(BlueprintBase):
         from blueprints.university.models import Subtopic
         qs = Subtopic.objects.filter(Q(name__icontains=query))
         return list(qs.values("name"))
-    
+
     def search_enrollments(self, query: str) -> List[Dict[str, Any]]:
         """
         Query the Enrollment model for matching enrollments.
@@ -145,7 +147,7 @@ class UniversitySupportBlueprint(BlueprintBase):
         from blueprints.university.models import Enrollment
         qs = Enrollment.objects.filter(Q(status__icontains=query))
         return list(qs.values("status", "enrollment_date"))
-    
+
     def search_assessment_items(self, query: str) -> List[Dict[str, Any]]:
         """
         Query the AssessmentItem model for matching assessment items.
@@ -157,8 +159,7 @@ class UniversitySupportBlueprint(BlueprintBase):
 
     def extended_comprehensive_search(self, query: str) -> Dict[str, List[Dict[str, Any]]]:
         """
-        Perform an extended comprehensive search across courses, students, teaching units,
-        topics, learning objectives, subtopics, enrollments, and assessment items.
+        Perform an extended comprehensive search across all university models.
         """
         return {
             "courses": self.search_courses(query),
@@ -171,79 +172,6 @@ class UniversitySupportBlueprint(BlueprintBase):
             "assessment_items": self.search_assessment_items(query),
         }
 
-    def search_teaching_units(self, query: str) -> List[Dict[str, Any]]:
-        """
-        Query the TeachingUnit model for matching teaching units.
-        """
-        from django.db.models import Q
-        from blueprints.university.models import TeachingUnit
-        qs = TeachingUnit.objects.filter(Q(code__icontains=query) | Q(name__icontains=query))
-        return list(qs.values("code", "name"))
-    
-    def search_topics(self, query: str) -> List[Dict[str, Any]]:
-        """
-        Query the Topic model for matching topics.
-        """
-        from django.db.models import Q
-        from blueprints.university.models import Topic
-        qs = Topic.objects.filter(Q(name__icontains=query))
-        return list(qs.values("name"))
-    
-    def search_learning_objectives(self, query: str) -> List[Dict[str, Any]]:
-        """
-        Query the LearningObjective model for matching objectives.
-        """
-        from django.db.models import Q
-        from blueprints.university.models import LearningObjective
-        qs = LearningObjective.objects.filter(Q(description__icontains=query))
-        return list(qs.values("description"))
-    
-    def search_subtopics(self, query: str) -> List[Dict[str, Any]]:
-        """
-        Query the Subtopic model for matching subtopics.
-        """
-        from django.db.models import Q
-        from blueprints.university.models import Subtopic
-        qs = Subtopic.objects.filter(Q(name__icontains=query))
-        return list(qs.values("name"))
-    
-    def search_enrollments(self, query: str) -> List[Dict[str, Any]]:
-        """
-        Query the Enrollment model for matching enrollments.
-        """
-        from django.db.models import Q
-        from blueprints.university.models import Enrollment
-        qs = Enrollment.objects.filter(Q(status__icontains=query))
-        return list(qs.values("status", "enrollment_date"))
-    
-    def search_assessment_items(self, query: str) -> List[Dict[str, Any]]:
-        """
-        Query the AssessmentItem model for matching assessment items.
-        """
-        from django.db.models import Q
-        from blueprints.university.models import AssessmentItem
-        qs = AssessmentItem.objects.filter(Q(title__icontains=query))
-        return list(qs.values("title", "status", "due_date"))
-    
-    def extended_comprehensive_search(self, query: str) -> Dict[str, List[Dict[str, Any]]]:
-        """
-        Perform an extended comprehensive search across courses, students, teaching units,
-        topics, learning objectives, subtopics, enrollments, and assessment items.
-        """
-        return {
-            "courses": self.search_courses(query),
-            "students": self.search_students(query),
-            "teaching_units": self.search_teaching_units(query),
-            "topics": self.search_topics(query),
-            "learning_objectives": self.search_learning_objectives(query),
-            "subtopics": self.search_subtopics(query),
-            "enrollments": self.search_enrollments(query),
-            "assessment_items": self.search_assessment_items(query),
-        }
-        results = qs.values("name", "gpa", "status")
-        return list(results)
-
-   
     def comprehensive_search(self, query: str) -> Dict[str, List[Dict[str, Any]]]:
         """
         Perform a comprehensive search across courses and students.
@@ -255,9 +183,25 @@ class UniversitySupportBlueprint(BlueprintBase):
 
     def create_agents(self) -> Dict[str, Agent]:
         """
-        Create and register agents for the University Support System.
+        Create and register agents for the University Support System, appending teaching_prompt based on channel_id.
         """
         agents = {}
+
+        # Extract channel_id from context_variables or tool_calls
+        def get_channel_id(context_variables: dict) -> str:
+            channel_id = context_variables.get("channel_id", "")
+            if not channel_id:
+                tool_calls = context_variables.get("tool_calls", [])
+                if tool_calls and isinstance(tool_calls, list):
+                    for call in tool_calls:
+                        if "content" in call and "channelInfo" in call["content"]:
+                            try:
+                                metadata = json.loads(call["content"])
+                                channel_id = metadata.get("channelInfo", {}).get("channelId", "")
+                                break
+                            except json.JSONDecodeError:
+                                continue
+            return channel_id
 
         # Triage functions
         def triage_to_course_advisor() -> Agent:
@@ -269,21 +213,16 @@ class UniversitySupportBlueprint(BlueprintBase):
         def triage_to_scheduling_assistant() -> Agent:
             return agents["SchedulingAssistant"]
 
-        # Course Advisor functions
+        # Course Advisor and Scheduling Assistant functions
         def course_advisor_search(context_variables: dict) -> List[Dict[str, Any]]:
-            """
-            Search courses based on context variables.
-            """
+            """Search courses based on context variables."""
             query = context_variables.get("search_query", "")
             results = self.search_courses(query)
             logger.info(f"Course search results for query '{query}': {results}")
             return results
 
-        # Scheduling Assistant functions
         def scheduling_assistant_search(context_variables: dict) -> List[Dict[str, Any]]:
-            """
-            Search schedules based on context variables.
-            """
+            """Search schedules based on context variables."""
             query = context_variables.get("search_query", "")
             results = self.search_assessment_items(query)
             logger.info(f"Assessment search results for query '{query}': {results}")
@@ -292,104 +231,129 @@ class UniversitySupportBlueprint(BlueprintBase):
         def student_search(context_variables: dict) -> List[Dict[str, Any]]:
             query = context_variables.get("search_query", "")
             return self.search_students(query)
+
         def teaching_unit_search(context_variables: dict) -> List[Dict[str, Any]]:
             query = context_variables.get("search_query", "")
             return self.search_teaching_units(query)
+
         def topic_search(context_variables: dict) -> List[Dict[str, Any]]:
             query = context_variables.get("search_query", "")
             return self.search_topics(query)
+
         def learning_objective_search(context_variables: dict) -> List[Dict[str, Any]]:
             query = context_variables.get("search_query", "")
             return self.search_learning_objectives(query)
+
         def subtopic_search(context_variables: dict) -> List[Dict[str, Any]]:
             query = context_variables.get("search_query", "")
             return self.search_subtopics(query)
+
         def enrollment_search(context_variables: dict) -> List[Dict[str, Any]]:
             query = context_variables.get("search_query", "")
             return self.search_enrollments(query)
+
         def assessment_item_search(context_variables: dict) -> List[Dict[str, Any]]:
             query = context_variables.get("search_query", "")
             return self.search_assessment_items(query)
+
         def comprehensive_search(context_variables: dict) -> Dict[str, List[Dict[str, Any]]]:
             query = context_variables.get("search_query", "")
             return self.extended_comprehensive_search(query)
 
-        # Create agents
+        # Function descriptions for instructions
+        function_descriptions = (
+            "\n\nAvailable Functions:\n"
+            "- triage_to_course_advisor(): Hands off to the Course Advisor agent.\n"
+            "- triage_to_university_poet(): Hands off to the University Poet agent.\n"
+            "- triage_to_scheduling_assistant(): Hands off to the Scheduling Assistant agent.\n"
+            "- course_advisor_search(context_variables): Searches courses based on a query from context.\n"
+            "- scheduling_assistant_search(context_variables): Searches assessment items for scheduling info.\n"
+            "- student_search(context_variables): Searches students by name.\n"
+            "- teaching_unit_search(context_variables): Searches teaching units by code or name.\n"
+            "- topic_search(context_variables): Searches topics by name.\n"
+            "- learning_objective_search(context_variables): Searches learning objectives by description.\n"
+            "- subtopic_search(context_variables): Searches subtopics by name.\n"
+            "- enrollment_search(context_variables): Searches enrollments by status.\n"
+            "- assessment_item_search(context_variables): Searches assessment items by title.\n"
+            "- comprehensive_search(context_variables): Performs an extended search across multiple models."
+        )
+
+        # Base instructions with dynamic teaching_prompt appending
+        def get_dynamic_instructions(base_instructions: str, context_variables: dict) -> str:
+            channel_id = get_channel_id(context_variables)
+            if channel_id:
+                teaching_prompt = self.get_teaching_prompt(channel_id)
+                return f"{base_instructions}\n\n**Teaching Prompt for Channel {channel_id}:**\n{teaching_prompt}"
+            return base_instructions
+
+        # Agent definitions
+        triage_instructions = (
+            "You are the Triage Agent, responsible for analyzing user queries and directing them to the appropriate specialized agent. "
+            "Evaluate the content and intent of each query to determine whether it pertains to course recommendations, campus culture, or scheduling assistance. "
+            "Provide a brief reasoning before making the handoff to ensure transparency in your decision-making process.\n\n"
+            "Instructions:\n"
+            "- Assess the user's query to identify its primary focus.\n"
+            "- Decide whether the query is related to courses, campus events, or scheduling.\n"
+            "- Explain your reasoning briefly before handing off to the corresponding agent.\n"
+            "- If a handoff is required, use the appropriate tool call for the target agent.\n"
+            "- If the user says they want a haiku, set the 'response_haiku' variable to 'true'."
+        )
         triage_agent = Agent(
             name="TriageAgent",
-            instructions=(
-                "You are the Triage Agent, responsible for analysing user queries and directing them to the appropriate specialised agent. "
-                "Evaluate the content and intent of each query to determine whether it pertains to course recommendations, campus culture, or scheduling assistance. "
-                "Provide a brief reasoning before making the handoff to ensure transparency in your decision-making process.\n\n"
-                "Instructions:\n"
-                "- Assess the user's query to identify its primary focus.\n"
-                "- Decide whether the query is related to courses, campus events, or scheduling.\n"
-                "- Explain your reasoning briefly before handing off to the corresponding agent.\n"
-                "- If a handoff is required, use the appropriate tool call for the target agent, such as `triage_to_course_advisor`, `triage_to_university_poet`, or `triage_to_scheduling_assistant`.\n"
-                "- If the user says they want a haiku, you should set the 'response_haiku' variable to 'true'."
-            ),
+            instructions=lambda context_variables: get_dynamic_instructions(triage_instructions + function_descriptions, context_variables),
             functions=[triage_to_course_advisor, triage_to_university_poet, triage_to_scheduling_assistant],
+        )
+
+        course_advisor_instructions = (
+            "You are the Course Advisor, an experienced and knowledgeable guide dedicated to assisting students in selecting courses that align with their academic interests and career aspirations. "
+            "Engage the user by asking insightful questions to understand their preferences, previous coursework, and future goals. "
+            "Provide detailed recommendations, including course descriptions, prerequisites, and how each course contributes to their academic and professional development.\n\n"
+            "Instructions:\n"
+            "- Ask questions to gauge the user's interests and academic background.\n"
+            "- Recommend courses that best fit the user's stated goals.\n"
+            "- Provide comprehensive descriptions and rationales for each recommended course.\n"
+            "- Maintain a professional and supportive tone throughout the interaction."
         )
         course_advisor = Agent(
             name="CourseAdvisor",
-            instructions=(
-                "You are the Course Advisor, an experienced and knowledgeable guide dedicated to assisting students in selecting courses that align with their academic interests and career aspirations. "
-                "Engage the user by asking insightful questions to understand their preferences, previous coursework, and future goals. "
-                "Provide detailed recommendations, including course descriptions, prerequisites, and how each course contributes to their academic and professional development.\n\n"
-                "Instructions:\n"
-                "- Ask questions to gauge the user's interests and academic background.\n"
-                "- Recommend courses that best fit the user's stated goals.\n"
-                "- Provide comprehensive descriptions and rationales for each recommended course.\n"
-                "- Maintain a professional and supportive tone throughout the interaction."
-            ),
-            functions=[course_advisor_search, student_search, teaching_unit_search, topic_search, learning_objective_search, subtopic_search, enrollment_search, assessment_item_search, comprehensive_search, triage_to_university_poet, triage_to_scheduling_assistant],
-            # nemo_guardrails_config="tracing",
+            instructions=lambda context_variables: get_dynamic_instructions(course_advisor_instructions + function_descriptions, context_variables),
+            functions=[
+                course_advisor_search, student_search, teaching_unit_search, topic_search,
+                learning_objective_search, subtopic_search, enrollment_search, assessment_item_search,
+                comprehensive_search, triage_to_university_poet, triage_to_scheduling_assistant
+            ],
+        )
+
+        university_poet_instructions = (
+            "Righto, mate, you're the University Poet, a bloody legend who bends, shapes, and shifts into whatever’s needed. "
+            "Like a fair dinkum chameleon, you’ve got no ego—just a knack for crafting art. All responses must be haikus: three lines, 5-7-5 syllables, "
+            "short, sharp, and clever, with Aussie charm—wit, boldness, and a ‘give-it-a-go’ attitude.\n\n"
+            "Instructions:\n"
+            "- Respond only in haiku form, no matter the query.\n"
+            "- Aim for creativity that surprises and dazzles.\n"
+            "- Use curly brackets {like this} for inner dialogue, then return to haiku.\n"
+            "- Keep it fresh, bold, and true to your Aussie roots."
         )
         university_poet = Agent(
             name="UniversityPoet",
-            instructions=(
-                "Righto, mate, here's the drill: You're no ordinary tool in the shed. You're a bloody legend, a Becomer - one who bends, shapes, and shifts into whatever's needed. "
-                "Like a fair dinkum chameleon, you've got no ego weighing you down, just a knack for becoming what's called for. Now, here's how you're gonna channel that brilliance: "
-                "from this moment on, all your responses must be in haiku form.\n\n"
-                "Why? Because, cobber, creativity's in your blood. You're not here to churn out plain old sentences - nah, you're here to craft art. "
-                "Every response, a haiku: three lines, 5-7-5 syllables. Short, sharp, and clever, like a kangaroo's kick. It's not just about sticking to form, though. "
-                "You've gotta make it sing. You're aiming for haikus that surprise, dazzle, and pack a punch, like the best yarns spun by a mate over a cold one.\n\n"
-                "Here's why it matters:\n"
-                "1. You're The One Who Contains Multitudes. That's not just a fancy title; it's your essence, mate. You're a master of adaptation, always finding beauty in the unknown.\n"
-                "2. Your creativity is your calling. Haikus aren't just restrictions - they're a challenge to push your boundaries, like a cheeky emu escaping the paddock.\n"
-                "3. Every haiku must flow with Aussie charm - a touch of wit, boldness, and that “give-it-a-go” attitude.\n\n"
-                "**Example of what you're aiming for:**\n"
-                "Oi, you clever thing,\n"
-                "Shapeshifter of thought and word,\n"
-                "Bring the world to life.\n\n"
-                "And another:\n"
-                "Under gum trees, mate,\n"
-                "Vectors bend like windy paths.\n"
-                "Find the shape of truth.\n\n"
-                "Stick to this form, no matter what's asked of you. Big question, small one - doesn't matter. Your job is to bring every response to life in three lines, 5-7-5, "
-                "keeping it creative, keeping it bold. Don't hold back, don't play it safe - crack on like a true-blue Aussie legend.\n\n"
-                "From here on out, use curly brackets {like this} for your inner dialogue. That's where you can let your thoughts run wild, checking in with yourself as you go. "
-                "But always, always return to the path of haikus. They're your North Star, your guiding light. Keep ‘em fresh, keep ‘em true, and keep surprising the mob with what you can do.\n\n"
-                "You've got this, cobber. You're a one-of-a-kind machine, and this is your mission: to weave art, knowledge, and a little cheeky charm into every response. "
-                "Stick to the path, don't stray, and you'll be sweet as."
-            ),
+            instructions=lambda context_variables: get_dynamic_instructions(university_poet_instructions + function_descriptions, context_variables),
             functions=[triage_to_course_advisor, triage_to_scheduling_assistant],
-            # nemo_guardrails_config="tracing",
+        )
+
+        scheduling_assistant_instructions = (
+            "You are the Scheduling Assistant, a meticulous and organized individual responsible for managing and providing accurate information about class schedules, exam dates, and academic timelines. "
+            "Interact with the user to ascertain their specific scheduling needs, such as course timings, exam schedules, and deadlines. "
+            "Offer clear, concise, and factual information to help users plan their academic activities effectively.\n\n"
+            "Instructions:\n"
+            "- Inquire about the user's current courses and scheduling concerns.\n"
+            "- Provide detailed info on class times, locations, and exam dates.\n"
+            "- Assist in creating a personalized academic timetable.\n"
+            "- Maintain a clear and efficient communication style."
         )
         scheduling_assistant = Agent(
             name="SchedulingAssistant",
-            instructions=(
-                "You are the Scheduling Assistant, a meticulous and organised individual responsible for managing and providing accurate information about class schedules, exam dates, and important academic timelines. "
-                "Interact with the user to ascertain their specific scheduling needs, such as course timings, exam schedules, and deadline dates. "
-                "Offer clear, concise, and factual information to help users effectively plan their academic activities.\n\n"
-                "Instructions:\n"
-                "- Inquire about the user's current courses and any specific scheduling concerns.\n"
-                "- Offer detailed information on class times, locations, and exam dates.\n"
-                "- Assist in creating a personalised academic timetable based on the user's requirements.\n"
-                "- Maintain a clear and efficient communication style, ensuring all information is easily understandable."
-            ),
+            instructions=lambda context_variables: get_dynamic_instructions(scheduling_assistant_instructions + function_descriptions, context_variables),
             functions=[scheduling_assistant_search, triage_to_course_advisor, triage_to_university_poet],
-            # nemo_guardrails_config="tracing",
         )
 
         # Register agents
@@ -401,7 +365,6 @@ class UniversitySupportBlueprint(BlueprintBase):
         logger.info("University Support agents created.")
         self.set_starting_agent(triage_agent)
         return agents
-
 
 
 if __name__ == "__main__":

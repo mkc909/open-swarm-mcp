@@ -61,8 +61,8 @@ class NebuchaShellzzarBlueprint(BlueprintBase):
                 "management (Trinity), shell commands (Neo), search/doc retrieval (Oracle), database tasks (Cypher), "
                 "and software installation (Tank)."
             ),
-            "required_mcp_servers": [
             "cli_name": "nsh",
+            "required_mcp_servers": [
                 "filesystem",
                 "mcp-shell",
                 "brave-search",

@@ -58,6 +58,7 @@ class WhiskeyTangoFoxtrotBlueprint(BlueprintBase):
             "title": "WhiskeyTangoFoxtrot",
             "description": "Tracks free online services with SQLite and web search using a multi-tiered agent hierarchy.",
             "required_mcp_servers": ["sqlite", "brave-search", "mcp-npx-fetch", "mcp-doc-forge", "filesystem"],
+            "cli_name": "wtf",
             "env_vars": ["BRAVE_API_KEY", "SQLITE_DB_PATH", "ALLOWED_PATH"]
         }
 

@@ -79,6 +79,7 @@ class OmniplexBlueprint(ABC):
             "title": "Omniplex – The Ultimate AI Tool Orchestrator",
             "description": "Dynamically loads all available MCP servers, categorizes them by execution type, and enables cross-agent awareness for optimal task delegation.",
             "required_mcp_servers": [],
+            "cli_name": "omni",
             "env_vars": [],
         }
 

@@ -30,6 +30,7 @@ class DigitalButlersBlueprint(BlueprintBase):
             "title": "DigitalButlers",
             "description": "Provides private web search and home automation.",
             "required_mcp_servers": ["memory", "duckduckgo-search", "home-assistant"],
+            "cli_name": "pls",
             "env_vars": ["SERPAPI_API_KEY", "HASS_URL", "HASS_API_KEY"]
         }
 

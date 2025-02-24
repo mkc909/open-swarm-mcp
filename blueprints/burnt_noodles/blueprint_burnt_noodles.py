@@ -21,6 +21,7 @@ class BurntNoodlesBlueprint(BlueprintBase):
             "title": "Burnt Noodles",
             "description": "A sizzling team on a mission: led by Michael Toasted, with Fiona Flame and Sam Ashes igniting creativity.",
             "required_mcp_servers": [],
+            "cli_name": "noodles",
             "env_vars": []
         }
 

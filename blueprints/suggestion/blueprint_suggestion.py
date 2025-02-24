@@ -38,6 +38,7 @@ class SuggestionBlueprint(BlueprintBase):
             "title": "Suggestion Integration Blueprint",
             "description": "An agent that provides structured suggestions for follow-up messages.",
             "required_mcp_servers": [],
+            "cli_name": "suggest",
             "env_vars": [],
         }
 

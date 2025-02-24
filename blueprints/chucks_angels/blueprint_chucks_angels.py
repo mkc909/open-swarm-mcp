@@ -25,6 +25,7 @@ class TaskRiserBlueprint(BlueprintBase):
             "title": "TaskRiser",
             "description": "Manages transcripts, computations, Flowise API, and compute resources (WIP).",
             "required_mcp_servers": ["youtube-transcript", "wolframalpha-llm-mcp", "mcp-flowise", "sqlite-uvx", "fly"],
+            "cli_name": "chuck",
             "env_vars": ["WOLFRAM_LLM_APP_ID", "FLY_API_TOKEN"]
         }
 

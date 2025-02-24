@@ -59,6 +59,7 @@ class DivineOpsBlueprint(BlueprintBase):
                 "and system administration, focusing on core tasks with essential MCP servers."
             ),
             "required_mcp_servers": [
+            "cli_name": "divcode",
                 "memory",
                 "filesystem",
                 "mcp-shell",

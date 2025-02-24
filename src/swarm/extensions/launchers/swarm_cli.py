@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import importlib.util
-import inspect
 import os
 import sys
 import subprocess
@@ -103,31 +102,13 @@ def run_blueprint(blueprint_name):
         print("Error: The blueprint does not have a main() function.")
         sys.exit(1)
 
-def get_blueprint_class(module):
-    """Find the subclass of BlueprintBase in the module."""
-    from swarm.extensions.blueprint import BlueprintBase
-    for name, obj in inspect.getmembers(module, inspect.isclass):
-        if issubclass(obj, BlueprintBase) and obj != BlueprintBase:
-            return obj
-    raise ValueError(f"No BlueprintBase subclass found in module for '{module.__name__}'")
-
 def install_blueprint(blueprint_name):
     target_dir = os.path.join(MANAGED_DIR, blueprint_name)
     blueprint_file = os.path.join(target_dir, f"blueprint_{blueprint_name}.py")
     if not os.path.exists(blueprint_file):
         print(f"Error: Blueprint '{blueprint_name}' is not registered. Add it using 'swarm-cli add <path>'.")
         sys.exit(1)
-    spec = importlib.util.spec_from_file_location("blueprint_module", blueprint_file)
-    if spec is None or spec.loader is None:
-        print("Error: Failed to load blueprint module from:", blueprint_file)
-        sys.exit(1)
-    module = importlib.util.module_from_spec(spec)
-    src_path = os.path.join(os.getcwd(), "src")
-    if src_path not in sys.path:
-        sys.path.insert(0, src_path)
-    spec.loader.exec_module(module)
-    blueprint_class = get_blueprint_class(module)
-    cli_name = blueprint_class.metadata.fget(None).get("cli_name", blueprint_name)
+    cli_name = blueprint_name  # Use blueprint_name as default cli_name for simplicity
     PyInstaller.__main__.run([
         blueprint_file,
         "--onefile",
@@ -141,22 +122,7 @@ def install_blueprint(blueprint_name):
 def uninstall_blueprint(blueprint_name, blueprint_only=False, wrapper_only=False):
     target_dir = os.path.join(MANAGED_DIR, blueprint_name)
     blueprint_file = os.path.join(target_dir, f"blueprint_{blueprint_name}.py")
-    
-    # Load cli_name from metadata if available
-    cli_name = blueprint_name  # Default
-    if os.path.exists(blueprint_file):
-        spec = importlib.util.spec_from_file_location("blueprint_module", blueprint_file)
-        if spec is None or spec.loader is None:
-            print("Error: Failed to load blueprint module from:", blueprint_file)
-            sys.exit(1)
-        module = importlib.util.module_from_spec(spec)
-        src_path = os.path.join(os.getcwd(), "src")
-        if src_path not in sys.path:
-            sys.path.insert(0, src_path)
-        spec.loader.exec_module(module)
-        blueprint_class = get_blueprint_class(module)
-        cli_name = blueprint_class.metadata.fget(None).get("cli_name", blueprint_name)
-    
+    cli_name = blueprint_name  # Default to blueprint_name for uninstall
     cli_path = os.path.join(BIN_DIR, cli_name)
     removed = False
     

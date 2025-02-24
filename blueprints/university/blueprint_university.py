@@ -26,6 +26,7 @@ class UniversitySupportBlueprint(BlueprintBase):
             "title": "University Support System",
             "description": "Multi-agent system for university support using SQLite tools.",
             "required_mcp_servers": [],
+            "cli_name": "uni",
             "env_vars": ["SQLITE_DB_PATH"],
             "django_modules": {
                 "models": "blueprints.university.models",

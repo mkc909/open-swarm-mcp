@@ -26,6 +26,7 @@ class DilbotUniverseBlueprint(BlueprintBase):
             "title": "Dilbot Universe SDLC",
             "description": "A comedic multi-agent blueprint with 9-step SDLC routines, using DB-stored instructions.",
             "required_mcp_servers": [],
+            "cli_name": "dilbot",
             "env_vars": [],
             "django_modules": {
                 "models": "blueprints.dilbot_universe.models",

@@ -39,6 +39,7 @@ class EchoCraftBlueprint(BlueprintBase):
             "title": "EchoCraft Integration Blueprint",
             "description": "A basic blueprint that defines an agent capable of echoing user inputs.",
             "required_mcp_servers": [],
+            "cli_name": "ecraft",
             "env_vars": [],
         }
 

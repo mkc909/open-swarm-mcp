@@ -108,12 +108,10 @@ def install_blueprint(blueprint_name):
     if not os.path.exists(blueprint_file):
         print(f"Error: Blueprint '{blueprint_name}' is not registered. Add it using 'swarm-cli add <path>'.")
         sys.exit(1)
-    # Load blueprint to get cli_name from metadata
     spec = importlib.util.spec_from_file_location("blueprint_module", blueprint_file)
     blueprint = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(blueprint)
     cli_name = getattr(blueprint.BlueprintBase(), "metadata", {}).get("cli_name", blueprint_name)
-    # Build PyInstaller executable
     PyInstaller.__main__.run([
         blueprint_file,
         "--onefile",
@@ -124,6 +122,45 @@ def install_blueprint(blueprint_name):
     ])
     print(f"Blueprint '{blueprint_name}' installed as CLI utility '{cli_name}' at: {os.path.join(BIN_DIR, cli_name)}")
 
+def uninstall_blueprint(blueprint_name, blueprint_only=False, wrapper_only=False):
+    target_dir = os.path.join(MANAGED_DIR, blueprint_name)
+    blueprint_file = os.path.join(target_dir, f"blueprint_{blueprint_name}.py")
+    
+    # Load cli_name from metadata if available
+    cli_name = blueprint_name  # Default
+    if os.path.exists(blueprint_file):
+        spec = importlib.util.spec_from_file_location("blueprint_module", blueprint_file)
+        blueprint = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(blueprint)
+        cli_name = getattr(blueprint.BlueprintBase(), "metadata", {}).get("cli_name", blueprint_name)
+    
+    cli_path = os.path.join(BIN_DIR, cli_name)
+    removed = False
+    
+    if not blueprint_only and not wrapper_only:  # Remove both by default
+        if os.path.exists(target_dir):
+            shutil.rmtree(target_dir)
+            print(f"Blueprint '{blueprint_name}' removed from {MANAGED_DIR}.")
+            removed = True
+        if os.path.exists(cli_path):
+            os.remove(cli_path)
+            print(f"Wrapper '{cli_name}' removed from {BIN_DIR}.")
+            removed = True
+    elif blueprint_only:
+        if os.path.exists(target_dir):
+            shutil.rmtree(target_dir)
+            print(f"Blueprint '{blueprint_name}' removed from {MANAGED_DIR}.")
+            removed = True
+    elif wrapper_only:
+        if os.path.exists(cli_path):
+            os.remove(cli_path)
+            print(f"Wrapper '{cli_name}' removed from {BIN_DIR}.")
+            removed = True
+    
+    if not removed:
+        print(f"Error: Nothing to uninstall for '{blueprint_name}' with specified options.")
+        sys.exit(1)
+
 def main():
     os.environ.pop("SWARM_BLUEPRINTS", None)
     parser = argparse.ArgumentParser(
@@ -133,6 +170,7 @@ def main():
                     "  delete  : Delete a registered blueprint.\n"
                     "  run     : Run a blueprint by name.\n"
                     "  install : Install a blueprint as a CLI utility with PyInstaller.\n"
+                    "  uninstall : Uninstall a blueprint and/or its CLI wrapper.\n"
                     "  migrate : Apply Django database migrations.\n"
                     "  config  : Manage swarm configuration (LLM and MCP servers).",
         formatter_class=argparse.RawTextHelpFormatter)
@@ -153,6 +191,11 @@ def main():
     
     parser_install = subparsers.add_parser("install", help="Install a blueprint as a CLI utility with PyInstaller.")
     parser_install.add_argument("name", help="Blueprint name to install as a CLI utility.")
+    
+    parser_uninstall = subparsers.add_parser("uninstall", help="Uninstall a blueprint and/or its CLI wrapper.")
+    parser_uninstall.add_argument("name", help="Blueprint name to uninstall.")
+    parser_uninstall.add_argument("--blueprint-only", action="store_true", help="Remove only the blueprint directory.")
+    parser_uninstall.add_argument("--wrapper-only", action="store_true", help="Remove only the CLI wrapper.")
     
     parser_migrate = subparsers.add_parser("migrate", help="Apply Django database migrations.")
     
@@ -183,6 +226,8 @@ def main():
         run_blueprint(args.name)
     elif args.command == "install":
         install_blueprint(args.name)
+    elif args.command == "uninstall":
+        uninstall_blueprint(args.name, args.blueprint_only, args.wrapper_only)
     elif args.command == "migrate":
         try:
             subprocess.run(["python", "manage.py", "migrate"], check=True)

@@ -21,6 +21,7 @@ class ChaosCrewBlueprint(BlueprintBase):
             "title": "ChaosCrew",
             "description": "Manages WordPress content using DB-driven configs and memory.",
             "required_mcp_servers": ["memory", "server-wp-mcp"],
+            "cli_name": "famties",
             "env_vars": ["WP_SITES_PATH"]
         }
 

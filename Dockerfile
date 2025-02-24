@@ -36,6 +36,7 @@ EXPOSE ${PORT}
 # Runtime logic:
 # - If SWAPFILE_PATH is defined, configure swap
 # - Set default SQLite DB path if not provided
+# - If FACTORY_RESET_DATABASE is True, delete the database file
 # - Check if database exists and has tables; apply migrations accordingly
 # - Start the Django server
 CMD if [ -n "$SWAPFILE_PATH" ]; then \
@@ -47,6 +48,10 @@ CMD if [ -n "$SWAPFILE_PATH" ]; then \
     fi && \
     : "${SQLITE_DB_PATH:=/app/db.sqlite3}" && \
     mkdir -p "$(dirname "$SQLITE_DB_PATH")" && \
+    if [ "$FACTORY_RESET_DATABASE" = "True" ]; then \
+      echo "FACTORY_RESET_DATABASE is True; deleting database file if it exists" && \
+      rm -f "$SQLITE_DB_PATH"; \
+    fi && \
     if [ -f "$SQLITE_DB_PATH" ]; then \
       TABLE_COUNT=$(sqlite3 "$SQLITE_DB_PATH" "SELECT count(*) FROM sqlite_master WHERE type='table';") && \
       if [ "$TABLE_COUNT" -gt 0 ]; then \

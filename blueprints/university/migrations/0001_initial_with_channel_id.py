@@ -90,7 +90,7 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         help_text="Slack channel ID associated with this teaching unit (e.g., C123456).",
-                        max_length=20,
+                        max_length=50,  
                         null=True,
                         unique=True,
                     ),
@@ -410,3 +410,4 @@ class Migration(migrations.Migration):
             unique_together={("student", "teaching_unit")},
         ),
     ]
+

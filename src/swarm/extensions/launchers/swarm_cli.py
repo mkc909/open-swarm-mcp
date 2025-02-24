@@ -6,6 +6,7 @@ import sys
 import subprocess
 import shutil
 import json
+import PyInstaller.__main__
 
 def resolve_env_vars(data):
     if isinstance(data, dict):
@@ -17,29 +18,23 @@ def resolve_env_vars(data):
     else:
         return data
 
-# Managed blueprints directory
 MANAGED_DIR = os.path.expanduser("~/.swarm/blueprints")
+BIN_DIR = os.path.expanduser("~/.swarm/bin")
 
 def ensure_managed_dir():
     if not os.path.exists(MANAGED_DIR):
         os.makedirs(MANAGED_DIR, exist_ok=True)
+    if not os.path.exists(BIN_DIR):
+        os.makedirs(BIN_DIR, exist_ok=True)
 
 def add_blueprint(source_path, blueprint_name=None):
-    """
-    Copy the blueprint file from the provided source_path into the managed blueprints directory.
-    If blueprint_name is not provided, try to infer it from the filename by stripping a leading "blueprint_" and the .py extension.
-    """
     source_path = os.path.normpath(source_path)
     if not os.path.exists(source_path):
         print("Error: source file/directory does not exist:", source_path)
         sys.exit(1)
-    
-    # Determine how to handle the blueprint source.
     if os.path.isdir(source_path):
-        # For directory source, infer blueprint name from directory if not provided.
         if not blueprint_name:
             blueprint_name = os.path.basename(os.path.normpath(source_path))
-        # Recursively copy the entire directory to the managed blueprints directory.
         target_dir = os.path.join(MANAGED_DIR, blueprint_name)
         if os.path.exists(target_dir):
             shutil.rmtree(target_dir)
@@ -50,29 +45,22 @@ def add_blueprint(source_path, blueprint_name=None):
             os.makedirs(dest_root, exist_ok=True)
             for file in files:
                 shutil.copy2(os.path.join(root, file), os.path.join(dest_root, file))
-        print("DEBUG: Source directory contents:", os.listdir(source_path))
-        print("DEBUG: Target directory contents after copy:", os.listdir(target_dir))
         print(f"Blueprint '{blueprint_name}' added successfully to {target_dir}.")
-        return
     else:
         blueprint_file = source_path
-
-    # Infer blueprint name if not provided.
-    if not blueprint_name:
-        base = os.path.basename(blueprint_file)
-        if base.startswith("blueprint_") and base.endswith(".py"):
-            blueprint_name = base[len("blueprint_"):-3]
-        else:
-            blueprint_name = os.path.splitext(base)[0]
-    
-    target_dir = os.path.join(MANAGED_DIR, blueprint_name)
-    os.makedirs(target_dir, exist_ok=True)
-    target_file = os.path.join(target_dir, f"blueprint_{blueprint_name}.py")
-    shutil.copy2(blueprint_file, target_file)
-    print(f"Blueprint '{blueprint_name}' added successfully to {target_dir}.")
+        if not blueprint_name:
+            base = os.path.basename(blueprint_file)
+            if base.startswith("blueprint_") and base.endswith(".py"):
+                blueprint_name = base[len("blueprint_"):-3]
+            else:
+                blueprint_name = os.path.splitext(base)[0]
+        target_dir = os.path.join(MANAGED_DIR, blueprint_name)
+        os.makedirs(target_dir, exist_ok=True)
+        target_file = os.path.join(target_dir, f"blueprint_{blueprint_name}.py")
+        shutil.copy2(blueprint_file, target_file)
+        print(f"Blueprint '{blueprint_name}' added successfully to {target_dir}.")
 
 def list_blueprints():
-    """List all blueprints in the managed directory."""
     ensure_managed_dir()
     entries = os.listdir(MANAGED_DIR)
     blueprints = [d for d in entries if os.path.isdir(os.path.join(MANAGED_DIR, d))]
@@ -84,7 +72,6 @@ def list_blueprints():
         print("No blueprints registered.")
 
 def delete_blueprint(blueprint_name):
-    """Delete the blueprint directory for the given blueprint name."""
     target_dir = os.path.join(MANAGED_DIR, blueprint_name)
     if os.path.exists(target_dir) and os.path.isdir(target_dir):
         shutil.rmtree(target_dir)
@@ -94,11 +81,10 @@ def delete_blueprint(blueprint_name):
         sys.exit(1)
 
 def run_blueprint(blueprint_name):
-    """Dynamically load and run the blueprint's main() from the managed directory."""
     target_dir = os.path.join(MANAGED_DIR, blueprint_name)
     blueprint_file = os.path.join(target_dir, f"blueprint_{blueprint_name}.py")
     if not os.path.exists(blueprint_file):
-        print(f"Error: Blueprint file not found for '{blueprint_name}'.")
+        print(f"Error: Blueprint file not found for '{blueprint_name}'. Install it using 'swarm-cli add <path>'.")
         sys.exit(1)
     spec = importlib.util.spec_from_file_location("blueprint_module", blueprint_file)
     if spec is None or spec.loader is None:
@@ -116,30 +102,27 @@ def run_blueprint(blueprint_name):
         print("Error: The blueprint does not have a main() function.")
         sys.exit(1)
 
-def install_blueprint(blueprint_name, wrapper_dir="bin"):
-    """
-    Create a CLI wrapper script for the given blueprint.
-    The wrapper script will be installed in the specified wrapper_dir (default: "bin").
-    When executed, it runs: python <path-to-swarm_cli.py> run <blueprint_name>
-    """
+def install_blueprint(blueprint_name):
     target_dir = os.path.join(MANAGED_DIR, blueprint_name)
     blueprint_file = os.path.join(target_dir, f"blueprint_{blueprint_name}.py")
     if not os.path.exists(blueprint_file):
-        print(f"Error: Blueprint '{blueprint_name}' is not registered.")
+        print(f"Error: Blueprint '{blueprint_name}' is not registered. Add it using 'swarm-cli add <path>'.")
         sys.exit(1)
-    if not os.path.exists(wrapper_dir):
-        os.makedirs(wrapper_dir, exist_ok=True)
-    wrapper_path = os.path.join(wrapper_dir, blueprint_name)
-    cli_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "swarm_cli.py")
-    content = f"""#!/usr/bin/env python3
-import sys
-import os
-os.execvp("python", ["python", "{cli_path}", "run", "{blueprint_name}"] )
-"""
-    with open(wrapper_path, "w") as f:
-        f.write(content)
-    os.chmod(wrapper_path, 0o755)
-    print(f"Blueprint '{blueprint_name}' installed as CLI utility at: {os.path.abspath(wrapper_path)}")
+    # Load blueprint to get cli_name from metadata
+    spec = importlib.util.spec_from_file_location("blueprint_module", blueprint_file)
+    blueprint = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(blueprint)
+    cli_name = getattr(blueprint.BlueprintBase(), "metadata", {}).get("cli_name", blueprint_name)
+    # Build PyInstaller executable
+    PyInstaller.__main__.run([
+        blueprint_file,
+        "--onefile",
+        "--name", cli_name,
+        "--distpath", BIN_DIR,
+        "--workpath", os.path.join(target_dir, "build"),
+        "--specpath", target_dir
+    ])
+    print(f"Blueprint '{blueprint_name}' installed as CLI utility '{cli_name}' at: {os.path.join(BIN_DIR, cli_name)}")
 
 def main():
     os.environ.pop("SWARM_BLUEPRINTS", None)
@@ -149,7 +132,7 @@ def main():
                     "  list    : List registered blueprints.\n"
                     "  delete  : Delete a registered blueprint.\n"
                     "  run     : Run a blueprint by name.\n"
-                    "  install : Install a blueprint as a CLI utility.\n"
+                    "  install : Install a blueprint as a CLI utility with PyInstaller.\n"
                     "  migrate : Apply Django database migrations.\n"
                     "  config  : Manage swarm configuration (LLM and MCP servers).",
         formatter_class=argparse.RawTextHelpFormatter)
@@ -168,9 +151,8 @@ def main():
     parser_run.add_argument("name", help="Blueprint name to run.")
     parser_run.add_argument("--config", default="~/.swarm/swarm_config.json", help="Path to configuration file.")
     
-    parser_install = subparsers.add_parser("install", help="Install a blueprint as a CLI utility.")
+    parser_install = subparsers.add_parser("install", help="Install a blueprint as a CLI utility with PyInstaller.")
     parser_install.add_argument("name", help="Blueprint name to install as a CLI utility.")
-    parser_install.add_argument("--wrapper-dir", default="bin", help="Directory to place the wrapper script (default: ./bin)")
     
     parser_migrate = subparsers.add_parser("migrate", help="Apply Django database migrations.")
     
@@ -200,7 +182,7 @@ def main():
             print("Default config file created at:", config_path)
         run_blueprint(args.name)
     elif args.command == "install":
-        install_blueprint(args.name, args.wrapper_dir)
+        install_blueprint(args.name)
     elif args.command == "migrate":
         try:
             subprocess.run(["python", "manage.py", "migrate"], check=True)
@@ -210,7 +192,6 @@ def main():
             sys.exit(1)
     elif args.command == "config":
         config_path = os.path.expanduser(args.config)
-        # Load config; if not exists, create a default configuration
         if not os.path.exists(config_path):
             default_conf = {"llm": {}, "mcpServers": {}}
             os.makedirs(os.path.dirname(config_path), exist_ok=True)

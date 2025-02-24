@@ -73,7 +73,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'swarm',
     'swarm.extensions.blueprint.modes.rest_mode',
-    'blueprints.university',
+    'blueprints.university',  # Fixed to dot notation for module path
 ]
 
 MIDDLEWARE = [

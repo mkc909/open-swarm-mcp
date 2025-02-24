@@ -17,6 +17,9 @@ class TeachingUnit(models.Model):
     teaching_prompt = models.TextField(
         blank=True, null=True, help_text="Instructions or guidelines for teaching this unit."
     )
+    channel_id = models.CharField(
+        max_length=20, blank=True, null=True, unique=True, help_text="Slack channel ID associated with this teaching unit (e.g., C123456)."
+    )
 
     class Meta:
         app_label = "blueprints_university"
@@ -242,31 +245,3 @@ class AssessmentItem(models.Model):
     def formatted_weight(self):
         """Formats the weight as a percentage string."""
         return f"{self.weight}%"
-
-
-# class ChatConversation(models.Model):
-#     """Represents a single chat session."""
-#     conversation_id = models.CharField(max_length=255, primary_key=True)
-#     created_at = models.DateTimeField(auto_now_add=True)
-#     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='conversations')
-    
-#     chat_messages: "RelatedManager[ChatMessage]"
-
-#     def __str__(self):
-#         return f"ChatConversation({self.conversation_id})"
-    
-#     @property
-#     def messages(self):
-#         return self.chat_messages.all()
-
-
-# class ChatMessage(models.Model):
-#     """Stores individual chat messages within a conversation."""
-#     conversation = models.ForeignKey(ChatConversation, related_name="chat_messages", on_delete=models.CASCADE)
-#     sender = models.CharField(max_length=50)
-#     content = models.TextField()
-#     timestamp = models.DateTimeField(auto_now_add=True)
-#     tool_call_id = models.CharField(max_length=255, blank=True, null=True)
-
-#     class Meta:
-#         ordering = ["timestamp"]

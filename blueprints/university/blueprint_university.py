@@ -1067,7 +1067,7 @@ class UniversitySupportBlueprint(BlueprintBase):
             functions=[
                 general_support_search, 
                 course_advisor_search, scheduling_assistant_search, student_search, teaching_unit_search,
-                enrollment_search, assessment_item_search, comprehensive_search
+                comprehensive_search
             ],
         )
         logger.debug("GeneralSupportAgent created with exhaustive precision")
@@ -1112,7 +1112,6 @@ class UniversitySupportBlueprint(BlueprintBase):
             functions=[
                 learning_assessment_search, 
                 course_advisor_search, scheduling_assistant_search, student_search, teaching_unit_search,
-                topic_search, learning_objective_search, subtopic_search, enrollment_search, assessment_item_search,
                 extended_comprehensive_search
             ],
         )

@@ -37,7 +37,7 @@ class UniversitySupportBlueprint(BlueprintBase):
             "description": "A multi-agent system for university support, using LLM-driven responses, SQLite tools, and Canvas metadata with graceful failure.",
             "required_mcp_servers": ["sqlite"],
             "cli_name": "uni",
-            "env_vars": ["SQLITE_DB_PATH"]
+            "env_vars": ["SQLITE_DB_PATH", "SUPPORT_EMAIL"]
         }
 
     def run_with_context(self, messages: List[Dict[str, str]], context_variables: dict) -> dict:
@@ -122,6 +122,9 @@ class UniversitySupportBlueprint(BlueprintBase):
         """Create agents with dynamic instructions and tools for university support."""
         agents = {}
 
+        # Define support email from env var, defaulting to a generic non-existent address
+        support_email = os.getenv("SUPPORT_EMAIL", "support@swarm-university")
+
         def handoff_to_support() -> Agent:
             logger.debug("Handoff to SupportAgent")
             return agents["SupportAgent"]
@@ -146,7 +149,7 @@ class UniversitySupportBlueprint(BlueprintBase):
         triage_instructions = (
             "You are TriageAgent, the coordinator for university support. Analyze student queries and preloaded metadata "
             "from the message history. For complex queries (over 50 words), urgent queries (contains 'urgent'), or requests "
-            "for human help ('help' or 'complex issue'), respond with 'Contact support@university.edu'. For general academic "
+            f"for human help ('help' or 'complex issue'), respond with 'Contact {support_email}'. For general academic "
             "queries (courses, schedules), delegate to SupportAgent by calling handoff_to_support(). For detailed "
             "learning/assessment queries beyond objectives, delegate to LearningAgent by calling handoff_to_learning()."
             "Greet the user with their name (slackUser.userName)."

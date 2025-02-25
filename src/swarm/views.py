@@ -121,7 +121,7 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
     # Handle non-dictionary responses (e.g., string) gracefully
     if not isinstance(response, dict):
         if isinstance(response, str):
-            logger.warning(f"Received string response instead of dictionary: {response[:100]}{'...' if len(response) > 100 else ''}, attempting to treat as message content")
+            logger.warning(f"Received string response instead of dictionary: {response[:100]}{'...' if len(response) > 100 else ''}, treating as message content")
             messages = [{"role": "assistant", "content": response}]
         else:
             logger.error(f"Unexpected response type: {type(response)}, defaulting to empty response")
@@ -131,14 +131,19 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
 
     def remove_functions(obj: Any) -> Any:
         if isinstance(obj, dict):
-            return {k: remove_functions(v) for k, v in obj.items() if not callable(v)}
+            # Explicitly exclude 'functions' key if present
+            return {k: remove_functions(v) for k, v in obj.items() if k != "functions" and not callable(v)}
+        elif hasattr(obj, "__dict__"):
+            # Handle objects (like Agent) by converting to dict and excluding 'functions'
+            obj_dict = {k: v for k, v in obj.__dict__.items() if k != "functions" and not callable(v)}
+            return {k: remove_functions(v) for k, v in obj_dict.items()}
         elif isinstance(obj, list):
             return [remove_functions(item) for item in obj if not callable(item)]
         elif isinstance(obj, tuple):
             return tuple(remove_functions(item) for item in obj if not callable(item))
         return obj
 
-    # Debug response and context_variables with guards to prevent logging sensitive or unserializable data
+    # Debug response and context_variables with guards
     try:
         safe_response = remove_functions(response)
         safe_context = remove_functions(context_variables)
@@ -154,9 +159,15 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
     clean_context = remove_functions(context_variables)
     clean_response = remove_functions(response)
 
+    # Include only assistant messages with content in choices
     formatted_messages = [
-        {"index": i, "message": msg, "finish_reason": "stop"}
+        {
+            "index": i,
+            "message": msg,
+            "finish_reason": "stop" if msg.get("role") == "assistant" and msg.get("content") else "function_call"
+        }
         for i, msg in enumerate(messages)
+        if msg.get("role") == "assistant" and (msg.get("content") or msg.get("tool_calls"))
     ]
 
     return {
@@ -166,12 +177,12 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
         "model": model_name,
         "choices": formatted_messages,
         "usage": {
-            "prompt_tokens": sum(len((msg.get("content") or "").split()) for msg in messages),
-            "completion_tokens": sum(len((msg.get("content") or "").split()) for msg in messages if msg.get("role") == "assistant"),
-            "total_tokens": len(messages),
+            "prompt_tokens": sum(len((msg.get("content") or "").split()) for msg in messages if msg.get("role") == "user"),
+            "completion_tokens": sum(len((msg.get("content") or "").split()) for msg in messages if msg.get("role") == "assistant" and msg.get("content")),
+            "total_tokens": sum(1 for msg in messages if msg.get("content") or msg.get("tool_calls"))
         },
         "context_variables": clean_context,
-        "full_response": clean_response,
+        "full_response": clean_response
     }
 
 def parse_chat_request(request: Any) -> Any:

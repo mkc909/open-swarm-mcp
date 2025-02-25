@@ -215,3 +215,26 @@ def get_teaching_prompt(channel_id: str) -> str:
     except Exception as e:
         logger.error(f"Failed to fetch teaching prompt for channel_id {channel_id}: {str(e)}", exc_info=True)
         return "Provide foundational academic guidance."
+
+# Standalone tool functions
+def extract_learning_objectives(content: str) -> List[str]:
+    """Extract learning objectives from Canvas content using regex, with graceful failure."""
+    logger.debug(f"Extracting learning objectives from content: {content[:50] if content else 'None'}...")
+    if not content or not isinstance(content, str):
+        logger.warning("No valid content provided for objectives extraction, returning defaults")
+        return ["Understand key concepts.", "Apply knowledge effectively."]
+
+    objectives = []
+    try:
+        for line in content.split("\n"):
+            if re.match(r"^\d+\.\s", line) or "learning objective" in line.lower():
+                objectives.append(line.strip())
+        if not objectives:
+            logger.debug("No objectives found in content, using defaults")
+            return ["Understand key concepts.", "Apply knowledge effectively."]
+    except Exception as e:
+        logger.error(f"Failed to extract objectives: {str(e)}", exc_info=True)
+        return ["Understand key concepts.", "Apply knowledge effectively."]
+    
+    logger.debug(f"Extracted objectives: {objectives}")
+    return objectives

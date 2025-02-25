@@ -109,14 +109,18 @@ def install_blueprint(blueprint_name):
         print(f"Error: Blueprint '{blueprint_name}' is not registered. Add it using 'swarm-cli add <path>'.")
         sys.exit(1)
     cli_name = blueprint_name  # Use blueprint_name as default cli_name for simplicity
-    PyInstaller.__main__.run([
-        blueprint_file,
-        "--onefile",
-        "--name", cli_name,
-        "--distpath", BIN_DIR,
-        "--workpath", os.path.join(target_dir, "build"),
-        "--specpath", target_dir
-    ])
+    try:
+        PyInstaller.__main__.run([
+            blueprint_file,
+            "--onefile",
+            "--name", cli_name,
+            "--distpath", BIN_DIR,
+            "--workpath", os.path.join(target_dir, "build"),
+            "--specpath", target_dir
+        ])
+    except KeyboardInterrupt:
+        print("Installation aborted by user request.")
+        sys.exit(1)
     print(f"Blueprint '{blueprint_name}' installed as CLI utility '{cli_name}' at: {os.path.join(BIN_DIR, cli_name)}")
 
 def uninstall_blueprint(blueprint_name, blueprint_only=False, wrapper_only=False):

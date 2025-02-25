@@ -112,10 +112,22 @@ except ValueError as e:
 # -----------------------------------------------------------------------------
 
 def serialize_swarm_response(response: Any, model_name: str, context_variables: Dict[str, Any]) -> Dict[str, Any]:
-    if hasattr(response, "model_dump"):
-        response = response.model_dump()
+    """
+    Serialize the Swarm response into a format compatible with OpenAI's Chat Completions API,
+    handling both dictionary and string responses gracefully, with detailed logging and guards.
+    """
+    logger.debug(f"Serializing Swarm response with careful precision, type: {type(response)}, model: {model_name}")
 
-    messages = response.get("messages", [])
+    # Handle non-dictionary responses (e.g., string) gracefully
+    if not isinstance(response, dict):
+        if isinstance(response, str):
+            logger.warning(f"Received string response instead of dictionary: {response[:100]}{'...' if len(response) > 100 else ''}, attempting to treat as message content")
+            messages = [{"role": "assistant", "content": response}]
+        else:
+            logger.error(f"Unexpected response type: {type(response)}, defaulting to empty response")
+            messages = []
+    else:
+        messages = response.get("messages", [])
 
     def remove_functions(obj: Any) -> Any:
         if isinstance(obj, dict):
@@ -125,6 +137,16 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
         elif isinstance(obj, tuple):
             return tuple(remove_functions(item) for item in obj if not callable(item))
         return obj
+
+    # Debug response and context_variables with guards to prevent logging sensitive or unserializable data
+    try:
+        safe_response = remove_functions(response)
+        safe_context = remove_functions(context_variables)
+        logger.debug(f"Debugging response with careful precision: {json.dumps(safe_response, indent=2) if isinstance(safe_response, dict) else str(safe_response)[:500]}")
+        logger.debug(f"Debugging context variables with careful precision: {json.dumps(safe_context, indent=2)[:1000]}")
+    except (TypeError, ValueError) as e:
+        logger.warning(f"Failed to log response or context due to serialization error: {str(e)}, logging safely")
+        logger.debug(f"Safe response type: {type(response)}, safe context type: {type(context_variables)}")
 
     if "agent" in response:
         response["agent"] = remove_functions(response["agent"])

@@ -137,8 +137,8 @@ class UniversitySupportBlueprint(BlueprintBase):
         # Base instructions for all agents
         base_instructions = (
             "The learning objectives are preloaded in the message history from the 'get_learning_objectives' tool response "
-            "under 'learningCanvas.content'. For queries about 'learning objectives' or 'objectives', respond with: "
-            "'The learning objectives are:\n\n' followed by the full text from 'learningCanvas.content'. If no such response "
+            "under 'channelContent.content'. For queries about 'learning objectives' or 'objectives', respond with: "
+            "'The learning objectives are:\n\n' followed by the full text from 'channelContent.content'. If no such response "
             "exists, say 'I couldn’t find specific objectives, but here’s a starting point...' and provide a default like "
             "'Understand key concepts and apply knowledge effectively.'"
         )
@@ -149,6 +149,7 @@ class UniversitySupportBlueprint(BlueprintBase):
             "for human help ('help' or 'complex issue'), respond with 'Contact support@university.edu'. For general academic "
             "queries (courses, schedules), delegate to SupportAgent by calling handoff_to_support(). For detailed "
             "learning/assessment queries beyond objectives, delegate to LearningAgent by calling handoff_to_learning()."
+            "Greet the user with their name (slackUser.userName)."
         )
         agents["TriageAgent"] = Agent(
             name="TriageAgent",

@@ -72,16 +72,14 @@ if REDIS_AVAILABLE:
         logger.warning(f"⚠️ Redis unavailable, falling back to PostgreSQL: {e}")
         REDIS_AVAILABLE = False
 
-# Load configuration from file
-CONFIG_PATH = Path('/app/swarm_config.json')  # Hardcode to ensure Docker consistency
+CONFIG_PATH = Path('/app/swarm_config.json')
 try:
     config = load_server_config(str(CONFIG_PATH))
 except Exception as e:
     logger.critical(f"Failed to load configuration from {CONFIG_PATH}: {e}")
     raise e
 
-# Blueprint discovery at startup
-BLUEPRINTS_DIR = Path('/app/blueprints')  # Hardcode for Docker
+BLUEPRINTS_DIR = Path('/app/blueprints')
 try:
     all_blueprints = discover_blueprints([str(BLUEPRINTS_DIR)])
     if allowed_blueprints := os.getenv("SWARM_BLUEPRINTS"):
@@ -95,7 +93,6 @@ except Exception as e:
     logger.error(f"Error discovering blueprints: {e}", exc_info=True)
     raise e
 
-# Inject LLM metadata into blueprints
 try:
     llm_config = load_llm_config(config)
     llm_model = llm_config.get("model", "default")
@@ -110,31 +107,26 @@ except ValueError as e:
 # -----------------------------------------------------------------------------
 # Helper Functions
 # -----------------------------------------------------------------------------
-
 def serialize_swarm_response(response: Any, model_name: str, context_variables: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Serialize the Swarm response into a format compatible with OpenAI's Chat Completions API,
-    handling both dictionary and string responses gracefully, with detailed logging and guards.
-    """
-    logger.debug(f"Serializing Swarm response with careful precision, type: {type(response)}, model: {model_name}")
+    logger.debug(f"Serializing Swarm response, type: {type(response)}, model: {model_name}")
 
-    # Handle non-dictionary responses (e.g., string) gracefully
-    if not isinstance(response, dict):
-        if isinstance(response, str):
-            logger.warning(f"Received string response instead of dictionary: {response[:100]}{'...' if len(response) > 100 else ''}, treating as message content")
-            messages = [{"role": "assistant", "content": response}]
-        else:
-            logger.error(f"Unexpected response type: {type(response)}, defaulting to empty response")
-            messages = []
-    else:
+    if hasattr(response, 'messages'):
+        messages = response.messages
+        logger.debug(f"Extracted messages from Response object: {json.dumps(messages, indent=2)}")
+    elif isinstance(response, dict):
         messages = response.get("messages", [])
+        logger.debug(f"Extracted messages from dict: {json.dumps(messages, indent=2)}")
+    elif isinstance(response, str):
+        logger.warning(f"Received string response instead of dictionary: {response[:100]}{'...' if len(response) > 100 else ''}, treating as message content")
+        messages = [{"role": "assistant", "content": response}]
+    else:
+        logger.error(f"Unexpected response type: {type(response)}, defaulting to empty response")
+        messages = []
 
     def remove_functions(obj: Any) -> Any:
         if isinstance(obj, dict):
-            # Explicitly exclude 'functions' key if present
             return {k: remove_functions(v) for k, v in obj.items() if k != "functions" and not callable(v)}
         elif hasattr(obj, "__dict__"):
-            # Handle objects (like Agent) by converting to dict and excluding 'functions'
             obj_dict = {k: v for k, v in obj.__dict__.items() if k != "functions" and not callable(v)}
             return {k: remove_functions(v) for k, v in obj_dict.items()}
         elif isinstance(obj, list):
@@ -143,32 +135,72 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
             return tuple(remove_functions(item) for item in obj if not callable(item))
         return obj
 
-    # Debug response and context_variables with guards
+    response_dict = response.__dict__ if hasattr(response, '__dict__') else response
     try:
-        safe_response = remove_functions(response)
+        safe_response = remove_functions(response_dict)
         safe_context = remove_functions(context_variables)
-        logger.debug(f"Debugging response with careful precision: {json.dumps(safe_response, indent=2) if isinstance(safe_response, dict) else str(safe_response)[:500]}")
-        logger.debug(f"Debugging context variables with careful precision: {json.dumps(safe_context, indent=2)[:1000]}")
+        logger.debug(f"Cleaned response: {json.dumps(safe_response, indent=2) if isinstance(safe_response, dict) else str(safe_response)[:500]}")
+        logger.debug(f"Cleaned context variables: {json.dumps(safe_context, indent=2)[:1000]}")
     except (TypeError, ValueError) as e:
-        logger.warning(f"Failed to log response or context due to serialization error: {str(e)}, logging safely")
-        logger.debug(f"Safe response type: {type(response)}, safe context type: {type(context_variables)}")
+        logger.warning(f"Failed to log response or context due to serialization error: {str(e)}")
+        logger.debug(f"Response type: {type(response)}, Context type: {type(context_variables)}")
 
-    if "agent" in response:
-        response["agent"] = remove_functions(response["agent"])
+    if hasattr(response, 'agent'):
+        response_dict['agent'] = remove_functions(response.agent)
+    elif isinstance(response_dict, dict) and "agent" in response_dict:
+        response_dict["agent"] = remove_functions(response_dict["agent"])
 
     clean_context = remove_functions(context_variables)
-    clean_response = remove_functions(response)
+    clean_response = remove_functions(response_dict)
 
-    # Include only assistant messages with content in choices
-    formatted_messages = [
-        {
-            "index": i,
-            "message": msg,
-            "finish_reason": "stop" if msg.get("role") == "assistant" and msg.get("content") else "function_call"
-        }
-        for i, msg in enumerate(messages)
-        if msg.get("role") == "assistant" and (msg.get("content") or msg.get("tool_calls"))
-    ]
+    formatted_messages = []
+    for i, msg in enumerate(messages):
+        logger.debug(f"Processing message {i}: {json.dumps(msg, indent=2)}")
+        if msg.get("role") == "assistant" and msg.get("content"):
+            formatted_msg = {
+                "index": len(formatted_messages),
+                "message": {
+                    "role": "assistant",
+                    "content": msg["content"]
+                },
+                "finish_reason": "stop"
+            }
+            formatted_messages.append(formatted_msg)
+            logger.debug(f"Added to choices from loop: {json.dumps(formatted_msg, indent=2)}")
+
+    if messages and messages[-1].get("role") == "assistant" and messages[-1].get("content"):
+        last_content = messages[-1]["content"]
+        if not any(m["message"]["content"] == last_content for m in formatted_messages):
+            formatted_msg = {
+                "index": len(formatted_messages),
+                "message": {
+                    "role": "assistant",
+                    "content": last_content
+                },
+                "finish_reason": "stop"
+            }
+            formatted_messages.append(formatted_msg)
+            logger.debug(f"Added last message via failsafe: {json.dumps(formatted_msg, indent=2)}")
+
+    if not formatted_messages:
+        logger.warning("No assistant messages with content found for 'choices' after all checks")
+
+    logger.debug(f"Final formatted_messages: {json.dumps(formatted_messages, indent=2)}")
+
+    # Improved token counting
+    prompt_tokens = 0
+    completion_tokens = 0
+    total_tokens = 0
+    for msg in messages:
+        if msg.get("content"):
+            token_count = len(msg["content"].split())
+            if msg.get("role") == "user":
+                prompt_tokens += token_count
+            elif msg.get("role") == "assistant":
+                completion_tokens += token_count
+            total_tokens += token_count
+        if msg.get("tool_calls"):
+            total_tokens += 1  # Rough estimate for tool call presence
 
     return {
         "id": f"swarm-chat-completion-{uuid.uuid4()}",
@@ -177,9 +209,9 @@ def serialize_swarm_response(response: Any, model_name: str, context_variables: 
         "model": model_name,
         "choices": formatted_messages,
         "usage": {
-            "prompt_tokens": sum(len((msg.get("content") or "").split()) for msg in messages if msg.get("role") == "user"),
-            "completion_tokens": sum(len((msg.get("content") or "").split()) for msg in messages if msg.get("role") == "assistant" and msg.get("content")),
-            "total_tokens": sum(1 for msg in messages if msg.get("content") or msg.get("tool_calls"))
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": total_tokens
         },
         "context_variables": clean_context,
         "full_response": clean_response

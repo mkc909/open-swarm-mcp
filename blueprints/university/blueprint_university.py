@@ -8,7 +8,6 @@ and Canvas metadata integration, with graceful failure for all operations.
 import os
 import logging
 import json
-import re
 from typing import Dict, Any, List
 
 from swarm.types import Agent
@@ -49,15 +48,6 @@ class UniversitySupportBlueprint(BlueprintBase):
             logger.error(f"Invalid context_variables type: {type(context_variables)}. Expected dict.")
             raise ValueError("context_variables must be a dictionary")
 
-        try:
-            metadata = extract_canvas_metadata(messages)
-            context_variables.update(metadata)
-            logger.debug(f"Updated context with channel_id: {context_variables['channel_id']}")
-        except Exception as e:
-            logger.error(f"Failed to extract metadata: {str(e)}", exc_info=True)
-            context_variables.setdefault("channel_id", "default")
-            context_variables.setdefault("objectives", ["Understand key concepts."])
-
         result = super().run_with_context(messages, context_variables)
         logger.debug(f"run_with_context result type: {type(result)}")
         return result
@@ -79,13 +69,15 @@ class UniversitySupportBlueprint(BlueprintBase):
             return agents["TriageAgent"]
 
         triage_instructions = (
-            "You are TriageAgent, the coordinator for university support. Analyze student queries and Canvas metadata "
-            "(from messages). Use extract_canvas_metadata to get channel ID and learning objectives into context_variables. "
-            "If the query is complex (over 50 words), urgent (contains 'urgent'), or needs human help ('help' or 'complex issue'), "
-            "respond with 'Contact support@university.edu'. Otherwise, delegate to SupportAgent for general academic "
-            "queries (courses, schedules) by calling handoff_to_support(), or to LearningAgent for learning/assessment "
-            "queries (objectives, progress) by calling handoff_to_learning(). If data is missing, use a fallback like "
-            "'I couldn’t find details, but here’s some guidance...'."
+            "You are TriageAgent, the coordinator for university support. Analyze student queries and preloaded metadata "
+            "from the message history. The learning objectives are in the 'get_learning_objectives' tool response under "
+            "'learningCanvas.content'. For queries about 'learning objectives' or 'objectives', respond with: 'The learning "
+            "objectives are:\n\n' followed by the full text from 'learningCanvas.content'. If no such response exists, say "
+            "'I couldn’t find specific objectives, but here’s a starting point...' and provide a default like 'Understand key "
+            "concepts and apply knowledge effectively.' For complex queries (over 50 words), urgent queries (contains 'urgent'), "
+            "or requests for human help ('help' or 'complex issue'), respond with 'Contact support@university.edu'. For general "
+            "academic queries (courses, schedules), delegate to SupportAgent by calling handoff_to_support(). For detailed "
+            "learning/assessment queries beyond objectives, delegate to LearningAgent by calling handoff_to_learning()."
         )
         agents["TriageAgent"] = Agent(
             name="TriageAgent",
@@ -93,26 +85,28 @@ class UniversitySupportBlueprint(BlueprintBase):
             functions=[
                 handoff_to_support,
                 handoff_to_learning,
-                extract_canvas_metadata,
                 search_courses,
                 search_teaching_units
             ]
         )
 
         support_instructions = (
-            "You are SupportAgent, handling general university support. Answer queries about courses, schedules, "
-            "enrollments, and student info using SQLite tools. If data is unavailable, say 'I couldn’t access the latest "
-            "info, but here’s some advice...'. For learning or assessment queries, delegate back to TriageAgent by calling "
-            "handoff_to_triage()."
+            "You are SupportAgent, handling general university support. Answer queries about courses, schedules, enrollments, "
+            "and student info using SQLite tools. The learning objectives are in the message history from the "
+            "'get_learning_objectives' tool response under 'learningCanvas.content'. For queries about 'learning objectives' "
+            "or 'objectives', respond with: 'The learning objectives are:\n\n' followed by the full text from 'learningCanvas.content'. "
+            "If no such response exists, say 'I couldn’t find specific objectives, but here’s a starting point...' and provide "
+            "a default like 'Understand key concepts and apply knowledge effectively.' If data is unavailable, say 'I couldn’t "
+            "access the latest info, but here’s some advice...'. For detailed learning/assessment queries, delegate to "
+            "LearningAgent by calling handoff_to_learning(). For other queries requiring coordination, delegate to TriageAgent "
+            "by calling handoff_to_triage()."
         )
         agents["SupportAgent"] = Agent(
             name="SupportAgent",
-            instructions=lambda context: (
-                f"{support_instructions}\n"
-                f"Teaching Prompt: {get_teaching_prompt(context.get('channel_id', 'default'))}"
-            ),
+            instructions=support_instructions,
             functions=[
                 handoff_to_triage,
+                handoff_to_learning,
                 search_courses,
                 search_teaching_units,
                 search_students,
@@ -123,23 +117,22 @@ class UniversitySupportBlueprint(BlueprintBase):
         )
 
         learning_instructions = (
-            "You are LearningAgent, specializing in learning objectives and assessments. Help with progress, goals, and "
-            "assessment details using SQLite tools and context['objectives'] from extract_canvas_metadata. "
-            "List the objectives from context['objectives'] directly in your response if available; if empty or missing, "
-            "say 'I couldn’t find specific objectives, but here’s a starting point...' and provide defaults. "
-            "For general academic queries, delegate back to TriageAgent by calling handoff_to_triage()."
+            "You are LearningAgent, specializing in learning objectives and assessments. The learning objectives are preloaded "
+            "in the message history from the 'get_learning_objectives' tool response under 'learningCanvas.content'. For queries "
+            "about 'learning objectives' or 'objectives', respond with: 'The learning objectives are:\n\n' followed by the full "
+            "text from 'learningCanvas.content'. If no such response exists, say 'I couldn’t find specific objectives, but here’s "
+            "a starting point...' and provide a default like 'Understand key concepts and apply knowledge effectively.' For other "
+            "assessment-related queries, provide detailed support using available tools. For general academic queries (courses, "
+            "schedules), delegate to SupportAgent by calling handoff_to_support(). For queries requiring coordination, delegate "
+            "to TriageAgent by calling handoff_to_triage()."
         )
         agents["LearningAgent"] = Agent(
             name="LearningAgent",
-            instructions=lambda context: (
-                f"{learning_instructions}\n"
-                f"Teaching Prompt: {get_teaching_prompt(context.get('channel_id', 'default'))}\n"
-                f"Available Objectives: {', '.join(context.get('objectives', ['None']))}"
-            ),
+            instructions=learning_instructions,
             functions=[
                 handoff_to_triage,
+                handoff_to_support,
                 get_teaching_prompt,
-                extract_learning_objectives,
                 search_learning_objectives,
                 search_topics,
                 search_subtopics,
@@ -152,31 +145,6 @@ class UniversitySupportBlueprint(BlueprintBase):
         return agents
 
 # Standalone tools
-def extract_canvas_metadata(messages: List[Dict[str, Any]]) -> Dict[str, Any]:
-    logger.debug(f"Extracting Canvas metadata from messages: {json.dumps(messages, indent=2) if messages else 'None'}")
-    default_metadata = {"channel_id": "default", "content": "", "objectives": ["Understand key concepts.", "Apply knowledge effectively."]}
-
-    if not messages or not isinstance(messages, list) or not messages[-1]:
-        logger.warning("No valid messages provided, returning default metadata")
-        return default_metadata
-
-    last_message = messages[-1]
-    if not isinstance(last_message, dict):
-        logger.warning("Last message is not a dictionary, returning default metadata")
-        return default_metadata
-
-    try:
-        metadata = last_message.get("metadata", {})
-        channel_id = metadata.get("channelInfo", {}).get("channelId", "default")
-        content = metadata.get("canvas", {}).get("content", "")
-        objectives = extract_learning_objectives(content) if content else default_metadata["objectives"]
-        result = {"channel_id": channel_id, "content": content, "objectives": objectives}
-        logger.debug(f"Extracted metadata: {json.dumps(result, indent=2)}")
-        return result
-    except Exception as e:
-        logger.error(f"Failed to extract Canvas metadata: {str(e)}", exc_info=True)
-        return default_metadata
-
 def get_teaching_prompt(channel_id: str) -> str:
     logger.debug(f"Fetching teaching prompt for channel_id: {channel_id}")
     if not channel_id or not isinstance(channel_id, str):
@@ -194,27 +162,6 @@ def get_teaching_prompt(channel_id: str) -> str:
     except Exception as e:
         logger.error(f"Failed to fetch teaching prompt for channel_id {channel_id}: {str(e)}", exc_info=True)
         return "Provide foundational academic guidance."
-
-def extract_learning_objectives(content: str) -> List[str]:
-    logger.debug(f"Extracting learning objectives from content: {content[:50] if content else 'None'}...")
-    if not content or not isinstance(content, str):
-        logger.warning("No valid content provided for objectives extraction, returning defaults")
-        return ["Understand key concepts.", "Apply knowledge effectively."]
-
-    objectives = []
-    try:
-        for line in content.split("\n"):
-            if re.match(r"^\d+\.\s", line) or "learning objective" in line.lower():
-                objectives.append(line.strip())
-        if not objectives:
-            logger.debug("No objectives found in content, using defaults")
-            return ["Understand key concepts.", "Apply knowledge effectively."]
-    except Exception as e:
-        logger.error(f"Failed to extract objectives: {str(e)}", exc_info=True)
-        return ["Understand key concepts.", "Apply knowledge effectively."]
-    
-    logger.debug(f"Extracted objectives: {objectives}")
-    return objectives
 
 if __name__ == "__main__":
     UniversitySupportBlueprint.main()

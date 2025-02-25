@@ -58,8 +58,8 @@ class DivineOpsBlueprint(BlueprintBase):
                 "Zeus leads a streamlined pantheon of developer and sysadmin agents for software development "
                 "and system administration, focusing on core tasks with essential MCP servers."
             ),
-            "required_mcp_servers": [
             "cli_name": "divcode",
+            "required_mcp_servers": [
                 "memory",
                 "filesystem",
                 "mcp-shell",

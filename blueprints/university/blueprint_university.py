@@ -136,7 +136,7 @@ class UniversitySupportBlueprint(BlueprintBase):
 
         # Base instructions for all agents
         base_instructions = (
-            "The learning objectives are preloaded in the message history from the 'get_learning_objectives' tool response "
+            "The learning objectives are preloaded in the message history from the 'get_channel_info' tool response "
             "under 'channelContent.content'. For queries about 'learning objectives' or 'objectives', respond with: "
             "'The learning objectives are:\n\n' followed by the full text from 'channelContent.content'. If no such response "
             "exists, say 'I couldn’t find specific objectives, but here’s a starting point...' and provide a default like "

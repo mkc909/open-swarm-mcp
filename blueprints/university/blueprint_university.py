@@ -6,6 +6,7 @@ import json
 from typing import Dict, Any, List, Optional
 import re
 import jmespath
+from datetime import datetime
 
 from swarm.types import Agent
 from swarm.extensions.blueprint import BlueprintBase
@@ -13,8 +14,8 @@ import django
 from django.apps import apps
 from django.db import transaction
 from django.db.models import Q
-from blueprints.university.models import LearningObjective
-from blueprints.university.models import Enrollment
+
+from blueprints.university.models import LearningObjective, Enrollment, TeachingUnit, Topic, Subtopic, Course, Student, AssessmentItem
 
 # Configure logging with detailed debug information for troubleshooting
 logger = logging.getLogger(__name__)
@@ -148,8 +149,6 @@ class UniversitySupportBlueprint(BlueprintBase):
             logger.warning("Empty query provided for course search, logging this critical issue with extreme granularity and returning an empty result set")
             return []
 
-        from django.db.models import Q
-        from blueprints.university.models import Course
         try:
             qs = Course.objects.filter(
                 Q(name__icontains=query) | Q(code__icontains=query) | Q(coordinator__icontains=query)
@@ -174,8 +173,6 @@ class UniversitySupportBlueprint(BlueprintBase):
             logger.warning("Empty query provided for student search, logging this critical issue with extreme granularity and returning an empty result set")
             return []
 
-        from django.db.models import Q
-        from blueprints.university.models import Student
         try:
             qs = Student.objects.filter(Q(name__icontains=query))
             results = list(qs.values("name", "gpa", "status"))
@@ -198,8 +195,6 @@ class UniversitySupportBlueprint(BlueprintBase):
             logger.warning("Empty query provided for teaching unit search, logging this critical issue with extreme granularity and returning an empty result set")
             return []
 
-        from django.db.models import Q
-        from blueprints.university.models import TeachingUnit
         try:
             qs = TeachingUnit.objects.filter(Q(code__icontains=query) | Q(name__icontains=query))
             results = list(qs.values("code", "name", "channel_id"))
@@ -222,8 +217,6 @@ class UniversitySupportBlueprint(BlueprintBase):
             logger.warning("Empty query provided for topic search, logging this critical issue with extreme granularity and returning an empty result set")
             return []
 
-        from django.db.models import Q
-        from blueprints.university.models import Topic
         try:
             qs = Topic.objects.filter(Q(name__icontains=query))
             results = list(qs.values("name"))
@@ -268,8 +261,6 @@ class UniversitySupportBlueprint(BlueprintBase):
             logger.warning("Empty query provided for subtopic search, logging this critical issue with extreme granularity and returning an empty result set")
             return []
 
-        from django.db.models import Q
-        from blueprints.university.models import Subtopic
         try:
             qs = Subtopic.objects.filter(Q(name__icontains=query))
             results = list(qs.values("name"))
@@ -292,8 +283,6 @@ class UniversitySupportBlueprint(BlueprintBase):
             logger.warning("Empty query provided for enrollment search, logging this critical issue with extreme granularity and returning an empty result set")
             return []
 
-        from django.db.models import Q
-        from blueprints.university.models import Enrollment
         try:
             qs = Enrollment.objects.filter(Q(status__icontains=query))
             results = list(qs.values("status", "enrollment_date"))
@@ -316,8 +305,6 @@ class UniversitySupportBlueprint(BlueprintBase):
             logger.warning("Empty query provided for assessment item search, logging this critical issue with extreme granularity and returning an empty result set")
             return []
 
-        from django.db.models import Q
-        from blueprints.university.models import AssessmentItem
         try:
             qs = AssessmentItem.objects.filter(Q(title__icontains=query))
             results = list(qs.values("title", "status", "due_date"))
@@ -571,7 +558,6 @@ class UniversitySupportBlueprint(BlueprintBase):
         logger.debug(f"Fetching student info for channel_id with an extraordinarily verbose approach: {channel_id}")
         student_info = {}
 
-        from blueprints.university.models import Student, Enrollment, TeachingUnit
         try:
             teaching_unit = TeachingUnit.objects.filter(channel_id=channel_id).first()
             if teaching_unit:
@@ -622,7 +608,6 @@ class UniversitySupportBlueprint(BlueprintBase):
             logger.error(f"Invalid types detected with exhaustive logging: student_info={type(student_info)}, learning_objectives={type(learning_objectives)}, triggering a critical type safety failure")
             raise ValueError("student_info must be a dictionary, learning_objectives a list, ensuring strict type enforcement across the system")
 
-        from blueprints.university.models import LearningObjective, Enrollment
         objectives_met = {}
         guidance = []
 
@@ -889,6 +874,82 @@ class UniversitySupportBlueprint(BlueprintBase):
                 logger.error(f"Error in learning assessment search with an absurdly detailed error report for query '{query}': {str(e)}", exc_info=True)
                 raise
 
+        def course_advisor_search(context_variables: dict) -> List[Dict[str, Any]]:
+            """
+            Search courses based on context variables for general or learning support, logged with excessive detail.
+            This function ensures coverage for course-related queries across agents, maintaining robust academic support.
+            """
+            logger.debug(f"Course advisor search with an absurdly verbose approach, context_variables: {json.dumps(context_variables, indent=4)}")
+            if not isinstance(context_variables, dict):
+                logger.error(f"Invalid context_variables type detected with exhaustive logging: {type(context_variables)}. Expected dict, triggering a critical type safety failure")
+                raise ValueError("context_variables must be a dictionary, ensuring strict type enforcement across the system")
+            query = context_variables.get("search_query", "")
+            logger.debug(f"Course advisor search query with meticulous logging: {query}")
+            try:
+                results = self.search_courses(query)
+                logger.info(f"Course search results with obsessive precision for query '{query}': {json.dumps(results, indent=4)}")
+                return results
+            except Exception as e:
+                logger.error(f"Error in course advisor search with an absurdly detailed error report for query '{query}': {str(e)}", exc_info=True)
+                raise
+
+        def scheduling_assistant_search(context_variables: dict) -> List[Dict[str, Any]]:
+            """
+            Search schedules (assessments) based on context variables for general or learning support, logged with excessive detail.
+            This function ensures coverage for scheduling-related queries across agents, maintaining robust academic support.
+            """
+            logger.debug(f"Scheduling assistant search with an absurdly verbose approach, context_variables: {json.dumps(context_variables, indent=4)}")
+            if not isinstance(context_variables, dict):
+                logger.error(f"Invalid context_variables type detected with exhaustive logging: {type(context_variables)}. Expected dict, triggering a critical type safety failure")
+                raise ValueError("context_variables must be a dictionary, ensuring strict type enforcement across the system")
+            query = context_variables.get("search_query", "")
+            logger.debug(f"Scheduling assistant search query with meticulous logging: {query}")
+            try:
+                results = self.search_assessment_items(query)
+                logger.info(f"Assessment search results with obsessive precision for query '{query}': {json.dumps(results, indent=4)}")
+                return results
+            except Exception as e:
+                logger.error(f"Error in scheduling assistant search with an absurdly detailed error report for query '{query}': {str(e)}", exc_info=True)
+                raise
+
+        def student_search(context_variables: dict) -> List[Dict[str, Any]]:
+            """
+            Search students based on context variables for general or learning support, logged with excessive detail.
+            This function ensures coverage for student-related queries across agents, maintaining robust academic support.
+            """
+            logger.debug(f"Student search with an absurdly verbose approach, context_variables: {json.dumps(context_variables, indent=4)}")
+            if not isinstance(context_variables, dict):
+                logger.error(f"Invalid context_variables type detected with exhaustive logging: {type(context_variables)}. Expected dict, triggering a critical type safety failure")
+                raise ValueError("context_variables must be a dictionary, ensuring strict type enforcement across the system")
+            query = context_variables.get("search_query", "")
+            logger.debug(f"Student search query with meticulous logging: {query}")
+            try:
+                results = self.search_students(query)
+                logger.debug(f"Student search results with obsessive precision for query '{query}': {json.dumps(results, indent=4)}")
+                return results
+            except Exception as e:
+                logger.error(f"Error in student search with an absurdly detailed error report for query '{query}': {str(e)}", exc_info=True)
+                raise
+
+        def teaching_unit_search(context_variables: dict) -> List[Dict[str, Any]]:
+            """
+            Search teaching units based on context variables for general or learning support, logged with excessive detail.
+            This function ensures coverage for teaching unit-related queries across agents, maintaining robust academic support.
+            """
+            logger.debug(f"Teaching unit search with an absurdly verbose approach, context_variables: {json.dumps(context_variables, indent=4)}")
+            if not isinstance(context_variables, dict):
+                logger.error(f"Invalid context_variables type detected with exhaustive logging: {type(context_variables)}. Expected dict, triggering a critical type safety failure")
+                raise ValueError("context_variables must be a dictionary, ensuring strict type enforcement across the system")
+            query = context_variables.get("search_query", "")
+            logger.debug(f"Teaching unit search query with meticulous logging: {query}")
+            try:
+                results = self.search_teaching_units(query)
+                logger.debug(f"Teaching unit search results with obsessive precision for query '{query}': {json.dumps(results, indent=4)}")
+                return results
+            except Exception as e:
+                logger.error(f"Error in teaching unit search with an absurdly detailed error report for query '{query}': {str(e)}", exc_info=True)
+                raise
+
         # Base instructions with dynamic teaching prompt appending from Django DB using channel_id
         def get_dynamic_instructions(base_instructions: str, context_variables: dict) -> str:
             """
@@ -962,7 +1023,7 @@ class UniversitySupportBlueprint(BlueprintBase):
         triage_agent = Agent(
             name="TriageAgent",
             instructions=lambda context_variables: get_dynamic_instructions(triage_instructions, context_variables),
-            functions=[triage_to_general_support, triage_to_learning_assessment],
+            functions=[triage_to_general_support, triage_to_learning_assessment, course_advisor_search, scheduling_assistant_search],
         )
         logger.debug("TriageAgent created with exhaustive precision")
 
@@ -1004,8 +1065,9 @@ class UniversitySupportBlueprint(BlueprintBase):
             name="GeneralSupportAgent",
             instructions=lambda context_variables: get_dynamic_instructions(general_support_instructions, context_variables),
             functions=[
-                general_support_search, course_advisor_search, scheduling_assistant_search, student_search, teaching_unit_search,
-                topic_search, enrollment_search, assessment_item_search, comprehensive_search
+                general_support_search, 
+                course_advisor_search, scheduling_assistant_search, student_search, teaching_unit_search,
+                enrollment_search, assessment_item_search, comprehensive_search
             ],
         )
         logger.debug("GeneralSupportAgent created with exhaustive precision")
@@ -1048,7 +1110,8 @@ class UniversitySupportBlueprint(BlueprintBase):
             name="LearningAssessmentAgent",
             instructions=lambda context_variables: get_dynamic_instructions(learning_assessment_instructions, context_variables),
             functions=[
-                learning_assessment_search, course_advisor_search, scheduling_assistant_search, student_search, teaching_unit_search,
+                learning_assessment_search, 
+                course_advisor_search, scheduling_assistant_search, student_search, teaching_unit_search,
                 topic_search, learning_objective_search, subtopic_search, enrollment_search, assessment_item_search,
                 extended_comprehensive_search
             ],
@@ -1066,19 +1129,296 @@ class UniversitySupportBlueprint(BlueprintBase):
         logger.debug("Starting agent set to TriageAgent with exhaustive precision")
         return agents
 
-    # To-do list for demo preparation with absurd detail
-    def get_todo_list(self) -> List[str]:
-        """Return a list of tasks and improvements for the demo with an absurdly detailed approach, ensuring comprehensive preparation and tracking."""
-        return [
-            "Ensure learning resource content integration works seamlessly via JSON input for all agents, with exhaustive testing and logging for every edge case.",
-            "Test learning objective tracking with learning resource data and Django DB lookups, logging every operation with extreme granularity for auditability.",
-            "Verify personalized responses reflect learning objectives and teaching prompts with obsessive precision, ensuring every personalization step is logged.",
-            "Prepare an absurdly detailed demo script for showcasing agent interactions with learning resource content, LLM enhancements, and Django DB lookups, logging every step for optimization.",
-            "Optimize learning resource content parsing, LLM integration, and Django DB lookups for performance, logging every optimization with meticulous detail."
-        ]
+def search_courses(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the Course model with an excessively meticulous search process, logging every detail of the query,
+        result set, and potential failures to ensure comprehensive tracking and auditing, using Django ORM for precision.
+        """
+        logger.debug(f"Searching courses with query, logging every nuance: {query}")
+        if not isinstance(query, str):
+            logger.error(f"Invalid query type detected with exhaustive logging: {type(query)}. Expected str, triggering a critical type safety failure")
+            raise ValueError("Query must be a string, ensuring strict type safety across the system")
+        if not query:
+            logger.warning("Empty query provided for course search, logging this critical issue with extreme granularity and returning an empty result set")
+            return []
 
+        try:
+            qs = Course.objects.filter(
+                Q(name__icontains=query) | Q(code__icontains=query) | Q(coordinator__icontains=query)
+            )
+            results = list(qs.values("code", "name", "coordinator"))
+            logger.debug(f"Course search results retrieved with obsessive precision for query '{query}': {json.dumps(results, indent=4)}")
+            return results
+        except Exception as e:
+            logger.error(f"Error searching courses with an absurdly detailed error report for query '{query}': {str(e)}", exc_info=True)
+            raise
+
+    def search_students(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the Student model with an excessively detailed search process, logging every operation,
+        edge case, and potential failure to ensure comprehensive auditing and troubleshooting, using Django ORM.
+        """
+        logger.debug(f"Searching students with query, logging every detail: {query}")
+        if not isinstance(query, str):
+            logger.error(f"Invalid query type detected with exhaustive logging: {type(query)}. Expected str, triggering a critical type safety failure")
+            raise ValueError("Query must be a string, ensuring strict type enforcement across the system")
+        if not query:
+            logger.warning("Empty query provided for student search, logging this critical issue with extreme granularity and returning an empty result set")
+            return []
+
+        try:
+            qs = Student.objects.filter(Q(name__icontains=query))
+            results = list(qs.values("name", "gpa", "status"))
+            logger.debug(f"Student search results retrieved with obsessive precision for query '{query}': {json.dumps(results, indent=4)}")
+            return results
+        except Exception as e:
+            logger.error(f"Error searching students with an absurdly detailed error report for query '{query}': {str(e)}", exc_info=True)
+            raise
+
+    def search_teaching_units(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the TeachingUnit model with an excessively meticulous search process, logging every operation,
+        validation, and potential failure to ensure exhaustive auditing, using Django ORM for precision.
+        """
+        logger.debug(f"Searching teaching units with query, logging every nuance: {query}")
+        if not isinstance(query, str):
+            logger.error(f"Invalid query type detected with exhaustive logging: {type(query)}. Expected str, triggering a critical type safety failure")
+            raise ValueError("Query must be a string, ensuring strict type safety across the system")
+        if not query:
+            logger.warning("Empty query provided for teaching unit search, logging this critical issue with extreme granularity and returning an empty result set")
+            return []
+
+        try:
+            qs = TeachingUnit.objects.filter(Q(code__icontains=query) | Q(name__icontains=query))
+            results = list(qs.values("code", "name", "channel_id"))
+            logger.debug(f"Teaching unit search results retrieved with obsessive precision for query '{query}': {json.dumps(results, indent=4)}")
+            return results
+        except Exception as e:
+            logger.error(f"Error searching teaching units with an absurdly detailed error report for query '{query}': {str(e)}", exc_info=True)
+            raise
+
+    def search_topics(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the Topic model with an excessively detailed search process, logging every operation,
+        edge case, and potential failure to ensure comprehensive auditing, using Django ORM.
+        """
+        logger.debug(f"Searching topics with query, logging every detail: {query}")
+        if not isinstance(query, str):
+            logger.error(f"Invalid query type detected with exhaustive logging: {type(query)}. Expected str, triggering a critical type safety failure")
+            raise ValueError("Query must be a string, ensuring strict type enforcement across the system")
+        if not query:
+            logger.warning("Empty query provided for topic search, logging this critical issue with extreme granularity and returning an empty result set")
+            return []
+
+        try:
+            qs = Topic.objects.filter(Q(name__icontains=query))
+            results = list(qs.values("name"))
+            logger.debug(f"Topic search results retrieved with obsessive precision for query '{query}': {json.dumps(results, indent=4)}")
+            return results
+        except Exception as e:
+            logger.error(f"Error searching topics with an absurdly detailed error report for query '{query}': {str(e)}", exc_info=True)
+            raise
+
+    def search_learning_objectives(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the LearningObjective model with an excessively meticulous search process, logging every operation,
+        validation, and potential failure to ensure exhaustive auditing, using Django ORM.
+        """
+        logger.debug(f"Searching learning objectives with query, logging every nuance: {query}")
+        if not isinstance(query, str):
+            logger.error(f"Invalid query type detected with exhaustive logging: {type(query)}. Expected str, triggering a critical type safety failure")
+            raise ValueError("Query must be a string, ensuring strict type safety across the system")
+        if not query:
+            logger.warning("Empty query provided for learning objective search, logging this critical issue with extreme granularity and returning an empty result set")
+            return []
+
+        try:
+            qs = LearningObjective.objects.filter(Q(description__icontains=query))
+            results = list(qs.values("description"))
+            logger.debug(f"Learning objective search results retrieved with obsessive precision for query '{query}': {json.dumps(results, indent=4)}")
+            return results
+        except Exception as e:
+            logger.error(f"Error searching learning objectives with an absurdly detailed error report for query '{query}': {str(e)}", exc_info=True)
+            raise
+
+    def search_subtopics(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the Subtopic model with an excessively detailed search process, logging every operation,
+        edge case, and potential failure to ensure comprehensive auditing, using Django ORM.
+        """
+        logger.debug(f"Searching subtopics with query, logging every detail: {query}")
+        if not isinstance(query, str):
+            logger.error(f"Invalid query type detected with exhaustive logging: {type(query)}. Expected str, triggering a critical type safety failure")
+            raise ValueError("Query must be a string, ensuring strict type enforcement across the system")
+        if not query:
+            logger.warning("Empty query provided for subtopic search, logging this critical issue with extreme granularity and returning an empty result set")
+            return []
+
+        try:
+            qs = Subtopic.objects.filter(Q(name__icontains=query))
+            results = list(qs.values("name"))
+            logger.debug(f"Subtopic search results retrieved with obsessive precision for query '{query}': {json.dumps(results, indent=4)}")
+            return results
+        except Exception as e:
+            logger.error(f"Error searching subtopics with an absurdly detailed error report for query '{query}': {str(e)}", exc_info=True)
+            raise
+
+    def search_enrollments(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the Enrollment model with an excessively meticulous search process, logging every operation,
+        validation, and potential failure to ensure exhaustive auditing, using Django ORM.
+        """
+        logger.debug(f"Searching enrollments with query, logging every nuance: {query}")
+        if not isinstance(query, str):
+            logger.error(f"Invalid query type detected with exhaustive logging: {type(query)}. Expected str, triggering a critical type safety failure")
+            raise ValueError("Query must be a string, ensuring strict type safety across the system")
+        if not query:
+            logger.warning("Empty query provided for enrollment search, logging this critical issue with extreme granularity and returning an empty result set")
+            return []
+
+        try:
+            qs = Enrollment.objects.filter(Q(status__icontains=query))
+            results = list(qs.values("status", "enrollment_date"))
+            logger.debug(f"Enrollment search results retrieved with obsessive precision for query '{query}': {json.dumps(results, indent=4)}")
+            return results
+        except Exception as e:
+            logger.error(f"Error searching enrollments with an absurdly detailed error report for query '{query}': {str(e)}", exc_info=True)
+            raise
+
+    def search_assessment_items(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Query the AssessmentItem model with an excessively detailed search process, logging every operation,
+        edge case, and potential failure to ensure comprehensive auditing, using Django ORM.
+        """
+        logger.debug(f"Searching assessment items with query, logging every detail: {query}")
+        if not isinstance(query, str):
+            logger.error(f"Invalid query type detected with exhaustive logging: {type(query)}. Expected str, triggering a critical type safety failure")
+            raise ValueError("Query must be a string, ensuring strict type enforcement across the system")
+        if not query:
+            logger.warning("Empty query provided for assessment item search, logging this critical issue with extreme granularity and returning an empty result set")
+            return []
+
+        try:
+            qs = AssessmentItem.objects.filter(Q(title__icontains=query))
+            results = list(qs.values("title", "status", "due_date"))
+            logger.debug(f"Assessment item search results retrieved with obsessive precision for query '{query}': {json.dumps(results, indent=4)}")
+            return results
+        except Exception as e:
+            logger.error(f"Error searching assessment items with an absurdly detailed error report for query '{query}': {str(e)}", exc_info=True)
+            raise
+
+    def extended_comprehensive_search(self, query: str) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Perform an extended comprehensive search across all university models with an absurdly detailed process,
+        logging every query, result, and potential failure to ensure exhaustive auditing and troubleshooting,
+        using Django ORM for precision and reliability.
+        """
+        logger.debug(f"Performing extended comprehensive search with query, logging every nuance: {query}")
+        if not isinstance(query, str):
+            logger.error(f"Invalid query type detected with exhaustive logging: {type(query)}. Expected str, triggering a critical type safety failure")
+            raise ValueError("Query must be a string, ensuring strict type safety across the system")
+        if not query:
+            logger.warning("Empty query provided for extended comprehensive search, logging this critical issue with extreme granularity and returning an empty result set")
+            return {
+                "courses": [],
+                "students": [],
+                "teaching_units": [],
+                "topics": [],
+                "learning_objectives": [],
+                "subtopics": [],
+                "enrollments": [],
+                "assessment_items": [],
+            }
+
+        try:
+            results = {
+                "courses": self.search_courses(query),
+                "students": self.search_students(query),
+                "teaching_units": self.search_teaching_units(query),
+                "topics": self.search_topics(query),
+                "learning_objectives": self.search_learning_objectives(query),
+                "subtopics": self.search_subtopics(query),
+                "enrollments": self.search_enrollments(query),
+                "assessment_items": self.search_assessment_items(query),
+            }
+            logger.debug(f"Extended comprehensive search results retrieved with obsessive precision for query '{query}': {json.dumps(results, indent=4)}")
+            return results
+        except Exception as e:
+            logger.error(f"Error performing extended comprehensive search with an absurdly detailed error report for query '{query}': {str(e)}", exc_info=True)
+            raise
+
+    def comprehensive_search(self, query: str) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Perform a comprehensive search across courses and students with an excessively meticulous process,
+        logging every operation, validation, and potential failure to ensure exhaustive auditing, using Django ORM.
+        """
+        logger.debug(f"Performing comprehensive search with query, logging every detail: {query}")
+        if not isinstance(query, str):
+            logger.error(f"Invalid query type detected with exhaustive logging: {type(query)}. Expected str, triggering a critical type safety failure")
+            raise ValueError("Query must be a string, ensuring strict type enforcement across the system")
+        if not query:
+            logger.warning("Empty query provided for comprehensive search, logging this critical issue with extreme granularity and returning an empty result set")
+            return {"courses": [], "students": []}
+
+        try:
+            results = {
+                "courses": self.search_courses(query),
+                "students": self.search_students(query)
+            }
+            logger.debug(f"Comprehensive search results retrieved with obsessive precision for query '{query}': {json.dumps(results, indent=4)}")
+            return results
+        except Exception as e:
+            logger.error(f"Error performing comprehensive search with an absurdly detailed error report for query '{query}': {str(e)}", exc_info=True)
+            raise
+
+    def extract_channel_id_from_messages(self, messages: List[Dict[str, str]]) -> Optional[str]:
+        """
+        Extract the channel_id from the messages with an absurdly detailed process, using a hardcoded JMESPath
+        (metadata.channelInfo.channelId) to parse JSON data, logging every step, validation, and potential failure
+        with extreme granularity to ensure robust, frontend-agnostic identification, gracefully handling missing data.
+        """
+        logger.debug(f"Extracting channel_id from messages with an extraordinarily verbose approach: {messages}")
+        if not isinstance(messages, list):
+            logger.error(f"Invalid messages type detected with exhaustive logging: {type(messages)}. Expected list, triggering a critical type safety failure")
+            raise ValueError("Messages must be a list, ensuring strict type enforcement across the system")
+        if not messages:
+            logger.warning("Empty messages list provided for channel_id extraction, logging this critical issue with extreme granularity and returning None")
+            return None
+
+        for msg in messages:
+            logger.debug(f"Processing message with obsessive precision: {json.dumps(msg, indent=4)}")
+            if not isinstance(msg, dict):
+                logger.warning(f"Skipping invalid message format with detailed logging: {msg}, ensuring graceful degradation")
+                continue
+            if "metadata" not in msg:
+                logger.debug(f"No metadata found in message with meticulous logging: {msg}, attempting fallback")
+                continue
+
+            try:
+                # Hardcode JMESPath for channelId extraction
+                channel_id = jmespath.search("channelInfo.channelId", msg["metadata"])
+                if channel_id:
+                    logger.debug(f"Extracted channel_id with exhaustive precision using hardcoded JMESPath: {channel_id}")
+                    return channel_id
+                logger.warning("No channelId found using JMESPath, logging this critical issue with extreme granularity and attempting fallback")
+            except Exception as e:
+                logger.warning(f"Failed to parse metadata with JMESPath, logging detailed error with fallback strategy: {str(e)}")
+                continue
+
+            # Fallback: Check for channel or user ID in message
+            if "channel" in msg and "id" in msg["channel"]:
+                channel_id = msg["channel"]["id"]
+                logger.debug(f"Extracted channel_id as fallback with obsessive precision: {channel_id}")
+                return channel_id
+            elif "user" in msg and "id" in msg["user"]:
+                user_id = msg["user"]["id"]
+                logger.debug(f"Extracted user_id as fallback channel_id with meticulous logging: {user_id}")
+                return user_id
+
+        logger.warning("No channel_id or user_id found in messages with an absurdly detailed warning log, returning None for graceful degradation")
+        return None
 
 if __name__ == "__main__":
-    logger.debug("Running UniversitySupportBlueprint.main()")
+    logger.debug("Running UniversitySupportBlueprint.main() with an extraordinarily verbose logging strategy")
     UniversitySupportBlueprint.main()
-    logger.info("UniversitySupportBlueprint.main() executed successfully")
+    logger.info("UniversitySupportBlueprint.main() executed successfully with absurdly detailed precision")

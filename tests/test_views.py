@@ -96,7 +96,7 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.json()["detail"], "Authentication credentials were not provided.")
 
-    @unittest.skip("Temporarily skipping due to URL configuration issues")
+    # @unittest.skip("Temporarily skipping due to URL configuration issues")
     def test_serve_swarm_config_view(self):
         url = reverse('serve_swarm_config')
         response = self.client.get(url)

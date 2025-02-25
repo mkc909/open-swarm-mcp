@@ -49,7 +49,7 @@ class UniversitySupportBlueprint(BlueprintBase):
             "cli_name": "uni",
             "env_vars": ["SQLITE_DB_PATH"],
             "django_modules": {
-                "models": "blueprints.university.models",
+                "models": "blueprints.univety.models",
                 "views": "blueprints.university.views",
                 "urls": "blueprints.university.urls",
                 "serializers": "blueprints.university.serializers"
@@ -1129,7 +1129,7 @@ class UniversitySupportBlueprint(BlueprintBase):
         logger.debug("Starting agent set to TriageAgent with exhaustive precision")
         return agents
 
-def search_courses(self, query: str) -> List[Dict[str, Any]]:
+    def search_courses(self, query: str) -> List[Dict[str, Any]]:
         """
         Query the Course model with an excessively meticulous search process, logging every detail of the query,
         result set, and potential failures to ensure comprehensive tracking and auditing, using Django ORM for precision.

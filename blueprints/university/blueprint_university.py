@@ -67,7 +67,7 @@ class UniversitySupportBlueprint(Blueprint):
     def extract_metadata(self, context_variables: dict, messages: List[Dict[str, Any]]) -> Tuple[str, Optional[str]]:
         """Extract channel_id and user_name with robust fallback."""
         logger.debug(f"Extracting metadata. Context: {json.dumps(context_variables, indent=2) if context_variables else 'None'}")
-        default_channel_id = "default"
+        default_channel_id = None
         default_user_name = None
 
         try:

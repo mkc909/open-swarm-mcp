@@ -103,7 +103,7 @@
     },
     "wolframalpha": {
       "command": "npx",
-      "args": ["-y","github:matthewhand/wolframalpha-llm-mcp"],
+      "args": ["-y","github:Garoth/wolframalpha-llm-mcp"],
       "env": {
         "WOLFRAM_LLM_APP_ID": "${WOLFRAM_LLM_APP_ID}"
       },
@@ -135,7 +135,8 @@
         "github:matthewhand/server-wp-mcp"
       ],
       "env": {
-        "WP_SITES_PATH": "${WP_SITES_PATH}"
+        "WP_SITES_PATH": "${WP_SITES_PATH}",
+        "WP_ALLOW_INSECURE_TLS": "true"
       }
     },
     "mcp-server-reddit": {

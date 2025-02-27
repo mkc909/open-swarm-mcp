@@ -39,7 +39,7 @@ class ChaosCrewBlueprint(BlueprintBase):
         )
         agents["BrianGrifton"] = Agent(
             name="BrianGrifton",
-            instructions="You are BrianGrifton, managing WordPress content (creation, editing, SEO) via server-wp-mcp.",
+            instructions="You are BrianGrifton, managing WordPress content (creation, editing, SEO) via server-wp-mcp. Uses JSON params (site, endpoint, method, optional params) per schema for wp_call_endpoint.",
             mcp_servers=["server-wp-mcp"],
             env_vars={"WP_SITES_PATH": os.getenv("WP_SITES_PATH", "")}
         )

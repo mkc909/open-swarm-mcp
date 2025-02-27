@@ -285,7 +285,8 @@ class UniversitySupportBlueprint(Blueprint):
             "with their name (slackUser.userName) if available at the start of your response. Use all available content below "
             "to provide comprehensive answers. For queries about 'learning objectives' or 'objectives', include the specific "
             "learning objectives listed below. If any section lacks content, leverage the other sections to ensure a helpful "
-            "response."
+            "response.  Avoid using contractions in your responses for a professional tone.  Respond using full words without contractions. "
+            "For example, use \"do not\" instead of \"don't\", \"cannot\" instead of \"can't\", and \"will not\" instead of \"won't\"."
         )
         logger.debug("Base instructions defined")
 

@@ -11,6 +11,7 @@ import json
 import jmespath
 from typing import Dict, Any, List
 
+from django.core.exceptions import ObjectDoesNotExist
 from swarm.types import Agent
 from swarm.extensions.blueprint import BlueprintBase
 
@@ -20,6 +21,7 @@ from blueprints.university.model_queries import (
     search_learning_objectives, search_subtopics, search_enrollments,
     search_assessment_items, extended_comprehensive_search, comprehensive_search
 )
+from blueprints.university.models import Topic, LearningObjective, Subtopic, Course, TeachingUnit
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -100,23 +102,116 @@ class UniversitySupportBlueprint(BlueprintBase):
         return channel_id, user_name
 
     def get_teaching_prompt(self, channel_id: str) -> str:
-        """Fetch teaching prompt for a channel ID from the SQLite database, with graceful failure and a note if missing."""
+        """
+        Fetch teaching prompt for a channel ID from the SQLite database.
+        If no specific prompt is found, returns a default prompt.
+        """
         logger.debug(f"Fetching teaching prompt for channel_id: {channel_id}")
+
         if not channel_id or not isinstance(channel_id, str):
-            logger.warning("Invalid channel_id provided, using default prompt with note")
-            return "Provide foundational academic guidance. (Your teaching unit prompt is missing; please inform your teacher that the configuration is incomplete.)"
+            logger.warning("Invalid channel_id provided, attempting to retrieve teaching unit with null channel_id.")
+            channel_id = None  # Set channel_id to None to match null in database
+
+        all_prompts = []
 
         try:
             units = search_teaching_units(channel_id)
-            if not units or not isinstance(units, list) or not units[0].get("teaching_prompt"):
-                logger.debug(f"No valid teaching units found for channel_id: {channel_id}, using default with note")
+            if not units or not isinstance(units, list):
+                logger.debug(f"No valid teaching units found for channel_id: {channel_id}, attempting to find teaching unit with null channel_id.")
+                units = search_teaching_units(None)
+                if not units or not isinstance(units, list):
+                    return "Provide foundational academic guidance. (Your teaching unit prompt is missing; please inform your teacher that the configuration is incomplete.)"
+
+            for unit in units:
+                prompt = unit.get("teaching_prompt")
+                if prompt:
+                    all_prompts.append(f"- **Teaching Unit ({unit['name']}):** {prompt}")
+            if not all_prompts:
                 return "Provide foundational academic guidance. (Your teaching unit prompt is missing; please inform your teacher that the configuration is incomplete.)"
-            prompt = units[0]["teaching_prompt"]
+
+            teaching_unit_ids = [unit['id'] for unit in units]
+            related_topics = Topic.objects.filter(teaching_unit__id__in=teaching_unit_ids)
+            related_learning_objectives = LearningObjective.objects.filter(topic__in=related_topics)
+            learning_objectives_text = [
+                f"  - **Learning Objective:** {objective.description}"
+                for objective in related_learning_objectives
+            ]
+            all_prompts.extend(["\n**The related Learning objectives are:**"] + learning_objectives_text)
+            prompt = "\n".join(all_prompts)
             logger.debug(f"Teaching prompt retrieved: {prompt}")
             return prompt
         except Exception as e:
             logger.error(f"Failed to fetch teaching prompt for channel_id {channel_id}: {str(e)}", exc_info=True)
             return "Provide foundational academic guidance. (Your teaching unit prompt is missing; please inform your teacher that the configuration is incomplete.)"
+
+    def get_related_prompts(self, channel_id: str) -> str:
+        """
+        Retrieves and formats all related prompts for courses, topics, subtopics, and learning objectives.
+        It searches based on the given channel_id. If no channel_id or an invalid channel_id is provided,
+        it will search for TeachingUnits with a null channel_id.
+        """
+        logger.debug(f"Fetching related prompts for channel_id: {channel_id}")
+        try:
+            if not channel_id or not isinstance(channel_id, str):
+                logger.warning(
+                    f"Invalid channel_id: {channel_id}. Attempting to fetch related prompts for teaching unit with channel_id null.")
+                teaching_units = search_teaching_units(None)  # Retrieve teaching units with null channel_id
+            else:
+                teaching_units = search_teaching_units(channel_id)
+
+            if not teaching_units:
+                logger.warning(f"No teaching units found for channel_id: {channel_id}. Attempting to find teaching unit with null channel_id.")
+                teaching_units = search_teaching_units(None)
+                if not teaching_units:
+                    logger.warning(f"No teaching units found for channel_id: {channel_id} or with channel_id null.")
+                    return "No related information found."
+
+            all_prompts = []
+            for teaching_unit in teaching_units:
+                teaching_unit_id = teaching_unit["id"]
+
+                # Get related topics
+                related_topics = Topic.objects.filter(teaching_unit__id=teaching_unit_id)
+                topics_prompts = [
+                    f"- **Topic: {topic.name}**: {topic.teaching_prompt}"
+                    for topic in related_topics if topic.teaching_prompt
+                ]
+                all_prompts.extend(topics_prompts)
+
+                # Get related subtopics
+                related_subtopics = Subtopic.objects.filter(topic__in=related_topics)
+                subtopics_prompts = [
+                    f"  - **Subtopic: {subtopic.name}**: {subtopic.teaching_prompt}"
+                    for subtopic in related_subtopics if subtopic.teaching_prompt
+                ]
+                all_prompts.extend(subtopics_prompts)
+
+                # Get related courses
+                related_courses = Course.objects.filter(teaching_units__id=teaching_unit_id)
+                courses_prompts = [
+                    f"- **Course: {course.name}**: {course.teaching_prompt}"
+                    for course in related_courses if course.teaching_prompt
+                ]
+                all_prompts.extend(courses_prompts)
+
+                # Get related learning objectives
+                related_learning_objectives = LearningObjective.objects.filter(topic__in=related_topics)
+                learning_objectives_text = [
+                    f"  - **Learning Objective:** {objective.description}"
+                    for objective in related_learning_objectives
+                ]
+                all_prompts.extend(learning_objectives_text)
+
+            if not all_prompts:
+                return "No related prompts found."
+            # Format the related prompts for instruction
+            formatted_prompts = "\n".join(all_prompts)
+            logger.debug(f"Related prompts retrieved: {formatted_prompts}")
+
+            return formatted_prompts
+        except Exception as e:
+            logger.error(f"Failed to fetch related prompts for channel_id {channel_id}: {str(e)}", exc_info=True)
+            return "Failed to retrieve related information."
 
     def create_agents(self) -> Dict[str, Agent]:
         """Create agents with dynamic instructions and tools for university support."""
@@ -139,11 +234,11 @@ class UniversitySupportBlueprint(BlueprintBase):
 
         # Base instructions for all agents
         base_instructions = (
-            "The learning objectives are preloaded in the message history from the 'get_channel_info' tool response "
-            "under 'channelContent.content'. For queries about 'learning objectives' or 'objectives', respond with: "
-            "'The learning objectives are:\n\n' followed by the full text from 'channelContent.content'. If no such response "
-            "exists, say 'I couldn’t find specific objectives, but here’s a starting point...' and provide a default like "
-            "'Understand key concepts and apply knowledge effectively.'"
+            "Use unit channel content, including learning objectives - retrieved dynamically from the database "
+            "based on the current channel ID. For queries about 'learning objectives' or 'objectives', respond with: "
+            "'The unit channel content includes the following learning objectives:\n\n' followed by the relevant "
+            "learning objectives from the teaching prompt. If no specific objectives are found, say "
+            "'I couldn’t find specific unit channel content'"
         )
 
         triage_instructions = (
@@ -158,7 +253,8 @@ class UniversitySupportBlueprint(BlueprintBase):
             name="TriageAgent",
             instructions=lambda context: (
                 f"{triage_instructions}\n{base_instructions}\n"
-                f"Teaching Prompt: {self.get_teaching_prompt(context.get('channel_id', 'default'))}"
+                f"Teaching Prompt: {self.get_teaching_prompt(context.get('channel_id', 'default'))}\n"
+                f"Related Prompts:\n{self.get_related_prompts(context.get('channel_id', 'default'))}"
             ),
             functions=[
                 handoff_to_support,
@@ -178,7 +274,8 @@ class UniversitySupportBlueprint(BlueprintBase):
             name="SupportAgent",
             instructions=lambda context: (
                 f"{support_instructions}\n{base_instructions}\n"
-                f"Teaching Prompt: {self.get_teaching_prompt(context.get('channel_id', 'default'))}"
+                f"Teaching Prompt: {self.get_teaching_prompt(context.get('channel_id', 'default'))}\n"
+                f"Related Prompts:\n{self.get_related_prompts(context.get('channel_id', 'default'))}"
             ),
             functions=[
                 handoff_to_triage,
@@ -202,12 +299,12 @@ class UniversitySupportBlueprint(BlueprintBase):
             name="LearningAgent",
             instructions=lambda context: (
                 f"{learning_instructions}\n{base_instructions}\n"
-                f"Teaching Prompt: {self.get_teaching_prompt(context.get('channel_id', 'default'))}"
+                f"Teaching Prompt: {self.get_teaching_prompt(context.get('channel_id', 'default'))}\n"
+                f"Related Prompts:\n{self.get_related_prompts(context.get('channel_id', 'default'))}"
             ),
             functions=[
                 handoff_to_triage,
                 handoff_to_support,
-                self.get_teaching_prompt,
                 search_learning_objectives,
                 search_topics,
                 search_subtopics,

@@ -6,7 +6,7 @@ from blueprints.university.models import (
 class TeachingUnitSerializer(serializers.ModelSerializer):
     class Meta:
         model = TeachingUnit
-        fields = ['id', 'code', 'name', 'teaching_prompt']
+        fields = ['id', 'code', 'name', 'teaching_prompt', 'channel_id']
 
 class TopicSerializer(serializers.ModelSerializer):
     class Meta:

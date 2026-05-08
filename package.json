@@ -2,5 +2,10 @@
   "dependencies": {
     "@azure/identity": "^4.5.0",
     "@azure/keyvault-secrets": "^4.9.0"
+  },
+  "scripts": {
+    "tickets:sync": "node C:/Users/mike/.tickets/scripts/sync.js",
+    "tickets:create": "node C:/Users/mike/.tickets/scripts/create.js",
+    "tickets:status": "node C:/Users/mike/.tickets/scripts/status.js"
   }
 }

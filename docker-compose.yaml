@@ -1,0 +1,28 @@
+services:
+  open-swarm:
+    image: mhand79/open-swarm:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: open-swarm
+    environment:
+      - OPENAI_API_KEY
+      - PORT=${PORT:-8000}
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    env_file:
+      - .env
+    volumes:
+      - ./sql-data/:/mnt/sqlite_data/
+      - ./blueprints:/app/blueprints
+      - ./swarm_config.json:/app/swarm_config.json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    restart: unless-stopped

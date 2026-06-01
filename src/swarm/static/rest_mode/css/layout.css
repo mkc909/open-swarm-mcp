@@ -1,0 +1,140 @@
+
+
+.chat-history-pane {
+    flex: 0 0 33%; /* Fixed width at 33%, cannot grow or shrink */
+    background-color: var(--bg-chat-history-pane);
+    padding: 15px;
+    overflow-y: auto; /* Vertical scrolling for contents */
+}
+
+.main-pane {
+    flex: 1; /* Take up remaining space */
+    background-color: var(--bg-primary);
+    padding: 20px;
+    overflow: hidden;
+}
+
+/* Top Bar Styling */
+.top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%; /* Full width */
+    height: 80%;
+    background-color: var(--bg-container);
+    border-bottom: 1px solid var(--border-color);
+    align-items: center; /* Center items vertically */
+    padding: 0 10px;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    visibility: hidden;
+}
+
+/* Left Section: Logo and Buttons */
+.top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Spacing between items */
+}
+
+/* Blueprint Metadata Centered */
+.blueprint-metadata {
+    flex: 1; /* Take remaining space */
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+/* Right Section: Settings Button */
+.top-bar-right {
+    margin-left: auto; /* Push to the far right */
+    display: flex;
+    align-items: center;
+}
+
+/* Buttons in the Top Bar */
+.top-bar-btn {
+    background: none;
+    border: none;
+    display: flex; /* Flexbox for icon and label */
+    align-items: center;
+    gap: 5px; /* Spacing between icon and label */
+    padding: 5px 10px; /* Padding for clickable area */
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text-color);
+    text-decoration: none; /* No underline */
+    white-space: nowrap; /* Prevent wrapping */
+    flex-shrink: 0; /* Prevent shrinking */
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.top-bar-btn img {
+    width: 24px; /* Icon size */
+    height: 24px;
+    flex-shrink: 0; /* Prevent icon shrinking */
+}
+
+.top-bar-btn:hover {
+    background-color: var(--button-hover-bg); /* Add hover effect */
+}
+
+.top-bar-btn .btn-label {
+    display: inline-block; /* Ensure text remains inline */
+    white-space: nowrap; /* Prevent wrapping */
+    visibility: visible; /* Ensure text is visible */
+}
+
+/* Main Chat Pane */
+.main-pane {
+    flex: 1;
+    display: flex; /* Flex container for messages and input */
+    flex-direction: column;
+    overflow: hidden; /* Prevent overflow issues */
+    /* padding: 10px; */
+    box-sizing: border-box;
+}
+
+
+/* Message Input Area */
+.message-input-container {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Gap between buttons */
+    /* padding: 10px; */
+    background-color: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+}
+
+/* Vertical Divider for Resizing */
+.vertical-divider {
+    width: 10px;
+    cursor: col-resize;
+    background-color: var(--border-color);
+    opacity: 0; /* Fully transparent */
+    transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.vertical-divider:hover {
+    opacity: 1; /* Fully visible on hover */
+    background-color: var(--button-hover-bg);
+}
+
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+
+    .message-input-container {
+        flex-direction: column; /* Stack inputs vertically on small screens */
+        gap: 5px; /* Reduce spacing */
+    }
+}
+.hidden {
+    display: none !important;
+}
+
+.visible {
+    display: block;
+}

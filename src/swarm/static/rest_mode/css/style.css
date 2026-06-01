@@ -1,0 +1,75 @@
+/* style.css - Shared Styles and Modular Imports */
+
+/* Modular Imports */
+@import './layout.css';
+@import './theme.css';
+@import './toast.css';
+
+/* Base Styles */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    /* line-height: 1.6; */
+    border-style: solid;
+    border-width: 0 0 0 0;
+    background-color: var(--bg-primary);
+    box-sizing: border-box;
+    margin: 0 0 0 0;
+    color: var(--text-primary);
+    height: 100vh;
+    /* display: flex; */
+    justify-content: center;
+    align-items: center;
+    transition: background-color var(--transition-duration), color var(--transition-duration);
+    /* overflow-x: visible; */
+    /* overflow-y: visible; */
+}
+
+
+/* Sidebar Reveal Buttons */
+.sidebar-reveal-btn {
+    position: absolute;
+    top: 20px;
+    z-index: 1000;
+    background-color: var(--button-primary);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: background-color var(--transition-duration) ease;
+    font-size: 1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Toast Container */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Logo Styling */
+.chat-logo {
+    width: 90px; /* Fixed size */
+    height: 90px;
+    display: block;
+    margin: 0 auto; /* Center the logo */
+}
+
+.logo-container {
+    text-align: center; /* Center the container */
+    margin: 20px auto; /* Add vertical spacing */
+}

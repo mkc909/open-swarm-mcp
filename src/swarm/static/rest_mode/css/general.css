@@ -1,0 +1,142 @@
+/* General Utility Classes */
+.hidden {
+    display: none !important; /* Fully removes from layout and ensures priority */
+    visibility: hidden;
+    pointer-events: none; /* Prevent interaction when hidden */
+}
+
+.visible {
+    display: block !important; /* Forces visibility when needed */
+}
+
+/* Flex Utilities */
+.flex {
+    display: flex;
+}
+
+.flex-row {
+    flex-direction: row;
+}
+
+.flex-column {
+    flex-direction: column;
+}
+
+.justify-start {
+    justify-content: flex-start;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.justify-end {
+    justify-content: flex-end;
+}
+
+.align-start {
+    align-items: flex-start;
+}
+
+.align-center {
+    align-items: center;
+}
+
+.align-end {
+    align-items: flex-end;
+}
+
+/* Text Utilities */
+.text-center {
+    text-align: center;
+}
+
+.text-bold {
+    font-weight: bold;
+}
+
+.text-italic {
+    font-style: italic;
+}
+
+/* Margin and Padding Utilities */
+.margin-auto {
+    margin: auto;
+}
+
+.padding-sm {
+    padding: 5px;
+}
+
+.padding-md {
+    padding: 10px;
+}
+
+.padding-lg {
+    padding: 20px;
+}
+
+/* Border and Background */
+.border-rounded {
+    border-radius: 8px;
+}
+
+.border-solid {
+    border: 1px solid var(--border-color, #ccc);
+}
+
+.bg-primary {
+    background-color: var(--bg-primary, #f5f5f5);
+}
+
+.bg-secondary {
+    background-color: var(--bg-secondary, #e0e0e0);
+}
+
+.bg-dark {
+    background-color: var(--bg-dark, #333333);
+}
+
+.bg-light {
+    background-color: var(--bg-light, #ffffff);
+}
+
+/* Transition Effects */
+.transition {
+    transition: all 0.3s ease;
+}
+
+.transition-opacity {
+    transition: opacity 0.3s ease;
+}
+
+.transition-transform {
+    transition: transform 0.3s ease;
+}
+
+/* Scrollbars */
+.scroll-y {
+    overflow-y: auto;
+}
+
+.scroll-x {
+    overflow-x: auto;
+}
+
+.no-scroll {
+    overflow: hidden;
+}
+
+/* Fullscreen Overlay */
+.fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

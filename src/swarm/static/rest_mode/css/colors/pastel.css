@@ -1,0 +1,81 @@
+/* pastel.css - Revised Pastel Color Theme */
+:root {
+    /* Light Mode */
+    --bg-primary: #fafafa; /* Soft White */
+    --bg-container: #f0f8ff; /* Alice Blue */
+    --bg-message-user: #b3e0ff; /* Powder Blue */
+    --bg-message-assistant: #e0ffe0; /* Mint Cream */
+    --bg-message-tool: #ffe0e6; /* Misty Rose */
+    --bg-message-other: #f5f5f5; /* White Smoke */
+    --bg-blueprint: #fff8f0; /* Seashell */
+    --bg-debug: #f8f8f8; /* Snow White */
+    --text-primary: #2c3e50; /* Dark Slate */
+    --text-secondary: #5a6a7f; 
+    --border-color: #d1e0e0; /* Pale Teal */
+    --button-primary: #89c4f4; /* Soft Sky Blue */
+    --button-hover: #6aa8d6;
+    --button-pane-bg: #e0f0ff;
+    --button-pane-hover-bg: #cce6ff;
+    --button-header-bg: #a8d8ff;
+    --button-header-hover-bg: #95c4eb;
+    --logout-button-bg: #ffb3d9; /* Pastel Pink */
+    --logout-button-hover: #ff99cc;
+    --logo-color: #89c4f4;
+    --transition-duration: 0.3s;
+  }
+  
+  [data-theme-dark="true"] {
+    /* Dark Mode */
+    --bg-primary: #1a1f2b; /* Night Blue */
+    --bg-container: #252d3d;
+    --bg-message-user: #3a4b5f; /* Dusky Blue */
+    --bg-message-assistant: #2d3d2d; /* Forest Night */
+    --bg-message-tool: #3d2d2d; /* Maroon Night */
+    --bg-message-other: #2d2d3d; /* Twilight */
+    --bg-blueprint: #1f2833;
+    --bg-debug: #1a212b;
+    --text-primary: #e0f2fe; /* Moonlight */
+    --text-secondary: #b3cde0;
+    --border-color: #3d4b5f;
+    --button-primary: #6d9ceb; /* Twilight Blue */
+    --button-hover: #5b87c9;
+    --logout-button-bg: #eb6d9c; /* Dusky Pink */
+    --logout-button-hover: #d95b8a;
+    --logo-color: #6d9ceb;
+  }
+  
+  /* Enhanced Message Styling */
+  .message {
+      border-radius: 18px;
+      padding: 12px 18px;
+      margin-bottom: 12px;
+      max-width: 75%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      border: 1px solid var(--border-color);
+  }
+  
+  .message.user {
+      background-color: var(--bg-message-user);
+      align-self: flex-end;
+  }
+  
+  .message.assistant {
+      background-color: var(--bg-message-assistant);
+      align-self: flex-start;
+  }
+  
+  /* Updated Pinned Messages */
+  .pinned-message {
+      background-color: var(--bg-container);
+      border: 1px dashed var(--border-color);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+  
+  .pinned-message .remove-pinned-button {
+      color: #ff6b6b; /* Pastel Red */
+  }
+  
+  .pinned-message .remove-pinned-button:hover {
+      color: #ff5252;
+  }
+  

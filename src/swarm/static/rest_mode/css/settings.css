@@ -1,0 +1,91 @@
+/* Full-Screen Settings Pane */
+.settings-dialog {
+    position: fixed;
+    top: 10%; /* Leave 10% margin from the top */
+    left: 10%; /* Leave 10% margin from the left */
+    width: 80%; /* Take up 80% of the viewport width */
+    height: 80%; /* Take up 80% of the viewport height */
+    background-color: var(--bg-primary); /* Match app's primary background color */
+    border-radius: 8px; /* Slightly rounded corners */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Subtle shadow for pop-out effect */
+    z-index: 1000; /* Higher than other elements */
+    overflow-y: auto; /* Scroll if content overflows */
+    padding: 20px;
+    display: none; /* Initially hidden */
+}
+
+/* Visible settings pane */
+.settings-pane.visible {
+    display: block; /* Make visible when toggled */
+}
+
+/* Overlay to dim the background */
+.settings-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw; /* Full viewport width */
+    height: 100vh; /* Full viewport height */
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
+    z-index: 999; /* Just below the settings pane */
+    display: none; /* Initially hidden */
+}
+
+/* Show overlay when settings are active */
+.settings-overlay.visible {
+    display: block;
+}
+
+/* Shaded Container for Settings Sections */
+.settings-container-section {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-primary, #ccc);
+}
+
+/* Collapsible Sections */
+.collapsible-toggle {
+    cursor: pointer;
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.collapsible-content.hidden {
+    display: none;
+}
+
+/* Inline Toggle Alignment */
+.toggle-title, .nested-toggle {
+    display: flex;
+    align-items: center; /* Align items vertically */
+    justify-content: space-between; /* Push toggle to the right */
+    padding: 5px 0; /* Add vertical spacing */
+}
+
+.toggle-title label, .nested-toggle label {
+    font-weight: bold;
+    color: var(--text-primary, #333); /* Default text color */
+    flex: 1; /* Take up available space */
+    margin-right: 10px; /* Add space between label and toggle */
+}
+
+/* SVG Toggles */
+.svg-toggle {
+    width: 40px; /* Adjust toggle size */
+    height: 20px;
+    cursor: pointer;
+}
+
+.svg-toggle img {
+    width: 100%;
+    height: auto;
+}
+
+.svg-toggle.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}

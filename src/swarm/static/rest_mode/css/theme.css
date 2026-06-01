@@ -1,0 +1,30 @@
+/* theme.css - Theme Variables and Colors */
+
+/* Light Mode Variables */
+:root {
+    --bg-primary: #ffffff;
+    --bg-container: #f0f8ff;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --border-color: #d3d3d3;
+    --button-primary: #87cefa;
+    --button-hover: #00bfff;
+    --bg-hover: #e6f7ff; /* Light hover for messages */
+    --bg-message-other: #f9f9f9; /* Subtle contrast for message toolbars */
+    --transition-duration: 0.3s;
+
+    --icon-size: 1.5rem; /* Shared size for SVG icons */
+}
+
+/* Dark Mode Variables */
+[data-theme-dark="true"] {
+    --bg-primary: #1a1a1a;
+    --bg-container: #2a2a2a;
+    --text-primary: #f0f0f0;
+    --text-secondary: #bbbbbb;
+    --border-color: #555555;
+    --button-primary: #00bfff;
+    --button-hover: #87cefa;
+    --bg-hover: #333333; /* Dark hover for messages */
+    --bg-message-other: #444444; /* Subtle contrast for message toolbars */
+}

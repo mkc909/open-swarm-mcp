@@ -1,0 +1,17 @@
+/* Updated messenger-layout.css */
+
+/* Chat Pane */
+.chat-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: row; /* Ensure horizontal layout */
+    /* border: 2px dashed orange; */
+}
+
+/* Form Container */
+.form-container {
+    display: flex;
+    align-items: center;
+    /* border-top: 2px dashed magenta; */
+}
+

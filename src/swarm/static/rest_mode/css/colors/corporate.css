@@ -1,0 +1,74 @@
+/* corporate.css - Revised Corporate Color Theme */
+:root {
+    /* Light Mode */
+    --bg-primary: #f8f9fa;
+    --bg-container: #ffffff;
+    --bg-message-user: #e9ecef;
+    --bg-message-assistant: #dee2e6;
+    --bg-message-tool: #f1f3f5;
+    --bg-message-other: #e9ecef;
+    --bg-blueprint: #ffffff;
+    --bg-debug: #f8f9fa;
+    --bg-chat-history-header: #6c757d;
+    --bg-chat-history-pane: #e9ecef;
+    --text-primary: #212529;
+    --text-secondary: #495057;
+    --border-color: #ced4da;
+    --button-primary: #2b8ce6; /* More vibrant primary color */
+    --button-hover: #1a6eb8;
+    --button-pane-bg: #e9ecef;
+    --button-pane-hover-bg: #dee2e6;
+    --button-header-bg: #ffffff;
+    --button-header-hover-bg: #e9ecef;
+    --logout-button-bg: #e9ecef;
+    --logout-button-hover: #dee2e6;
+    --logo-color: #2b8ce6;
+    --transition-duration: 0.3s;
+}
+
+[data-theme-dark="true"] {
+    /* Dark Mode */
+    --bg-primary: #1a1a1a;
+    --bg-container: #2d2d2d;
+    --bg-message-user: #404040;
+    --bg-message-assistant: #4d4d4d;
+    --bg-message-tool: #333333;
+    --bg-message-other: #404040;
+    --bg-blueprint: #2d2d2d;
+    --bg-debug: #1a1a1a;
+    --bg-chat-history-pane: #262626;
+    --text-primary: #f8f9fa;
+    --text-secondary: #dee2e6;
+    --border-color: #495057;
+    --button-primary: #4a9eff; /* Brighter blue for better visibility */
+    --button-hover: #357abd;
+    --logout-button-bg: #404040;
+    --logout-button-hover: #4d4d4d;
+    --logo-color: #4a9eff;
+}
+
+/* Message Styling Updates */
+.message.user {
+    background-color: var(--bg-message-user);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.message.assistant {
+    background-color: var(--bg-message-assistant);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.pinned-message {
+    border-color: var(--border-color);
+    background-color: var(--bg-container);
+}
+
+.pinned-message .remove-pinned-button {
+    color: #dc3545;
+}
+
+.pinned-message .remove-pinned-button:hover {
+    color: #ff1a1a;
+}

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open-Swarm</title>
+    <link href="{% static 'css/rest_mode_style.css' %}" rel="stylesheet">
+    <link href="{% static 'css/dropdown.css' %}" rel="stylesheet">
+    <script src="{% static 'js/htmx.min.js' %}"></script>
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <a href="https://github.com/matthewhand/open-swarm" target="_blank">Open-Swarm</a>
+        </nav>
+    </header>
+    <main>
+        <div class="dropdown" hx-get="/v1/models" hx-trigger="click" hx-target="#blueprintDropdown" hx-swap="innerHTML">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton">
+                Select a Blueprint
+            </button>
+            <div class="dropdown-menu" id="blueprintDropdown">
+                <p class="dropdown-item disabled"></p>
+            </div>
+        </div>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

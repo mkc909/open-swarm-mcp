@@ -1,0 +1,44 @@
+# fly.toml app configuration file generated for open-swarm on 2025-01-17T22:46:58Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'open-swarm'
+primary_region = 'syd'
+
+[build]
+  image = 'mhand79/open-swarm'
+
+[env]
+  PORT = '8000'
+  SWAPFILE_PATH = "/mnt/sqlite_data/swapfile" 
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 1
+  max_machines_running = 1 
+  processes = ['app']
+
+[[http_service.checks]]
+grace_period = "120s"  # Wait 120s after machine starts
+interval = "30s"       # Check every 30s
+timeout = "15s"        # Double default timeout to 15 seconds
+method = "GET"
+path = "/health"       # Your healthcheck endpoint
+
+[deploy]
+wait_timeout = "20m"    # Increase from default 5m
+release_command_timeout = "10m"  # For DB migrations/pre-deploy tasks
+
+[[vm]]
+  memory = '256mb'
+  cpu_kind = 'shared'
+  cpus = 1
+
+[mounts]
+  source="sqlite_data"
+  destination="/mnt/sqlite_data"
+

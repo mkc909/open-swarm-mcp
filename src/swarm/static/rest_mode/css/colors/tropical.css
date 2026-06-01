@@ -1,0 +1,82 @@
+/* tropical.css - Revised Tropical Color Theme */
+:root {
+    /* Light Mode */
+    --bg-primary: #fff7ed; /* Coconut Cream */
+    --bg-container: #ffe4c4; /* Sandy Beach */
+    --bg-message-user: #ffd8a8; /* Papaya Whip */
+    --bg-message-assistant: #d4f1dd; /* Sea Foam */
+    --bg-message-tool: #ffe0f0; /* Hibiscus Pink */
+    --bg-message-other: #f0fff0; /* Palm Frond */
+    --bg-blueprint: #fffaf0; /* White Sand */
+    --bg-debug: #fff5ee; /* Seashell */
+    --text-primary: #2d4738; /* Jungle Green */
+    --text-secondary: #5a6d5a; 
+    --border-color: #c8a27a; /* Driftwood */
+    --button-primary: #38a89d; /* Tropical Teal */
+    --button-hover: #2e897f;
+    --button-pane-bg: #ffe8d6;
+    --button-pane-hover-bg: #ffd8b3;
+    --button-header-bg: #ff9f4b; /* Mango */
+    --button-header-hover-bg: #ff8c31;
+    --logout-button-bg: #ff6b6b; /* Coral */
+    --logout-button-hover: #ff5252;
+    --logo-color: #38a89d;
+    --transition-duration: 0.3s;
+  }
+  
+  [data-theme-dark="true"] {
+    /* Night Mode */
+    --bg-primary: #0a1a2a; /* Midnight Ocean */
+    --bg-container: #1a2b3a;
+    --bg-message-user: #2a3b4a; /* Moonlit Wave */
+    --bg-message-assistant: #1a3a2a; /* Palm Shadow */
+    --bg-message-tool: #3a1a2a; /* Volcanic Soil */
+    --bg-message-other: #2a2a3a; /* Twilight Lagoon */
+    --bg-blueprint: #142a3a;
+    --bg-debug: #0a1a1a;
+    --text-primary: #e0f0ff; /* Moonlight */
+    --text-secondary: #b0c4de;
+    --border-color: #3a4b5a;
+    --button-primary: #4ac6b5; /* Bioluminescent Teal */
+    --button-hover: #38a89d;
+    --logout-button-bg: #ff8c6b; /* Lava Glow */
+    --logout-button-hover: #ff7a52;
+    --logo-color: #4ac6b5;
+  }
+  
+  /* Tropical Message Styling */
+  .message {
+      border-radius: 20px;
+      padding: 12px 18px;
+      margin-bottom: 15px;
+      max-width: 75%;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+      border: 2px solid var(--border-color);
+  }
+  
+  .message.user {
+      background-color: var(--bg-message-user);
+      align-self: flex-end;
+  }
+  
+  .message.assistant {
+      background-color: var(--bg-message-assistant);
+      align-self: flex-start;
+  }
+  
+  /* Island-inspired Pinned Messages */
+  .pinned-message {
+      background-color: var(--bg-container);
+      border: 2px dashed var(--border-color);
+      border-radius: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+  
+  .pinned-message .remove-pinned-button {
+      color: #ff4757; /* Tropical Red */
+  }
+  
+  .pinned-message .remove-pinned-button:hover {
+      color: #ff2d42;
+  }
+  

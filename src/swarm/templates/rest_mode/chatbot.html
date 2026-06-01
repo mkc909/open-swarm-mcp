@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'rest_mode/components/header.html' %}
+
+    <script>
+        // Define a global object to hold static URLs
+        window.STATIC_URLS = {
+            layoutSidebarLeftExpand: "{% static 'contrib/tabler-icons/layout-sidebar-left-expand.svg' %}",
+            layoutSidebarLeftCollapse: "{% static 'contrib/tabler-icons/layout-sidebar-left-collapse.svg' %}",
+            layoutSidebarRightExpand: "{% static 'contrib/tabler-icons/layout-sidebar-right-expand.svg' %}",
+            layoutSidebarRightCollapse: "{% static 'contrib/tabler-icons/layout-sidebar-right-collapse.svg' %}",
+            trashIcon: "{% static 'rest_mode/svg/trash.svg' %}"
+            // Add other static URLs as needed
+        };
+    </script>
+</head>
+<body>
+    <!-- Top Bar -->
+    {% include 'rest_mode/components/top_bar.html' %}
+    {% include 'rest_mode/components/settings_dialog.html' %}
+
+    <!-- Main Layout -->
+    <div class="container" data-theme-color="corporate" data-theme-dark="false" data-theme-layout="minimal-layout">
+        <!-- Left Sidebar -->
+        <div class="side-panes chat-history-pane" id="chatHistoryPane">
+            {% include 'rest_mode/components/chat_sidebar.html' %}
+        </div>
+        
+        <!-- Resizer Divider for Left Sidebar -->
+        <div class="vertical-divider" id="divider-left"></div>
+
+        <!-- Main Content -->
+        <div class="main-pane">
+            {% include 'rest_mode/components/main_chat_pane.html' %}
+        </div>
+        
+        <div id="toastContainer"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="{% static 'contrib/markedjs/marked.min.js' %}"></script> <!-- credit to https://cdn.jsdelivr.net/npm/marked/marked.min.js -->
+    <script type="module" src="{% static 'rest_mode/js/main.js' %}"></script>
+    <script type="module" src="{% static 'rest_mode/js/chatLogic.js' %}" defer></script>
+
+</body>
+</html>
+

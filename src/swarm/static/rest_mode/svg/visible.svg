@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 16 16">
+  <!-- Refined Outer Eye Shape -->
+  <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8z" fill="none" stroke="currentColor" stroke-width="2"/>
+  <!-- Enhanced Iris -->
+  <circle cx="8" cy="8" r="3" fill="currentColor" stroke="none"/>
+  <!-- Sharper Pupil -->
+  <circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none"/>
+</svg>

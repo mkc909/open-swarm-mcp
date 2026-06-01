@@ -1,0 +1,29 @@
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 100 100"
+    class="logo"
+    role="img"
+    aria-label="Open-Swarm Logo"
+>
+    <!-- Circle with dynamic fill -->
+    <circle
+        cx="50"
+        cy="50"
+        r="48"
+        fill="var(--bg-color, black)"
+        stroke="var(--text-color, white)"
+        stroke-width="4"
+    />
+    <!-- Text "OS" -->
+    <text
+        x="50%"
+        y="55%"
+        text-anchor="middle"
+        font-family="Arial, sans-serif"
+        font-size="36"
+        fill="var(--text-color, white)"
+        dy=".3em"
+    >
+        OS
+    </text>
+</svg>
